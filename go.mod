@@ -3,9 +3,9 @@ module h2blog
 go 1.23
 
 require (
-	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.1.3
-	github.com/kolesa-team/go-webp v1.0.4
+	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.2.0
 	github.com/gin-gonic/gin v1.10.0
+	github.com/kolesa-team/go-webp v1.0.4
 	github.com/yuin/goldmark v1.7.8
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.32.0
@@ -43,6 +43,6 @@ require (
 	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
-	golang.org/x/time v0.4.0 // indirect
+	golang.org/x/time v0.9.0 // indirect
 	google.golang.org/protobuf v1.36.2 // indirect
 )
