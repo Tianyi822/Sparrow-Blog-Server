@@ -63,6 +63,20 @@ func GetBlogDto(ctx *gin.Context) (*dto.BlogInfoDto, error) {
 	return blogDto, nil
 }
 
+// GetImgsDto 从请求中获取 ImgsDto 对象
+func GetImgsDto(ctx *gin.Context) (*dto.ImgsDto, error) {
+	// 初始化一个ImgsDto对象
+	imgsDto := &dto.ImgsDto{}
+
+	err := rowDataToDto(ctx, imgsDto)
+	if err != nil {
+		resp.BadRequest(ctx, err.Error(), -1)
+		return nil, err
+	}
+
+	return imgsDto, nil
+}
+
 // RowDataToDto 将请求的参数转换成 DTO
 func rowDataToDto(ctx *gin.Context, dto dto.Dto) error {
 	if ctx.Request.Method != "GET" && ctx.Request.Method != "DELETE" {
