@@ -53,21 +53,40 @@ func (p *ProgressTracker) Unsubscribe(clientID string) {
 
 // UpdateProgress 更新进度
 func (p *ProgressTracker) UpdateProgress(imgDto dto.ImgDto, success bool) {
-	if success {
-		atomic.AddInt32(&p.Success, 1)
-	} else {
-		atomic.AddInt32(&p.Failed, 1)
-	}
+    // 更新计数
+    if success {
+        atomic.AddInt32(&p.Success, 1)
+    } else {
+        atomic.AddInt32(&p.Failed, 1)
+    }
 
-	p.mu.RLock()
-	defer p.mu.RUnlock()
+    // 需要移除的观察者
+    var deadObservers []string
 
-	for _, ch := range p.observers {
-		select {
-		case ch <- imgDto:
-		default:
-		}
-	}
+    p.mu.RLock()
+    // 通知所有观察者
+    for id, ch := range p.observers {
+        select {
+        case ch <- imgDto:
+            // 成功发送
+        default:
+            // channel已满或关闭，标记为需要移除
+            deadObservers = append(deadObservers, id)
+        }
+    }
+    p.mu.RUnlock()
+
+    // 移除无响应的观察者
+    if len(deadObservers) > 0 {
+        p.mu.Lock()
+        for _, id := range deadObservers {
+            if ch, exists := p.observers[id]; exists {
+                close(ch)
+                delete(p.observers, id)
+            }
+        }
+        p.mu.Unlock()
+    }
 }
 
 // GetProgress 获取当前进度
