@@ -3,10 +3,27 @@ package utils
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/blake2b"
 	"h2blog/pkg/config"
 	"h2blog/pkg/logger"
 )
+
+// GenUUID 生成一个随机的 UUID
+func GenUUID() string {
+	return uuid.New().String()
+}
+
+// GenShortUUID 生成一个短 UUID (去掉横线)
+func GenShortUUID() string {
+	return uuid.New().String()[:8]
+}
+
+// IsValidUUID 验证UUID是否有效
+func IsValidUUID(u string) bool {
+	_, err := uuid.Parse(u)
+	return err == nil
+}
 
 // HashWithLength 对输入字符串进行 BLAKE2b-512 哈希，并返回指定长度的十六进制字符串。
 // - input: 原字符串
@@ -45,6 +62,9 @@ const (
 	MarkDown OssFileType = "markdown"
 	HTML     OssFileType = "html"
 	Webp     OssFileType = "webp"
+	JPG      OssFileType = "jpg"
+	JPEG     OssFileType = "jpeg"
+	PNG      OssFileType = "png"
 )
 
 // GenOssSavePath 用于生成博客保存路径
@@ -56,6 +76,12 @@ func GenOssSavePath(name string, fileType OssFileType) string {
 		return fmt.Sprintf("%s%s.html", config.UserConfig.BlogOssPath, name)
 	case Webp:
 		return fmt.Sprintf("%s%s.webp", config.UserConfig.ImageOssPath, name)
+	case JPG:
+		return fmt.Sprintf("%s%s.jpg", config.UserConfig.ImageOssPath, name)
+	case JPEG:
+		return fmt.Sprintf("%s%s.jpeg", config.UserConfig.ImageOssPath, name)
+	case PNG:
+		return fmt.Sprintf("%s%s.png", config.UserConfig.ImageOssPath, name)
 	default:
 		logger.Error("不存在该文件类型")
 		return ""
