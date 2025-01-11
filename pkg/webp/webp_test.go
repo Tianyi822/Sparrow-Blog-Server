@@ -2,9 +2,12 @@ package webp
 
 import (
 	"context"
+	"h2blog/internal/model/dto"
 	"h2blog/pkg/config"
 	"h2blog/pkg/logger"
+	"h2blog/pkg/utils"
 	"h2blog/storage"
+	"strings"
 	"testing"
 	"time"
 )
@@ -32,11 +35,28 @@ func TestConverter(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(files) == 0 {
-		t.Fatal("没有图片文件")
+	imgDtos := make([]dto.ImgDto, 0, len(files))
+	for _, file := range files {
+		imgInfo := strings.Split(file, "/")[1]
+		imgName := strings.Split(imgInfo, ".")[0]
+		imgType := strings.Split(imgInfo, ".")[1]
+		imgDto := dto.ImgDto{
+			ImgName: imgName,
+		}
+		switch imgType {
+		case "jpg":
+			imgDto.ImgType = utils.JPG
+		case "jpeg":
+			imgDto.ImgType = utils.JPEG
+		case "png":
+			imgDto.ImgType = utils.PNG
+		default:
+			continue
+		}
+		imgDtos = append(imgDtos, imgDto)
 	}
 
-	Converter.AddBatchTasks(ctx, files)
+	Converter.AddBatchTasks(ctx, imgDtos)
 
 	time.Sleep(6 * time.Minute)
 }

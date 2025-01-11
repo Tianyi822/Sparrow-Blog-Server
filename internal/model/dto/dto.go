@@ -1,5 +1,7 @@
 package dto
 
+import "h2blog/pkg/utils"
+
 // Dto 是一个接口，定义了所有数据传输对象（DTO）必须实现的方法
 type Dto interface {
 	// DtoFlag 方法返回一个字符串，用于标识 Dto 的某种特性或状态
@@ -28,8 +30,9 @@ func (bid *BlogInfoDto) Name() string {
 
 // ImgDto 图片数据
 type ImgDto struct {
-	ImgId   string `json:"img_id,omitempty"`
-	ImgName string `json:"img_name,omitempty"`
+	ImgId   string            `json:"img_id,omitempty"`
+	ImgName string            `json:"img_name,omitempty"`
+	ImgType utils.OssFileType `json:"img_type,omitempty"`
 }
 
 func (i *ImgDto) DtoFlag() string {
