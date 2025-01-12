@@ -1,8 +1,9 @@
-package entity
+package imgInfoRepo
 
 import (
 	"context"
 	"github.com/stretchr/testify/assert"
+	"h2blog/internal/model/po"
 	"h2blog/pkg/config"
 	"h2blog/pkg/logger"
 	"h2blog/pkg/utils"
@@ -13,7 +14,7 @@ import (
 
 func init() {
 	// 加载配置文件
-	config.LoadConfig("../../../resources/config/test/model-config.yaml")
+	config.LoadConfig("../../../resources/config/test/repository-config.yaml")
 	// 初始化 Logger 组件
 	err := logger.InitLogger()
 	if err != nil {
@@ -28,12 +29,12 @@ func TestImgInfo_AddOne(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		imgInfo ImgInfo
+		imgInfo po.ImgInfo
 		wantErr bool
 	}{
 		{
 			name: "正常添加",
-			imgInfo: ImgInfo{
+			imgInfo: po.ImgInfo{
 				ImgName:    "test.jpg",
 				CreateTime: time.Now(),
 				UpdateTime: time.Now(),
@@ -42,7 +43,7 @@ func TestImgInfo_AddOne(t *testing.T) {
 		},
 		{
 			name: "重复数据",
-			imgInfo: ImgInfo{
+			imgInfo: po.ImgInfo{
 				ImgName:    "test.jpg",
 				CreateTime: time.Now(),
 				UpdateTime: time.Now(),
@@ -64,7 +65,7 @@ func TestImgInfo_AddOne(t *testing.T) {
 			tt.imgInfo.ImgId = id
 
 			// 执行测试
-			num, err := tt.imgInfo.AddOne(ctx)
+			num, err := CreateImgInfo(ctx, &tt.imgInfo)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -74,7 +75,7 @@ func TestImgInfo_AddOne(t *testing.T) {
 				assert.Equal(t, int64(1), num)
 
 				// 验证数据是否正确保存
-				var saved ImgInfo
+				var saved po.ImgInfo
 				err = tx.Where("img_name = ?", tt.imgInfo.ImgName).First(&saved).Error
 				assert.NoError(t, err)
 			}
@@ -86,14 +87,14 @@ func TestImgInfo_FindOneById(t *testing.T) {
 	ctx := context.Background()
 
 	// 准备测试数据
-	testImg := ImgInfo{
+	testImg := po.ImgInfo{
 		ImgId:      "test123456789012",
 		ImgName:    "test_find.jpg",
 		CreateTime: time.Now(),
 		UpdateTime: time.Now(),
 	}
 
-	_, err := testImg.AddOne(ctx)
+	_, err := CreateImgInfo(ctx, &testImg)
 	if err != nil {
 		t.Error(err)
 	}
@@ -101,40 +102,33 @@ func TestImgInfo_FindOneById(t *testing.T) {
 	tests := []struct {
 		name    string
 		imgId   string
-		want    int64
 		wantErr bool
 	}{
 		{
 			name:    "查询存在的记录",
 			imgId:   testImg.ImgId,
-			want:    1,
 			wantErr: false,
 		},
 		{
 			name:    "查询不存在的记录",
 			imgId:   "nonexistent123456",
-			want:    0,
 			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ii := &ImgInfo{
+			ii := &po.ImgInfo{
 				ImgId: tt.imgId,
 			}
 
-			got, err := ii.FindOneById(ctx)
+			got, err := FindImgById(ctx, tt.imgId)
 
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.want, got)
-
-				if tt.want > 0 {
-					assert.Equal(t, testImg.ImgName, ii.ImgName)
-				}
+				assert.Equal(t, ii.ImgId, got.ImgId)
 			}
 		})
 	}
@@ -148,14 +142,14 @@ func TestImgInfo_FindByNameLike(t *testing.T) {
 	defer tx.Rollback()
 
 	// 准备测试数据
-	testImages := []ImgInfo{
+	testImages := []po.ImgInfo{
 		{ImgId: "test111", ImgName: "test_image_1.jpg"},
 		{ImgId: "test222", ImgName: "test_image_2.jpg"},
 		{ImgId: "test333", ImgName: "other_image.jpg"},
 	}
 
 	for _, img := range testImages {
-		_, err := img.AddOne(ctx)
+		_, err := CreateImgInfo(ctx, &img)
 		if err != nil {
 			t.Error(err)
 		}
@@ -189,8 +183,7 @@ func TestImgInfo_FindByNameLike(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ii := &ImgInfo{ImgName: tt.keyword}
-			got, err := ii.FindByNameLike(ctx)
+			got, err := FindImgByNameLike(ctx, tt.keyword)
 
 			if tt.wantErr {
 				assert.Error(t, err)
