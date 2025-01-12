@@ -24,7 +24,6 @@ func (hbi *BlogInfo) TableName() string {
 // FindOneById 根据博客ID查找博客信息
 // 参数:
 //   - ctx: 上下文对象，用于控制请求的上下文，如超时、取消等
-//   - bid: 博客ID，用于指定要查找的博客
 //
 // 返回值:
 //   - error: 如果查找过程中发生错误，返回错误信息；否则返回nil
