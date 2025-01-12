@@ -41,6 +41,30 @@ func (ii *ImgInfo) FindOneById(ctx context.Context) (int64, error) {
 	return result.RowsAffected, nil
 }
 
+// FindByNameLike 根据图片名称模糊查询
+// 参数:
+//   - ctx: 上下文对象
+//
+// 返回值:
+//   - []ImgInfo: 匹配的图片列表
+//   - error: 错误信息
+func (ii *ImgInfo) FindByNameLike(ctx context.Context) ([]ImgInfo, error) {
+	var images []ImgInfo
+
+	// 查询图片信息数据
+	result := storage.Storage.Db.WithContext(ctx).Model(ii).Where("H2_IMG_INFO.img_name LIKE ?", "%"+ii.ImgName+"%").Find(&images)
+
+	// 检查查询结果是否有错误
+	if result.Error != nil {
+		msg := fmt.Sprintf("模糊查询图片信息失败: %v", result.Error)
+		logger.Error(msg)
+		return nil, errors.New(msg)
+	}
+
+	// 如果查询成功，返回nil表示没有错误
+	return images, nil
+}
+
 // AddOne 添加一条记录
 func (ii *ImgInfo) AddOne(ctx context.Context) (affectedNum int64, err error) {
 	//开启事务

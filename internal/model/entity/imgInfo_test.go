@@ -139,3 +139,65 @@ func TestImgInfo_FindOneById(t *testing.T) {
 		})
 	}
 }
+
+func TestImgInfo_FindByNameLike(t *testing.T) {
+	ctx := context.Background()
+
+	// 开启事务
+	tx := storage.Storage.Db.Begin()
+	defer tx.Rollback()
+
+	// 准备测试数据
+	testImages := []ImgInfo{
+		{ImgId: "test111", ImgName: "test_image_1.jpg"},
+		{ImgId: "test222", ImgName: "test_image_2.jpg"},
+		{ImgId: "test333", ImgName: "other_image.jpg"},
+	}
+
+	for _, img := range testImages {
+		_, err := img.AddOne(ctx)
+		if err != nil {
+			t.Error(err)
+		}
+	}
+
+	tests := []struct {
+		name    string
+		keyword string
+		wantLen int
+		wantErr bool
+	}{
+		{
+			name:    "查找test关键字",
+			keyword: "test",
+			wantLen: 2,
+			wantErr: false,
+		},
+		{
+			name:    "查找other关键字",
+			keyword: "other",
+			wantLen: 1,
+			wantErr: false,
+		},
+		{
+			name:    "查找不存在的关键字",
+			keyword: "nonexist",
+			wantLen: 0,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ii := &ImgInfo{ImgName: tt.keyword}
+			got, err := ii.FindByNameLike(ctx)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.wantLen, len(got))
+			}
+		})
+	}
+}
