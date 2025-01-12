@@ -22,11 +22,11 @@ const createLoginRecordTable = `
 const createH2BlogInfoTableSQL = `
 	CREATE TABLE H2_BLOG_INFO
 	(
-	    blog_id     		VARCHAR(16) 	PRIMARY KEY NOT NULL 														COMMENT '博客ID',
-	    title       		VARCHAR(50) 				NOT NULL 														COMMENT '博客标题',
-	    brief       		VARCHAR(255)				NOT NULL 														COMMENT '博客简介',
-	    create_time 		TIMESTAMP					NOT NULL DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
-	    update_time 		TIMESTAMP					NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
+	    blog_id    		VARCHAR(16) 	PRIMARY KEY NOT NULL 														COMMENT '博客ID',
+	    title      		VARCHAR(50) 				NOT NULL 														COMMENT '博客标题',
+	    brief      		VARCHAR(255)				NOT NULL 														COMMENT '博客简介',
+	    create_time		TIMESTAMP					NOT NULL DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
+	    update_time		TIMESTAMP					NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
 	    CONSTRAINT uc_title UNIQUE (title) COMMENT '标题唯一约束'
 	) COMMENT = '博客信息表'
 	  ENGINE = InnoDB
@@ -40,7 +40,8 @@ const createH2ImgInfoTableSQL = `
 	    img_id 			VARCHAR(16) 	PRIMARY KEY NOT NULL															COMMENT '图片ID',
 	    img_name 		VARCHAR(255) 				NOT NULL	UNIQUE 													COMMENT '图片名称',
 	    create_time 	TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
-	    update_time 	TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间'
+	    update_time 	TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
+	    CONSTRAINT uc_title UNIQUE (img_name) COMMENT '名称唯一约束'
 	) COMMENT='图片信息表' 
 	  ENGINE = InnoDB
 	  DEFAULT CHARSET = utf8mb4
