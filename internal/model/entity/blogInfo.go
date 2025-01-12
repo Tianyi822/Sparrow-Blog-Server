@@ -1,4 +1,4 @@
-package model
+package entity
 
 import (
 	"context"
@@ -36,7 +36,7 @@ func (hbi *BlogInfo) FindOneById(ctx context.Context) (int64, error) {
 		// 如果查询过程中发生其他错误，则记录错误日志并返回错误
 		msg := fmt.Sprintf("查询博客信息数据失败: %v", result.Error)
 		logger.Error(msg)
-		return -1, errors.New(msg)
+		return result.RowsAffected, errors.New(msg)
 	}
 	// 如果查询成功，返回nil表示没有错误
 	return result.RowsAffected, nil
