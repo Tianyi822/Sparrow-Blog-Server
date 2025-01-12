@@ -42,7 +42,7 @@ type converter struct {
 	done      chan struct{}
 	workerNum int
 	timeout   time.Duration
-	progress  progress.Tracker
+	progress  *progress.Tracker
 }
 
 // InitConverter 初始化WebP转换器
@@ -127,7 +127,7 @@ func (c *converter) handleTask(task task) {
 }
 
 // GetProgress 获取进度追踪器
-func (c *converter) GetProgress() progress.Tracker {
+func (c *converter) GetProgress() *progress.Tracker {
 	return c.progress
 }
 
