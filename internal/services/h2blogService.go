@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"h2blog/internal/model/dto"
-	"h2blog/internal/model/entity"
+	"h2blog/internal/model/po"
 	"h2blog/internal/model/vo"
 	"h2blog/pkg/logger"
 	"h2blog/pkg/markdown"
@@ -47,7 +47,7 @@ func genBlogId(title string) string {
 //   - error 表示获取过程中可能发生的错误
 func GetH2BlogInfoById(ctx *gin.Context, blogId string) (*vo.BlogInfoVo, error) {
 	// 创建一个 BlogInfo 类型的实例 blogInfoPo，用于存储博客信息的数据模型
-	blogInfoPo := entity.BlogInfo{
+	blogInfoPo := po.BlogInfo{
 		BlogId: blogId,
 	}
 
@@ -102,7 +102,7 @@ func AddH2BlogInfo(ctx *gin.Context, blogInfoDto *dto.BlogInfoDto) (int64, error
 	}
 
 	// 5. 将博客信息保存到数据库中
-	blogInfoPo := entity.BlogInfo{
+	blogInfoPo := po.BlogInfo{
 		BlogId: genBlogId(blogInfoDto.Title),
 		Title:  blogInfoDto.Title,
 		Brief:  blogInfoDto.Brief,
@@ -130,7 +130,7 @@ func AddH2BlogInfo(ctx *gin.Context, blogInfoDto *dto.BlogInfoDto) (int64, error
 //   - int64 表示修改操作影响的行数
 //   - error 表示修改过程中可能发生的错误
 func ModifyH2BlogInfo(ctx *gin.Context, dto *dto.BlogInfoDto) (int64, error) {
-	blogInfoPo := entity.BlogInfo{
+	blogInfoPo := po.BlogInfo{
 		BlogId: dto.BlogId,
 	}
 
@@ -191,7 +191,7 @@ func ModifyH2BlogInfo(ctx *gin.Context, dto *dto.BlogInfoDto) (int64, error) {
 //   - error 表示删除过程中可能发生的错误
 func DeleteH2BlogInfo(ctx *gin.Context, dto *dto.BlogInfoDto) (int64, error) {
 	// 创建一个 BlogInfo 类型的实例 blogInfoPo，用于存储博客信息的数据模型
-	blogInfoPo := entity.BlogInfo{
+	blogInfoPo := po.BlogInfo{
 		BlogId: dto.BlogId,
 	}
 
