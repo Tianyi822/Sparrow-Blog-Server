@@ -11,6 +11,16 @@ type BlogInfoVo struct {
 	Brief  string `json:"brief,omitempty"`
 }
 
-func (bid *BlogInfoVo) VoFlag() string {
+func (bv *BlogInfoVo) VoFlag() string {
 	return "BlogInfoVo"
+}
+
+type ImgInfoVo struct {
+	ImgId   string `json:"img_id,omitempty"`
+	ImgName string `json:"img_name,omitempty"`
+	ImgType string `json:"img_type,omitempty"`
+}
+
+func (iv *ImgInfoVo) VoFlag() string {
+	return "ImgInfoVo"
 }
