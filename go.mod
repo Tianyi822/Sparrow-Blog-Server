@@ -4,6 +4,7 @@ go 1.23
 
 require (
 	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.2.0
+	github.com/aliyun/credentials-go v1.4.3
 	github.com/gin-gonic/gin v1.10.0
 	github.com/kolesa-team/go-webp v1.0.4
 	github.com/yuin/goldmark v1.7.8
@@ -13,6 +14,13 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.12
+)
+
+require (
+	github.com/alibabacloud-go/debug v1.0.1 // indirect
+	github.com/alibabacloud-go/tea v1.2.2 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	gopkg.in/ini.v1 v1.67.0 // indirect
 )
 
 require (
