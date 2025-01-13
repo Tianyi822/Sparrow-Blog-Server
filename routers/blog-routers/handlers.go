@@ -3,7 +3,7 @@ package blog_routers
 import (
 	"github.com/gin-gonic/gin"
 	"h2blog/internal/model/dto"
-	"h2blog/internal/services"
+	"h2blog/internal/services/blogservice"
 	"h2blog/pkg/resp"
 	"h2blog/routers/tools"
 )
@@ -11,7 +11,7 @@ import (
 // 获取指定博客的详细信息
 func getBlogById(ctx *gin.Context) {
 	blogId := ctx.Param("blog_id")
-	blog, err := services.GetH2BlogInfoById(ctx, blogId)
+	blog, err := blogservice.GetH2BlogInfoById(ctx, blogId)
 	if err != nil {
 		resp.Err(ctx, err.Error(), -1)
 		return
@@ -28,7 +28,7 @@ func modifyBlog(ctx *gin.Context) {
 		return
 	}
 
-	num, err := services.ModifyH2BlogInfo(ctx, blogDto)
+	num, err := blogservice.ModifyH2BlogInfo(ctx, blogDto)
 	if err != nil {
 		resp.Err(ctx, err.Error(), num)
 		return
@@ -41,7 +41,7 @@ func deleteBlogById(ctx *gin.Context) {
 		BlogId: ctx.Param("blog_id"),
 	}
 
-	num, err := services.DeleteH2BlogInfo(ctx, blogDto)
+	num, err := blogservice.DeleteH2BlogInfo(ctx, blogDto)
 	if err != nil {
 		resp.Err(ctx, err.Error(), num)
 		return
@@ -55,7 +55,7 @@ func addBlogInfo(ctx *gin.Context) {
 		return
 	}
 
-	num, err := services.AddH2BlogInfo(ctx, blogDto)
+	num, err := blogservice.AddH2BlogInfo(ctx, blogDto)
 	if err != nil {
 		resp.Err(ctx, err.Error(), -1)
 		return
