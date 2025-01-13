@@ -1,4 +1,4 @@
-package blogservice
+package blogService
 
 import (
 	"errors"
