@@ -2,6 +2,7 @@ package imgInfoRepo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"h2blog/internal/model/po"
 	"h2blog/pkg/logger"
@@ -19,7 +20,7 @@ func FindImgById(ctx context.Context, imgId string) (*po.ImgInfo, error) {
 	if result.Error != nil {
 		msg := fmt.Sprintf("查询图片信息数据失败: %v", result.Error)
 		logger.Error(msg)
-		return nil, fmt.Errorf(msg)
+		return nil, errors.New(msg)
 	}
 	return &img, nil
 }
@@ -35,7 +36,7 @@ func FindImgByNameLike(ctx context.Context, nameLike string) ([]po.ImgInfo, erro
 	if result.Error != nil {
 		msg := fmt.Sprintf("模糊查询图片信息失败: %v", result.Error)
 		logger.Error(msg)
-		return nil, fmt.Errorf(msg)
+		return nil, errors.New(msg)
 	}
 	return images, nil
 }
@@ -61,7 +62,7 @@ func CreateImgInfo(ctx context.Context, img *po.ImgInfo) (int64, error) {
 		tx.Rollback()
 		msg := fmt.Sprintf("创建图片信息数据失败: %v", result.Error)
 		logger.Error(msg)
-		return 0, fmt.Errorf(msg)
+		return 0, errors.New(msg)
 	}
 
 	// 提交事务
