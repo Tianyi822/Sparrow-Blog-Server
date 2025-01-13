@@ -55,18 +55,11 @@ func GetH2BlogInfoById(ctx *gin.Context, blogId string) (*vo.BlogInfoVo, error) 
 		// 如果有错误，直接返回当前num值和错误信息
 		return nil, err
 	} else {
-		// 如果没有错误，进一步处理
-		if blogInfoPo != nil {
-			// 如果num大于0，表示找到了该数据，可以直接返回
-			return &vo.BlogInfoVo{
-				BlogId: blogInfoPo.BlogId,
-				Title:  blogInfoPo.Title,
-				Brief:  blogInfoPo.Brief,
-			}, nil
-		} else {
-			// 如果num不大于0，表示没有找到要获取的记录
-			return nil, fmt.Errorf("没有找到要获取的博客")
-		}
+		return &vo.BlogInfoVo{
+			BlogId: blogInfoPo.BlogId,
+			Title:  blogInfoPo.Title,
+			Brief:  blogInfoPo.Brief,
+		}, nil
 	}
 }
 
@@ -105,6 +98,10 @@ func AddH2BlogInfo(ctx *gin.Context, blogInfoDto *dto.BlogInfoDto) (int64, error
 	blogInfoPo, err := blogInfoRepo.FindBlogById(ctx, blogId)
 	// 根据错误情况决定是添加一条新的博客信息还是更新已有的博客信息
 	if err != nil {
+		msg := "博客信息已存在"
+		logger.Warn(msg)
+		return 0, errors.New(msg)
+	} else {
 		blogInfoPo = &po.BlogInfo{
 			BlogId: blogId,
 			Title:  blogInfoDto.Title,
@@ -112,10 +109,6 @@ func AddH2BlogInfo(ctx *gin.Context, blogInfoDto *dto.BlogInfoDto) (int64, error
 		}
 		logger.Info("保存博客信息成功")
 		return blogInfoRepo.CreateBlogInfo(ctx, blogInfoPo)
-	} else {
-		msg := "博客信息已存在"
-		logger.Warn(msg)
-		return 0, errors.New(msg)
 	}
 }
 
@@ -135,6 +128,8 @@ func ModifyH2BlogInfo(ctx *gin.Context, dto *dto.BlogInfoDto) (int64, error) {
 	blogInfoPo, err := blogInfoRepo.FindBlogById(ctx, dto.BlogId)
 	// 根据错误情况决定是添加一条新的博客信息还是更新已有的博客信息
 	if err != nil {
+		return 0, errors.New("没有找到要修改的博客")
+	} else {
 		// 1. 重新解析 Markdown 文件内容并保存到 Oss 中
 		// 从OSS存储中获取新Markdown文件内容
 		mdStr, err := storage.Storage.GetContentFromOss(ctx, utils.GenOssSavePath(dto.Name(), utils.MarkDown))
@@ -163,8 +158,6 @@ func ModifyH2BlogInfo(ctx *gin.Context, dto *dto.BlogInfoDto) (int64, error) {
 		blogInfoPo.Brief = dto.Brief
 
 		return blogInfoRepo.UpdateById(ctx, blogInfoPo)
-	} else {
-		return 0, errors.New("没有找到要修改的博客")
 	}
 }
 
@@ -181,6 +174,8 @@ func DeleteH2BlogInfo(ctx *gin.Context, dto *dto.BlogInfoDto) (int64, error) {
 	blogInfoPo, err := blogInfoRepo.FindBlogById(ctx, dto.BlogId)
 	// 检查是否有错误发生
 	if err != nil {
+		return 0, errors.New("没有找到要删除的博客")
+	} else {
 		// 如果num大于0，表示需要删除一条记录
 		// 1. 先删除 Oss 中的 HTML 文件和 Markdown 文件
 		err = storage.Storage.DeleteObject(ctx, utils.GenOssSavePath(blogInfoPo.Title, utils.HTML))
@@ -193,7 +188,5 @@ func DeleteH2BlogInfo(ctx *gin.Context, dto *dto.BlogInfoDto) (int64, error) {
 		}
 		// 2. 删除数据库中的记录
 		return blogInfoRepo.DeleteById(ctx, blogInfoPo.BlogId)
-	} else {
-		return 0, errors.New("没有找到要删除的博客")
 	}
 }
