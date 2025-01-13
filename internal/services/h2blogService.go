@@ -135,40 +135,36 @@ func ModifyH2BlogInfo(ctx *gin.Context, dto *dto.BlogInfoDto) (int64, error) {
 	blogInfoPo, err := blogInfoRepo.FindBlogById(ctx, dto.BlogId)
 	// 根据错误情况决定是添加一条新的博客信息还是更新已有的博客信息
 	if err != nil {
-		return 0, err
-	} else {
-		if blogInfoPo != nil {
-			// 1. 重新解析 Markdown 文件内容并保存到 Oss 中
-			// 从OSS存储中获取新Markdown文件内容
-			mdStr, err := storage.Storage.GetContentFromOss(ctx, utils.GenOssSavePath(dto.Name(), utils.MarkDown))
-			if err != nil {
-				return 0, err
-			}
-			// 将Markdown内容解析为新HTML
-			htmlStr, err := markdown.Parse(mdStr)
-			if err != nil {
-				return 0, err
-			}
-			// 将生成的HTML内容上传到新的HTML文件路径
-			err = storage.Storage.PutContentToOss(ctx, htmlStr, utils.GenOssSavePath(dto.Name(), utils.HTML))
-			if err != nil {
-				return 0, err
-			}
-
-			// 2. 删除旧的 HTML 文件
-			err = storage.Storage.DeleteObject(ctx, utils.GenOssSavePath(blogInfoPo.Title, utils.HTML))
-			if err != nil {
-				return 0, err
-			}
-
-			// 3. 修改数据库中的数据
-			blogInfoPo.Title = dto.Title
-			blogInfoPo.Brief = dto.Brief
-
-			return blogInfoRepo.UpdateById(ctx, blogInfoPo)
-		} else {
-			return 0, errors.New("没有找到要修改的博客")
+		// 1. 重新解析 Markdown 文件内容并保存到 Oss 中
+		// 从OSS存储中获取新Markdown文件内容
+		mdStr, err := storage.Storage.GetContentFromOss(ctx, utils.GenOssSavePath(dto.Name(), utils.MarkDown))
+		if err != nil {
+			return 0, err
 		}
+		// 将Markdown内容解析为新HTML
+		htmlStr, err := markdown.Parse(mdStr)
+		if err != nil {
+			return 0, err
+		}
+		// 将生成的HTML内容上传到新的HTML文件路径
+		err = storage.Storage.PutContentToOss(ctx, htmlStr, utils.GenOssSavePath(dto.Name(), utils.HTML))
+		if err != nil {
+			return 0, err
+		}
+
+		// 2. 删除旧的 HTML 文件
+		err = storage.Storage.DeleteObject(ctx, utils.GenOssSavePath(blogInfoPo.Title, utils.HTML))
+		if err != nil {
+			return 0, err
+		}
+
+		// 3. 修改数据库中的数据
+		blogInfoPo.Title = dto.Title
+		blogInfoPo.Brief = dto.Brief
+
+		return blogInfoRepo.UpdateById(ctx, blogInfoPo)
+	} else {
+		return 0, errors.New("没有找到要修改的博客")
 	}
 }
 
@@ -185,26 +181,19 @@ func DeleteH2BlogInfo(ctx *gin.Context, dto *dto.BlogInfoDto) (int64, error) {
 	blogInfoPo, err := blogInfoRepo.FindBlogById(ctx, dto.BlogId)
 	// 检查是否有错误发生
 	if err != nil {
-		// 如果有错误，直接返回当前num值和错误信息
-		return 0, err
-	} else {
-		// 如果没有错误，进一步处理
-		if blogInfoPo != nil {
-			// 如果num大于0，表示需要删除一条记录
-			// 1. 先删除 Oss 中的 HTML 文件和 Markdown 文件
-			err = storage.Storage.DeleteObject(ctx, utils.GenOssSavePath(blogInfoPo.Title, utils.HTML))
-			if err != nil {
-				return 0, err
-			}
-			err = storage.Storage.DeleteObject(ctx, utils.GenOssSavePath(blogInfoPo.Title, utils.MarkDown))
-			if err != nil {
-				return 0, err
-			}
-			// 2. 删除数据库中的记录
-			return blogInfoRepo.DeleteById(ctx, blogInfoPo.BlogId)
-		} else {
-			// 如果num不大于0，表示没有找到要删除的记录
-			return 0, errors.New("没有找到要删除的博客")
+		// 如果num大于0，表示需要删除一条记录
+		// 1. 先删除 Oss 中的 HTML 文件和 Markdown 文件
+		err = storage.Storage.DeleteObject(ctx, utils.GenOssSavePath(blogInfoPo.Title, utils.HTML))
+		if err != nil {
+			return 0, err
 		}
+		err = storage.Storage.DeleteObject(ctx, utils.GenOssSavePath(blogInfoPo.Title, utils.MarkDown))
+		if err != nil {
+			return 0, err
+		}
+		// 2. 删除数据库中的记录
+		return blogInfoRepo.DeleteById(ctx, blogInfoPo.BlogId)
+	} else {
+		return 0, errors.New("没有找到要删除的博客")
 	}
 }

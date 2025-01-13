@@ -18,9 +18,8 @@ func FindBlogById(ctx context.Context, id string) (*po.BlogInfo, error) {
 	// 查询博客信息数据
 	result := storage.Storage.Db.Model(blog).WithContext(ctx).Where("H2_BLOG_INFO.blog_id = ?", id).First(blog)
 
-	// 检查查询结果是否有错误
+	// 数据不存在或者发生错误
 	if result.Error != nil {
-		// 如果查询过程中发生其他错误，则记录错误日志并返回错误
 		msg := fmt.Sprintf("查询博客信息数据失败: %v", result.Error)
 		logger.Error(msg)
 		return nil, errors.New(msg)
