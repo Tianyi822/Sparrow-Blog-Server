@@ -8,7 +8,6 @@ import (
 	"h2blog/internal/model/dto"
 	"h2blog/pkg/config"
 	"h2blog/pkg/utils"
-	"h2blog/pkg/webp/progress"
 	"h2blog/storage"
 	"image"
 	_ "image/gif"
@@ -42,7 +41,7 @@ type converter struct {
 	done      chan struct{}
 	workerNum int
 	timeout   time.Duration
-	progress  *progress.Tracker
+	progress  *Tracker
 }
 
 // InitConverter 初始化WebP转换器
@@ -73,7 +72,7 @@ func InitConverter() {
 //   - error: 添加失败时返回错误
 func (c *converter) AddBatchTasks(ctx context.Context, dtos []dto.ImgDto) error {
 	// 创建进度追踪器
-	c.progress = progress.NewTracker(int32(len(dtos)))
+	c.progress = NewTracker(int32(len(dtos)))
 
 	for _, imgDto := range dtos {
 		select {
@@ -127,7 +126,7 @@ func (c *converter) handleTask(task task) {
 }
 
 // GetProgress 获取进度追踪器
-func (c *converter) GetProgress() *progress.Tracker {
+func (c *converter) GetProgress() *Tracker {
 	return c.progress
 }
 

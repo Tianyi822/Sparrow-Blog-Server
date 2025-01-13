@@ -1,4 +1,4 @@
-package progress
+package webp
 
 import (
 	"h2blog/internal/model/dto"
