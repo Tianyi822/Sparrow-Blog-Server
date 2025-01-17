@@ -41,11 +41,11 @@ func FindImgByNameLike(ctx context.Context, nameLike string) ([]po.ImgInfo, erro
 	return images, nil
 }
 
-// CreateImgInfo 创建新的图片信息记录
+// AddImgInfo 创建新的图片信息记录
 // - ctx: 上下文对象
 // - img: 图片信息实体指针
 // 返回值: 受影响的行数和错误信息
-func CreateImgInfo(ctx context.Context, img *po.ImgInfo) (int64, error) {
+func AddImgInfo(ctx context.Context, img *po.ImgInfo) (int64, error) {
 	tx := storage.Storage.Db.Model(img).WithContext(ctx).Begin()
 	// 使用defer确保在panic时回滚事务
 	defer func() {
@@ -68,5 +68,43 @@ func CreateImgInfo(ctx context.Context, img *po.ImgInfo) (int64, error) {
 	// 提交事务
 	tx.Commit()
 	logger.Info("创建图片信息数据成功: %v", result.RowsAffected)
+	return result.RowsAffected, nil
+}
+
+// AddImgInfoBatch 批量添加图片信息记录
+// - ctx: 上下文对象
+// - imgs: 图片信息实体切片
+//
+// 返回值: 受影响的行数和错误信息
+// - int64: 受影响的行数
+// - error: 错误信息
+func AddImgInfoBatch(ctx context.Context, imgs []po.ImgInfo) (int64, error) {
+	if len(imgs) == 0 {
+		return 0, nil
+	}
+
+	tx := storage.Storage.Db.Model(&po.ImgInfo{}).WithContext(ctx).Begin()
+	// 使用defer确保在panic时回滚事务
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("批量添加图片信息数据失败: %v", r)
+			tx.Rollback()
+		}
+	}()
+
+	logger.Info("批量添加图片信息数据")
+	// 执行创建操作
+	result := tx.Create(imgs)
+	if result.Error != nil {
+		tx.Rollback()
+		msg := fmt.Sprintf("批量添加图片信息数据失败: %v", result.Error)
+		logger.Error(msg)
+		return 0, errors.New(msg)
+	}
+
+	// 提交事务
+	tx.Commit()
+	logger.Info("批量添加图片信息数据成功: %v", result.RowsAffected)
+
 	return result.RowsAffected, nil
 }

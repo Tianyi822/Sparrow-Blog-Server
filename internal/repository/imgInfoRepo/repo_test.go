@@ -65,7 +65,7 @@ func TestImgInfo_AddOne(t *testing.T) {
 			tt.imgInfo.ImgId = id
 
 			// 执行测试
-			num, err := CreateImgInfo(ctx, &tt.imgInfo)
+			num, err := AddImgInfo(ctx, &tt.imgInfo)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -94,7 +94,7 @@ func TestImgInfo_FindOneById(t *testing.T) {
 		UpdateTime: time.Now(),
 	}
 
-	_, err := CreateImgInfo(ctx, &testImg)
+	_, err := AddImgInfo(ctx, &testImg)
 	if err != nil {
 		t.Error(err)
 	}
@@ -149,7 +149,7 @@ func TestImgInfo_FindByNameLike(t *testing.T) {
 	}
 
 	for _, img := range testImages {
-		_, err := CreateImgInfo(ctx, &img)
+		_, err := AddImgInfo(ctx, &img)
 		if err != nil {
 			t.Error(err)
 		}
@@ -191,6 +191,90 @@ func TestImgInfo_FindByNameLike(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.wantLen, len(got))
 			}
+		})
+	}
+}
+
+func TestImgInfo_AddBatch(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name     string
+		images   []po.ImgInfo
+		wantRows int64
+		wantErr  bool
+	}{
+		{
+			name: "正常批量添加",
+			images: []po.ImgInfo{
+				{
+					ImgId:      "batch_test_1",
+					ImgName:    "batch1.jpg",
+					CreateTime: time.Now(),
+					UpdateTime: time.Now(),
+				},
+				{
+					ImgId:      "batch_test_2",
+					ImgName:    "batch2.jpg",
+					CreateTime: time.Now(),
+					UpdateTime: time.Now(),
+				},
+			},
+			wantRows: 2,
+			wantErr:  false,
+		},
+		{
+			name:     "空切片添加",
+			images:   []po.ImgInfo{},
+			wantRows: 0,
+			wantErr:  false,
+		},
+		{
+			name: "重复数据添加",
+			images: []po.ImgInfo{
+				{
+					ImgId:      "batch_test_1",
+					ImgName:    "batch1.jpg",
+					CreateTime: time.Now(),
+					UpdateTime: time.Now(),
+				},
+			},
+			wantRows: 0,
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// 开启事务
+			tx := storage.Storage.Db.Begin()
+			defer tx.Rollback()
+
+			// 执行测试
+			rows, err := AddImgInfoBatch(ctx, tt.images)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Equal(t, tt.wantRows, rows)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.wantRows, rows)
+
+				// 验证数据是否正确保存
+				if len(tt.images) > 0 {
+					var saved []po.ImgInfo
+					err = tx.Where("img_id IN ?", []string{tt.images[0].ImgId}).Find(&saved).Error
+					assert.NoError(t, err)
+					assert.Equal(t, len(saved), 1)
+					assert.Equal(t, tt.images[0].ImgName, saved[0].ImgName)
+				}
+			}
+
+			// 删除测试数据
+			//for _, img := range tt.images {
+			//	tx.Where("img_id = ?", img.ImgId).Delete(&po.ImgInfo{})
+			//}
+			//tx.Commit()
 		})
 	}
 }
