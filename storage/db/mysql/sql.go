@@ -1,5 +1,8 @@
 package mysql
 
+// 创建表
+const createDatabaseSql = `CREATE DATABASE IF NOT EXISTS %s DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+
 // 创建一个名为 LOGIN_RECORD 的表，如果该表不存在则创建
 const createLoginRecordTable = `
 	CREATE TABLE IF NOT EXISTS LOGIN_RECORD
