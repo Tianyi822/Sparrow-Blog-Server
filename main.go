@@ -7,6 +7,7 @@ import (
 	"h2blog/pkg/config"
 	"h2blog/pkg/logger"
 	"h2blog/pkg/markdown"
+	"h2blog/pkg/webp"
 	"h2blog/routers"
 	blogrouters "h2blog/routers/blog-routers"
 	imgrouters "h2blog/routers/img-routers"
@@ -21,7 +22,6 @@ import (
 // loadComponent 加载基础组件
 func loadComponent() {
 	// 从指定路径加载配置信息
-	// TODO: 当前写死，后期通过命令行交互添加或者生成配置文件
 	config.LoadConfig("resources/config/test/web-config.yaml")
 	// 初始化日志组件
 	err := logger.InitLogger()
@@ -32,6 +32,8 @@ func loadComponent() {
 	storage.InitStorage()
 	// 初始化 Markdown 渲染器
 	markdown.InitRenderer()
+	// 初始化图片转换器
+	webp.InitConverter()
 }
 
 // runServer 启动服务
@@ -82,6 +84,11 @@ func listenSysSignal(srv *http.Server) {
 	logger.Info("关闭数据库连接")
 	storage.Storage.CloseDbConnect(ctx)
 	logger.Info("数据库连接已关闭")
+
+	// 关闭图片压缩器
+	logger.Info("关闭图片压缩器")
+	webp.Converter.Shutdown()
+	logger.Info("图片压缩器已关闭")
 
 	logger.Info("正在关闭服务")
 	// 定时优雅关闭服务（将未处理完的请求处理完再关闭服务），超时就退出
