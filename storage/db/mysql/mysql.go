@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"database/sql"
 	"fmt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -9,8 +10,44 @@ import (
 	"h2blog/storage/db/dbLogger"
 )
 
+// createLoginRecordTableSQL 是用于创建库
+func createDatabase(dbName string) error {
+	// 连接 MySQL（不指定库名）
+	db, err := sql.Open(
+		"mysql",
+		fmt.Sprintf(
+			"%s:%s@tcp(%s:%d)/?charset=utf8mb4&parseTime=true&loc=Asia%%2FShanghai",
+			config.MySQLConfig.User,     // MySQL 用户名
+			config.MySQLConfig.Password, // MySQL 密码
+			config.MySQLConfig.Host,     // MySQL 服务器地址
+			config.MySQLConfig.Port,     // MySQL 服务器端口
+		),
+	)
+	if err != nil {
+		return err
+	}
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+			logger.Error(err.Error())
+		}
+	}(db)
+
+	// 创建数据库
+	_, err = db.Exec(fmt.Sprintf(createDatabaseSql, dbName))
+	return err
+}
+
 // ConnectMysql 函数用于连接 MySQL 数据库
 func ConnectMysql() *gorm.DB {
+
+	// 创建数据库
+	logger.Info("准备创建数据库")
+	err := createDatabase(config.MySQLConfig.DB)
+	if err != nil {
+		logger.Panic("数据库创建失败: %v", err)
+	}
+
 	// 记录日志，表示准备连接 MySQL 数据库
 	logger.Info("准备连接 MySQL 数据库")
 	// 构建 DSN (Data Source Name) 字符串，用于连接 MySQL 数据库
