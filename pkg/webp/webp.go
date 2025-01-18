@@ -243,7 +243,7 @@ func (c *converter) Shutdown() {
 }
 
 func (c *converter) IsEmpty() bool {
-	return len(c.inputCh) == 0
+	return c.taskCount.Load() == 0
 }
 
 // NotifyCompletion 发送完成通知
