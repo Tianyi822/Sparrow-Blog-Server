@@ -37,6 +37,7 @@ func initLogger() error {
 	}
 
 	// 创建日志写入器
+	// TODO: 后面根据运行环境，需要对输出进行判断，现在暂时不动
 	writers := []zapcore.WriteSyncer{zapcore.AddSync(os.Stdout)}
 
 	// 添加文件输出
