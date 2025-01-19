@@ -10,6 +10,7 @@ import (
 	"h2blog/pkg/logger"
 	"h2blog/pkg/utils"
 	"h2blog/pkg/webp"
+	"h2blog/storage"
 	"h2blog/storage/oss"
 )
 
@@ -40,6 +41,12 @@ func genImgId(title string) string {
 }
 
 // ConvertAndAddImg 添加图片并转换
+// - ctx 是上下文对象，用于控制请求的生命周期
+// - imgsDto 是包含图片信息的 DTO 对象
+//
+// 返回值
+// - vo.ImgInfosVo 是包含转换成功和失败的图片信息的 VO 对象
+// - error 是可能出现的错误信息
 func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (vo.ImgInfosVo, error) {
 	// 图片 vo 对象，包含压缩成功的和未成功的
 	var imgInfosVo vo.ImgInfosVo
@@ -78,7 +85,7 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (vo.ImgInfosVo,
 					// 添加成功标志
 					imgPo.IsConverted = true
 					// 转换成功则为 webp 格式
-					imgPo.ImgType = oss.Webp.String()
+					imgPo.ImgType = oss.Webp
 					successImgsVo = append(successImgsVo, vo.ImgInfoVo{
 						ImgId:   imgId,
 						ImgName: data.ImgDto.ImgName,
@@ -87,7 +94,7 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (vo.ImgInfosVo,
 					// 标志转换失败
 					imgPo.IsConverted = false
 					// 转换失败保留原有格式
-					imgPo.ImgType = data.ImgDto.ImgType.String()
+					imgPo.ImgType = data.ImgDto.ImgType
 					failImgsVo = append(failImgsVo, vo.ImgInfoVo{
 						ImgId:   imgId,
 						ImgName: data.ImgDto.ImgName,
@@ -117,4 +124,65 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (vo.ImgInfosVo,
 			return imgInfosVo, nil
 		}
 	}
+}
+
+// DeleteImgs 批量删除图片
+// - ctx: 上下文
+// - imgIds: 图片 ID 数组
+//
+// - 返回值
+// - vo.ImgInfosVo: 包含压缩成功的和未成功的图片信息
+// - error: 错误信息
+func DeleteImgs(ctx context.Context, imgIds []string) (vo.ImgInfosVo, error) {
+	// 图片 vo 对象，包含压缩成功的和未成功的
+	var imgInfosVo vo.ImgInfosVo
+	// 用于保存删除成功和失败的数据
+	var successImgsVo []vo.ImgInfoVo
+	var failImgsVo []vo.ImgInfoVo
+	// 等待批量删除的 id
+	var deleteIds []string
+
+	// 遍历 imgIds，获取到图片名称，将 OSS 中的图片删除掉
+	for _, imgId := range imgIds {
+		// 根据 id 查询图片信息
+		imgPo, err := imgInfoRepo.FindImgById(ctx, imgId)
+
+		// 找不到只能返回 id
+		if err != nil {
+			failImgsVo = append(failImgsVo, vo.ImgInfoVo{
+				ImgId: imgId,
+			})
+			continue
+		}
+
+		// 找到了，则执行删除操作
+		if imgPo != nil {
+			// 从 OSS 中删除该图片
+			ossPath := oss.GenOssSavePath(imgPo.ImgName, imgPo.ImgType)
+			err = storage.Storage.DeleteObject(ctx, ossPath)
+
+			if err != nil { // OSS 删除失败
+				failImgsVo = append(failImgsVo, vo.ImgInfoVo{
+					ImgId: imgId,
+				})
+			} else { // OSS 删除成功，则将 id 添加到待删除的数组中
+				successImgsVo = append(successImgsVo, vo.ImgInfoVo{
+					ImgId:   imgId,
+					ImgName: imgPo.ImgName,
+				})
+				deleteIds = append(deleteIds, imgId)
+			}
+		}
+	}
+
+	// 执行批量删除操作
+	_, err := imgInfoRepo.DeleteImgInfoBatch(ctx, deleteIds)
+	if err != nil {
+		return imgInfosVo, err
+	}
+
+	imgInfosVo.Success = successImgsVo
+	imgInfosVo.Fail = failImgsVo
+
+	return imgInfosVo, nil
 }
