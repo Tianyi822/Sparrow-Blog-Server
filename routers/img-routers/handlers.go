@@ -7,6 +7,7 @@ import (
 	"h2blog/routers/tools"
 )
 
+// uploadImages 上传图片
 func uploadImages(ctx *gin.Context) {
 	// 从 RawData 中获取到图片信息
 	imgsDto, err := tools.GetImgsDto(ctx)
