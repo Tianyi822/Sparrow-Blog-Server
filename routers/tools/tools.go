@@ -79,7 +79,7 @@ func GetImgsDto(ctx *gin.Context) (*dto.ImgsDto, error) {
 
 // RowDataToDto 将请求的参数转换成 DTO
 func rowDataToDto(ctx *gin.Context, dto dto.Dto) error {
-	if ctx.Request.Method != "GET" && ctx.Request.Method != "DELETE" {
+	if ctx.Request.Method != "GET" {
 		// 拿到 RawData 数据
 		rowData, err := ctx.GetRawData()
 		// 处理获取 rawData 数据失败的情况
