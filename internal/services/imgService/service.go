@@ -10,6 +10,7 @@ import (
 	"h2blog/pkg/logger"
 	"h2blog/pkg/utils"
 	"h2blog/pkg/webp"
+	"h2blog/storage/oss"
 )
 
 // genImgId 用于生成图片的唯一标识符
@@ -65,23 +66,34 @@ func ConvertAndAddImg(ctx context.Context, imgDtos []dto.ImgDto) (vo.ImgInfosVo,
 		select {
 		case <-ctx.Done():
 			break
-		case completedMsg, ok := <-outputCh:
+		case data, ok := <-outputCh:
 			if ok {
-				imgId := genImgId(completedMsg.ImgDto.ImgName)
-				if completedMsg.Flag { // 转换成功，存入数据库
-					imgPos = append(imgPos, po.ImgInfo{
-						ImgId:   imgId,
-						ImgName: completedMsg.ImgDto.ImgName,
-					})
+				// 生成 ID
+				imgId := genImgId(data.ImgDto.ImgName)
+				imgPo := po.ImgInfo{
+					ImgId:   imgId,
+					ImgName: data.ImgDto.ImgName,
+				}
+				if data.Flag { // 转换成功，存入数据库
+					// 添加成功标志
+					imgPo.IsConverted = true
+					// 转换成功则为 webp 格式
+					imgPo.ImgType = oss.Webp.String()
 					successImgsVo = append(successImgsVo, vo.ImgInfoVo{
 						ImgId:   imgId,
-						ImgName: completedMsg.ImgDto.ImgName,
+						ImgName: data.ImgDto.ImgName,
 					})
 				} else { // 转换失败，存入失败列表
+					// 标志转换失败
+					imgPo.IsConverted = false
+					// 转换失败保留原有格式
+					imgPo.ImgType = data.ImgDto.ImgType.String()
 					failImgsVo = append(failImgsVo, vo.ImgInfoVo{
-						ImgName: completedMsg.ImgDto.ImgName,
+						ImgId:   imgId,
+						ImgName: data.ImgDto.ImgName,
 					})
 				}
+				imgPos = append(imgPos, imgPo)
 			} else { // 通道关闭
 				// 保存数据到数据库
 				_, err := imgInfoRepo.AddImgInfoBatch(ctx, imgPos)
