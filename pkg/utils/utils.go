@@ -2,11 +2,8 @@ package utils
 
 import (
 	"encoding/hex"
-	"fmt"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/blake2b"
-	"h2blog/pkg/config"
-	"h2blog/pkg/logger"
 )
 
 // GenUUID 生成一个随机的 UUID
@@ -54,36 +51,4 @@ func HashWithLength(input string, length int) (string, error) {
 		length = 128
 	}
 	return fullHex[:length], nil
-}
-
-type OssFileType string
-
-const (
-	MarkDown OssFileType = "markdown"
-	HTML     OssFileType = "html"
-	Webp     OssFileType = "webp"
-	JPG      OssFileType = "jpg"
-	JPEG     OssFileType = "jpeg"
-	PNG      OssFileType = "png"
-)
-
-// GenOssSavePath 用于生成博客保存路径
-func GenOssSavePath(name string, fileType OssFileType) string {
-	switch fileType {
-	case MarkDown:
-		return fmt.Sprintf("%s%s.md", config.UserConfig.BlogOssPath, name)
-	case HTML:
-		return fmt.Sprintf("%s%s.html", config.UserConfig.BlogOssPath, name)
-	case Webp:
-		return fmt.Sprintf("%s%s.webp", config.UserConfig.ImageOssPath, name)
-	case JPG:
-		return fmt.Sprintf("%s%s.jpg", config.UserConfig.ImageOssPath, name)
-	case JPEG:
-		return fmt.Sprintf("%s%s.jpeg", config.UserConfig.ImageOssPath, name)
-	case PNG:
-		return fmt.Sprintf("%s%s.png", config.UserConfig.ImageOssPath, name)
-	default:
-		logger.Error("不存在该文件类型")
-		return ""
-	}
 }
