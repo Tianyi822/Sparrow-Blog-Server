@@ -8,8 +8,8 @@ import (
 	"h2blog/internal/model/dto"
 	"h2blog/pkg/config"
 	"h2blog/pkg/logger"
-	"h2blog/pkg/utils"
 	"h2blog/storage"
+	"h2blog/storage/oss"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -175,7 +175,7 @@ func (c *converter) handleTask(task task) {
 //   - error: 处理过程中发生的错误
 func (c *converter) processTask(ctx context.Context, task task) error {
 	// 从OSS下载原始图片
-	imgBytes, err := storage.Storage.GetContentFromOss(ctx, utils.GenOssSavePath(task.imgDto.ImgName, task.imgDto.ImgType))
+	imgBytes, err := storage.Storage.GetContentFromOss(ctx, oss.GenOssSavePath(task.imgDto.ImgName, task.imgDto.ImgType))
 	if err != nil {
 		msg := fmt.Sprintf("下载图片失败: %v", err)
 		logger.Error(msg)
@@ -191,7 +191,7 @@ func (c *converter) processTask(ctx context.Context, task task) error {
 	}
 
 	// 将转换后的WebP图片上传到OSS
-	if err := storage.Storage.PutContentToOss(ctx, converted, utils.GenOssSavePath(task.imgDto.ImgName, utils.Webp)); err != nil {
+	if err := storage.Storage.PutContentToOss(ctx, converted, oss.GenOssSavePath(task.imgDto.ImgName, oss.Webp)); err != nil {
 		msg := fmt.Sprintf("上传图片失败: %v", err)
 		logger.Error(msg)
 		return errors.New(msg)
