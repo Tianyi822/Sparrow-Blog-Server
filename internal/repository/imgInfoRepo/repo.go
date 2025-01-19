@@ -108,3 +108,39 @@ func AddImgInfoBatch(ctx context.Context, imgs []po.ImgInfo) (int64, error) {
 
 	return result.RowsAffected, nil
 }
+
+// DeleteImgInfoBatch 批量删除图片信息记录
+// - ctx: 上下文对象
+// - ids: 图片信息ID切片
+//
+// 返回值:
+// - int64: 受影响的行数
+// - error: 错误信息
+func DeleteImgInfoBatch(ctx context.Context, ids []string) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+
+	tx := storage.Storage.Db.Model(&po.ImgInfo{}).WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("批量删除图片信息数据失败: %v", r)
+			tx.Rollback()
+		}
+	}()
+
+	logger.Info("批量删除图片信息数据")
+	// 执行删除操作
+	result := tx.Delete(&po.ImgInfo{}, ids)
+	if result.Error != nil {
+		tx.Rollback()
+		msg := fmt.Sprintf("批量删除图片信息数据失败: %v", result.Error)
+		logger.Error(msg)
+		return 0, errors.New(msg)
+	}
+	// 提交事务
+	tx.Commit()
+	logger.Info("批量删除图片信息数据成功: %v", result.RowsAffected)
+
+	return result.RowsAffected, nil
+}

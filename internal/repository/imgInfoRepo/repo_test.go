@@ -2,7 +2,6 @@ package imgInfoRepo
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"h2blog/internal/model/po"
 	"h2blog/pkg/config"
 	"h2blog/pkg/logger"
@@ -10,6 +9,8 @@ import (
 	"h2blog/storage"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
@@ -275,6 +276,82 @@ func TestImgInfo_AddBatch(t *testing.T) {
 			//	tx.Where("img_id = ?", img.ImgId).Delete(&po.ImgInfo{})
 			//}
 			//tx.Commit()
+		})
+	}
+}
+
+func TestImgInfo_DeleteBatch(t *testing.T) {
+	ctx := context.Background()
+
+	// Prepare test data
+	testImages := []po.ImgInfo{
+		{
+			ImgId:      "delete_test_1",
+			ImgName:    "delete1.jpg",
+			CreateTime: time.Now(),
+			UpdateTime: time.Now(),
+		},
+		{
+			ImgId:      "delete_test_2",
+			ImgName:    "delete2.jpg",
+			CreateTime: time.Now(),
+			UpdateTime: time.Now(),
+		},
+	}
+
+	_, err := AddImgInfoBatch(ctx, testImages)
+	if err != nil {
+		t.Fatalf("Failed to prepare test data: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		ids      []string
+		wantRows int64
+		wantErr  bool
+	}{
+		{
+			name:     "正常批量删除",
+			ids:      []string{"delete_test_1", "delete_test_2"},
+			wantRows: 2,
+			wantErr:  false,
+		},
+		{
+			name:     "空切片删除",
+			ids:      []string{},
+			wantRows: 0,
+			wantErr:  false,
+		},
+		{
+			name:     "删除不存在的记录",
+			ids:      []string{"nonexistent_id"},
+			wantRows: 0,
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Start transaction
+			tx := storage.Storage.Db.Begin()
+			defer tx.Rollback()
+
+			// Execute test
+			rows, err := DeleteImgInfoBatch(ctx, tt.ids)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.wantRows, rows)
+
+				// Verify records were deleted
+				if len(tt.ids) > 0 {
+					var count int64
+					tx.Model(&po.ImgInfo{}).Where("img_id IN ?", tt.ids).Count(&count)
+					assert.Equal(t, int64(0), count)
+				}
+			}
 		})
 	}
 }
