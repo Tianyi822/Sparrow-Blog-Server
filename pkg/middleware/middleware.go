@@ -28,7 +28,7 @@ func LoggerToFile() gin.HandlerFunc {
 		// 转为 JSON
 		jsonData, err := json.Marshal(reqInfo)
 		if err != nil {
-			logger.Info("{\"ROUTER\": %v}", reqInfo)
+			logger.Error("{\"ROUTER\": %v, \"encode_json_err\": %v}", reqInfo, err)
 		} else {
 			logger.Info("{\"ROUTER\": %v}", string(jsonData))
 		}
