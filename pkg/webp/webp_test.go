@@ -5,8 +5,8 @@ import (
 	"h2blog/internal/model/dto"
 	"h2blog/pkg/config"
 	"h2blog/pkg/logger"
-	"h2blog/pkg/utils"
 	"h2blog/storage"
+	"h2blog/storage/oss"
 	"strings"
 	"testing"
 	"time"
@@ -45,11 +45,11 @@ func TestConverter(t *testing.T) {
 		}
 		switch imgType {
 		case "jpg":
-			imgDto.ImgType = utils.JPG
+			imgDto.ImgType = oss.JPG
 		case "jpeg":
-			imgDto.ImgType = utils.JPEG
+			imgDto.ImgType = oss.JPEG
 		case "png":
-			imgDto.ImgType = utils.PNG
+			imgDto.ImgType = oss.PNG
 		default:
 			continue
 		}

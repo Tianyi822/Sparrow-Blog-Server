@@ -57,7 +57,11 @@ func TestConvertAndAddImg(t *testing.T) {
 		imgDtos = append(imgDtos, imgDto)
 	}
 
-	imgsVo, err := ConvertAndAddImg(ctx, imgDtos)
+	imgsDto := &dto.ImgsDto{
+		Imgs: imgDtos,
+	}
+
+	imgsVo, err := ConvertAndAddImg(ctx, imgsDto)
 	if err != nil {
 		t.Fatal(err)
 	}
