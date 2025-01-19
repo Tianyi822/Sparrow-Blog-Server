@@ -6,23 +6,17 @@ import (
 	"h2blog/pkg/logger"
 )
 
-type FileType string
-
-func (ft FileType) String() string {
-	return string(ft)
-}
-
 const (
-	MarkDown FileType = "markdown"
-	HTML     FileType = "html"
-	Webp     FileType = "webp"
-	JPG      FileType = "jpg"
-	JPEG     FileType = "jpeg"
-	PNG      FileType = "png"
+	MarkDown = "markdown"
+	HTML     = "html"
+	Webp     = "webp"
+	JPG      = "jpg"
+	JPEG     = "jpeg"
+	PNG      = "png"
 )
 
 // GenOssSavePath 用于生成博客保存路径
-func GenOssSavePath(name string, fileType FileType) string {
+func GenOssSavePath(name string, fileType string) string {
 	switch fileType {
 	case MarkDown:
 		return fmt.Sprintf("%s%s.md", config.UserConfig.BlogOssPath, name)
