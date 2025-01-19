@@ -12,6 +12,7 @@ import (
 	"h2blog/pkg/markdown"
 	"h2blog/pkg/utils"
 	"h2blog/storage"
+	"h2blog/storage/oss"
 )
 
 // genBlogId 用于生成博客的唯一标识符
@@ -73,7 +74,7 @@ func GetH2BlogInfoById(ctx *gin.Context, blogId string) (*vo.BlogInfoVo, error) 
 func AddH2BlogInfo(ctx *gin.Context, blogInfoDto *dto.BlogInfoDto) (int64, error) {
 	// 从 dto 中获取到博客信息
 	// 加载博客的原始 markdown 文件成字符串
-	mdStr, err := storage.Storage.GetContentFromOss(ctx, utils.GenOssSavePath(blogInfoDto.Name(), utils.MarkDown))
+	mdStr, err := storage.Storage.GetContentFromOss(ctx, oss.GenOssSavePath(blogInfoDto.Name(), oss.MarkDown))
 	if err != nil {
 		return 0, err
 	}
@@ -85,7 +86,7 @@ func AddH2BlogInfo(ctx *gin.Context, blogInfoDto *dto.BlogInfoDto) (int64, error
 	}
 
 	// 将 html 内容保存到 oss 中，保存路径与 md 文件同目录
-	savePath := utils.GenOssSavePath(blogInfoDto.Name(), utils.HTML)
+	savePath := oss.GenOssSavePath(blogInfoDto.Name(), oss.HTML)
 	err = storage.Storage.PutContentToOss(ctx, htmlStr, savePath)
 	if err != nil {
 		return 0, err
@@ -132,7 +133,7 @@ func ModifyH2BlogInfo(ctx *gin.Context, dto *dto.BlogInfoDto) (int64, error) {
 	} else {
 		// 1. 重新解析 Markdown 文件内容并保存到 Oss 中
 		// 从OSS存储中获取新Markdown文件内容
-		mdStr, err := storage.Storage.GetContentFromOss(ctx, utils.GenOssSavePath(dto.Name(), utils.MarkDown))
+		mdStr, err := storage.Storage.GetContentFromOss(ctx, oss.GenOssSavePath(dto.Name(), oss.MarkDown))
 		if err != nil {
 			return 0, err
 		}
@@ -142,13 +143,13 @@ func ModifyH2BlogInfo(ctx *gin.Context, dto *dto.BlogInfoDto) (int64, error) {
 			return 0, err
 		}
 		// 将生成的HTML内容上传到新的HTML文件路径
-		err = storage.Storage.PutContentToOss(ctx, htmlStr, utils.GenOssSavePath(dto.Name(), utils.HTML))
+		err = storage.Storage.PutContentToOss(ctx, htmlStr, oss.GenOssSavePath(dto.Name(), oss.HTML))
 		if err != nil {
 			return 0, err
 		}
 
 		// 2. 删除旧的 HTML 文件
-		err = storage.Storage.DeleteObject(ctx, utils.GenOssSavePath(blogInfoPo.Title, utils.HTML))
+		err = storage.Storage.DeleteObject(ctx, oss.GenOssSavePath(blogInfoPo.Title, oss.HTML))
 		if err != nil {
 			return 0, err
 		}
@@ -178,11 +179,11 @@ func DeleteH2BlogInfo(ctx *gin.Context, dto *dto.BlogInfoDto) (int64, error) {
 	} else {
 		// 如果num大于0，表示需要删除一条记录
 		// 1. 先删除 Oss 中的 HTML 文件和 Markdown 文件
-		err = storage.Storage.DeleteObject(ctx, utils.GenOssSavePath(blogInfoPo.Title, utils.HTML))
+		err = storage.Storage.DeleteObject(ctx, oss.GenOssSavePath(blogInfoPo.Title, oss.HTML))
 		if err != nil {
 			return 0, err
 		}
-		err = storage.Storage.DeleteObject(ctx, utils.GenOssSavePath(blogInfoPo.Title, utils.MarkDown))
+		err = storage.Storage.DeleteObject(ctx, oss.GenOssSavePath(blogInfoPo.Title, oss.MarkDown))
 		if err != nil {
 			return 0, err
 		}
