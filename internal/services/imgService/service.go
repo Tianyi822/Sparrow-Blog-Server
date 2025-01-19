@@ -40,7 +40,7 @@ func genImgId(title string) string {
 }
 
 // ConvertAndAddImg 添加图片并转换
-func ConvertAndAddImg(ctx context.Context, imgDtos []dto.ImgDto) (vo.ImgInfosVo, error) {
+func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (vo.ImgInfosVo, error) {
 	// 图片 vo 对象，包含压缩成功的和未成功的
 	var imgInfosVo vo.ImgInfosVo
 
@@ -48,7 +48,7 @@ func ConvertAndAddImg(ctx context.Context, imgDtos []dto.ImgDto) (vo.ImgInfosVo,
 		return imgInfosVo, fmt.Errorf("转换器中还有未完成的任务")
 	}
 
-	err := webp.Converter.AddBatchTasks(ctx, imgDtos)
+	err := webp.Converter.AddBatchTasks(ctx, imgsDto.Imgs)
 	if err != nil {
 		return imgInfosVo, err
 	}
