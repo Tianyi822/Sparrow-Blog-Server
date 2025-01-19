@@ -11,12 +11,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RowDataToMap 将请求的参数转换成 map[string]string
+// GetMapFromRawData 将请求的参数转换成 map[string]any
 // 在没有明确指定 DTO 的情况下，可以调用这个方法
-func RowDataToMap(ctx *gin.Context) (map[string]string, error) {
-	reqData := make(map[string]string)
+// 注意！！！！
+// 获取其中的数据时一定要知道到底是什么数据类型，因为没有 dto 作为解析对象，没法明确知道是什么数据
+func GetMapFromRawData(ctx *gin.Context) (map[string]any, error) {
+	reqData := make(map[string]any)
 
-	if ctx.Request.Method != "GET" && ctx.Request.Method != "DELETE" {
+	if ctx.Request.Method != "GET" {
 		// 拿到 RawData 数据
 		rowData, err := ctx.GetRawData()
 		// 处理获取 rawData 数据失败的情况
@@ -34,7 +36,7 @@ func RowDataToMap(ctx *gin.Context) (map[string]string, error) {
 		err = json.Unmarshal(rowData, &reqData)
 		if err != nil {
 			msg := fmt.Sprintf(
-				"%s => %s 请求解析失败，请检查数据格式是否正确(kv 都是字符串)，err: %s",
+				"%s => %s 请求解析失败，请检查数据格式是否正确，err: %s",
 				ctx.Request.Method,
 				ctx.Request.URL.Path,
 				err.Error(),
