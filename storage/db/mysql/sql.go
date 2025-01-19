@@ -42,6 +42,8 @@ const createH2ImgInfoTableSQL = `
 	(
 	    img_id 			VARCHAR(16) 	PRIMARY KEY NOT NULL															COMMENT '图片ID',
 	    img_name 		VARCHAR(255) 				NOT NULL	UNIQUE 													COMMENT '图片名称',
+	    img_type 		VARCHAR(10) 				NOT NULL 															COMMENT '图片类型',
+	    is_converted	BOOLEAN 					NOT NULL 	DEFAULT FALSE 											COMMENT '是否已转换',
 	    create_time 	TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
 	    update_time 	TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间'
 	) COMMENT='图片信息表' 
