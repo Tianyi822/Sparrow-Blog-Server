@@ -1,4 +1,4 @@
-package img_routers
+package imgRouters
 
 import (
 	"github.com/gin-gonic/gin"

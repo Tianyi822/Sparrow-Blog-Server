@@ -1,4 +1,4 @@
-package blog_routers
+package blogRouters
 
 import (
 	"github.com/gin-gonic/gin"
