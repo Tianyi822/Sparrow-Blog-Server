@@ -29,11 +29,12 @@ func genImgId(title string) string {
 		logger.Error("生成图片 ID 失败: %v，准备重新生成", err)
 		// 初始化计数器，用于限制重试次数
 		count := 0
-		title = title + fmt.Sprintf("%d", count)
+		title = fmt.Sprintf("%v%d", title, count)
 		// 使用for循环尝试重新生成图片ID，最多重试3次
-		for count <= 2 && err != nil {
+		for count <= 3 && err != nil {
 			str, err = utils.HashWithLength(title, 16)
 			count++
+			title = fmt.Sprintf("%v%d", title, count)
 		}
 	}
 	logger.Info("生成图片 ID 成功: %s", str)
