@@ -46,10 +46,6 @@ func BadRequest(ctx *gin.Context, msg string, data any) {
 	MakeResp(ctx, http.StatusBadRequest, msg, data)
 }
 
-func ConflictRequest(ctx *gin.Context, msg string, data any) {
-	MakeResp(ctx, http.StatusConflict, msg, data)
-}
-
 // TokenIsUnauthorized Token 未验证通过
 func TokenIsUnauthorized(ctx *gin.Context, msg string, data any) {
 	MakeResp(ctx, http.StatusUnauthorized, msg, data)
