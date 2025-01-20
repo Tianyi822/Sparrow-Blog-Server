@@ -39,6 +39,7 @@ type task struct {
 type OutputData struct {
 	ImgDto dto.ImgDto // 转换后的图片信息
 	Flag   bool       // 转换是否成功
+	Err    string     // 若有错误则进行记录
 }
 
 // CompletionStatus 完成状态
@@ -154,11 +155,18 @@ func (c *converter) handleTask(task task) {
 	err := c.processTask(ctx, task)
 	if err != nil {
 		logger.Error("处理任务失败: %v", err)
-	}
-	// 发送处理结果到输出通道
-	c.outputCh <- OutputData{
-		ImgDto: task.imgDto,
-		Flag:   err == nil,
+		// 发送处理结果到输出通道
+		c.outputCh <- OutputData{
+			ImgDto: task.imgDto,
+			Flag:   err == nil,
+			Err:    err.Error(),
+		}
+	} else {
+		// 发送处理结果到输出通道
+		c.outputCh <- OutputData{
+			ImgDto: task.imgDto,
+			Flag:   err == nil,
+		}
 	}
 
 	// 立即释放上下文资源
@@ -178,6 +186,12 @@ func (c *converter) processTask(ctx context.Context, task task) error {
 	imgBytes, err := storage.Storage.GetContentFromOss(ctx, oss.GenOssSavePath(task.imgDto.ImgName, task.imgDto.ImgType))
 	if err != nil {
 		msg := fmt.Sprintf("下载图片失败: %v", err)
+		logger.Error(msg)
+		return errors.New(msg)
+	}
+
+	if len(imgBytes) == 0 {
+		msg := fmt.Sprintf("图片不存在: %v", task.imgDto.ImgName)
 		logger.Error(msg)
 		return errors.New(msg)
 	}
