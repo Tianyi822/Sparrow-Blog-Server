@@ -59,3 +59,19 @@ func deleteImgs(ctx *gin.Context) {
 
 	resp.Ok(ctx, "删除成功", imgInfosVo)
 }
+
+func renameImgName(ctx *gin.Context) {
+	// 从 RawData 中获取到数据
+	dto, err := tools.GetImgDto(ctx)
+	if err != nil {
+		return
+	}
+
+	imgInfoVo, err := imgService.RenameImgs(ctx, dto.ImgId, dto.ImgName)
+	if err != nil {
+		resp.Err(ctx, err.Error(), nil)
+		return
+	}
+
+	resp.Ok(ctx, "修改成功", imgInfoVo)
+}

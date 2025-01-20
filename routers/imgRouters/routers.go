@@ -10,4 +10,6 @@ func Routers(e *gin.Engine) {
 	imgGroup.POST("/upload", uploadImages)
 	// 图片删除
 	imgGroup.DELETE("/delete", deleteImgs)
+	// 图片重命名
+	imgGroup.PUT("/rename", renameImgName)
 }
