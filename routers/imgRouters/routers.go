@@ -12,4 +12,6 @@ func Routers(e *gin.Engine) {
 	imgGroup.DELETE("/delete", deleteImgs)
 	// 图片重命名
 	imgGroup.PUT("/rename", renameImgName)
+	// 图片模糊查询
+	imgGroup.GET("/find/:name", findImgsByNameLike)
 }

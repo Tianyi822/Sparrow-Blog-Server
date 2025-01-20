@@ -14,8 +14,14 @@ import (
 	"h2blog/storage/oss"
 )
 
-// FindNameLikeImgs 根据图片名模糊查询图片信息
-func FindNameLikeImgs(ctx context.Context, name string) (*vo.ImgInfosVo, error) {
+// FindImgsByNameLike 根据图片名模糊查询图片信息
+// - ctx 是上下文对象，用于控制请求的生命周期
+// - name 是图片名
+//
+// 返回值
+// - vo.ImgInfosVo 是包含查询结果的 VO 对象
+// - error 是可能出现的错误信息
+func FindImgsByNameLike(ctx context.Context, name string) (*vo.ImgInfosVo, error) {
 	if len(name) == 0 {
 		return nil, errors.New("图片名不能为空")
 	}
