@@ -37,6 +37,7 @@ func FindImgsByNameLike(ctx context.Context, name string) (*vo.ImgInfosVo, error
 		imgInfosVo = append(imgInfosVo, vo.ImgInfoVo{
 			ImgId:   imgInfo.ImgId,
 			ImgName: imgInfo.ImgName,
+			ImgType: imgInfo.ImgType,
 		})
 	}
 

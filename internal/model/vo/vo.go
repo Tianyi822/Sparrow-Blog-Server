@@ -18,6 +18,7 @@ func (bv *BlogInfoVo) VoFlag() string {
 type ImgInfoVo struct {
 	ImgId   string `json:"img_id,omitempty"`
 	ImgName string `json:"img_name,omitempty"`
+	ImgType string `json:"img_type,omitempty"`
 	Err     string `json:"err,omitempty"`
 }
 
