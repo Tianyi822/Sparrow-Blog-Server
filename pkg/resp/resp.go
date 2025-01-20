@@ -5,14 +5,6 @@ import (
 	"net/http"
 )
 
-/*
-	200 - 成功
-	500 - 服务器错误
-	400 - 访问错误
-	409 - 重复访问错误
-	401 - Token 未验证通过
-*/
-
 // ResponseMsg
 // @desc 响应消息体
 type ResponseMsg struct {
