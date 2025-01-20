@@ -66,7 +66,10 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (*vo.ImgInfosVo
 	// 获取转换器中的输出通道
 	outputCh := webp.Converter.GetOutputCh()
 
-	// 将转换成功的图片信息暂存在这里
+	// 用于保存以下几种数据
+	// - 转换成功
+	// - 转换失败
+	// - 上传失败
 	var imgPos []po.ImgInfo
 
 	var successImgsVo []vo.ImgInfoVo
@@ -77,25 +80,49 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (*vo.ImgInfosVo
 		case <-ctx.Done():
 			return handleConvertedImgsData(ctx, imgPos, successImgsVo, failImgsVo)
 		case data, ok := <-outputCh:
-			if ok {
+			if ok { // 通道未关闭
+
+				// 生成 ID
+				imgId := utils.GenId(data.ImgDto.ImgName)
+				imgPo := po.ImgInfo{
+					ImgId:   imgId,
+					ImgName: data.ImgDto.ImgName,
+				}
+
 				if data.Flag { // 转换成功，存入数据库
-					// 生成 ID
-					imgId := utils.GenId(data.ImgDto.ImgName)
 					// 构建 po 对象
-					imgPos = append(imgPos, po.ImgInfo{
-						ImgId:   imgId,
-						ImgName: data.ImgDto.ImgName,
-						ImgType: oss.Webp,
-					})
+					imgPo.ImgType = oss.Webp
+					// 将转换成功的数据暂存到 imgPos 中
+					imgPos = append(imgPos, imgPo)
+					// 将转换成功的图片信息存入 successImgsVo 中
 					successImgsVo = append(successImgsVo, vo.ImgInfoVo{
 						ImgId:   imgId,
 						ImgName: data.ImgDto.ImgName,
 					})
 				} else { // 转换失败，存入失败列表
-					failImgsVo = append(failImgsVo, vo.ImgInfoVo{
-						ImgName: data.ImgDto.ImgName,
-						Err:     data.Err,
-					})
+					// 将 err 对象转换为 webp 自定义的 Err 对象
+					var webpErr *webp.Err
+					errors.As(data.Err, &webpErr)
+					// 转换失败则需要根据不同的 Err Code 进行操作
+					switch webpErr.Code {
+					case webp.ConvertError | webp.UploadError:
+						// 转换失败和上传失败，数据还是存在于 OSS 中，数据库则保存原来格式
+						imgPo.ImgType = data.ImgDto.ImgType
+						imgPos = append(imgPos, imgPo)
+						// 但还是要把转换失败的放入失败列表
+						failImgsVo = append(failImgsVo, vo.ImgInfoVo{
+							ImgId:   imgId,
+							ImgName: data.ImgDto.ImgName,
+							Err:     data.Err.Error(),
+						})
+					default:
+						// 其他错误，包括下载失败和删除失败，直接返回
+						// TODO: 这里有个问题，删除失败的话，OSS 中会同时存在原格式以及 webp 格式的图片，以后再添加功能自动扫描
+						failImgsVo = append(failImgsVo, vo.ImgInfoVo{
+							ImgName: data.ImgDto.ImgName,
+							Err:     data.Err.Error(),
+						})
+					}
 				}
 			} else { // 通道关闭
 				return handleConvertedImgsData(ctx, imgPos, successImgsVo, failImgsVo)
