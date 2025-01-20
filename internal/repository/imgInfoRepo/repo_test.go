@@ -184,7 +184,7 @@ func TestImgInfo_FindByNameLike(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := FindImgByNameLike(ctx, tt.keyword)
+			got, err := FindImgsByNameLike(ctx, tt.keyword)
 
 			if tt.wantErr {
 				assert.Error(t, err)

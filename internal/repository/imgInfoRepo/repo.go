@@ -25,11 +25,11 @@ func FindImgById(ctx context.Context, imgId string) (*po.ImgInfo, error) {
 	return &img, nil
 }
 
-// FindImgByNameLike 根据图片名称模糊查询图片信息
+// FindImgsByNameLike 根据图片名称模糊查询图片信息
 // - ctx: 上下文对象
 // - nameLike: 图片名称模糊匹配字符串
 // 返回值: 图片信息实体切片和错误信息
-func FindImgByNameLike(ctx context.Context, nameLike string) ([]po.ImgInfo, error) {
+func FindImgsByNameLike(ctx context.Context, nameLike string) ([]po.ImgInfo, error) {
 	var images []po.ImgInfo
 	// 使用GORM进行模糊查询，查找img_name包含指定字符串的记录
 	result := storage.Storage.Db.Model(&po.ImgInfo{}).WithContext(ctx).Where("img_name LIKE ?", "%"+nameLike+"%").Find(&images)
