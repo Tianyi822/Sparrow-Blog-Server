@@ -157,6 +157,9 @@ func DeleteImgs(ctx context.Context, imgIds []string) (*vo.ImgInfosVo, error) {
 // - vo.ImgInfosVo: 成功重命名的图片信息
 // - error: 错误信息
 func RenameImgs(ctx context.Context, imgId string, newName string) (*vo.ImgInfoVo, error) {
+	if len(newName) == 0 {
+		return nil, errors.New("新名称不能为空")
+	}
 
 	// 根据 id 查询图片信息
 	imgPo, err := imgInfoRepo.FindImgById(ctx, imgId)
