@@ -190,12 +190,6 @@ func (c *converter) processTask(ctx context.Context, task task) error {
 		return errors.New(msg)
 	}
 
-	if len(imgBytes) == 0 {
-		msg := fmt.Sprintf("图片不存在: %v", task.imgDto.ImgName)
-		logger.Error(msg)
-		return errors.New(msg)
-	}
-
 	// 将图片转换为WebP格式
 	converted, err := convertToWebP(imgBytes, c.quality)
 	if err != nil {
