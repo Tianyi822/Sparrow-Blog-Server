@@ -152,3 +152,55 @@ func TestDeleteImgs(t *testing.T) {
 		t.Errorf("Expected %d failed deletions for non-existent IDs, got %d", len(nonExistentIds), len(imgsVo.Fail))
 	}
 }
+
+func TestRenameImgs(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	// First add a test image to have something to rename
+	imgDto := dto.ImgDto{
+		ImgName: "test-image",
+		ImgType: oss.JPG,
+	}
+	imgsDto := &dto.ImgsDto{
+		Imgs: []dto.ImgDto{imgDto},
+	}
+
+	addedImgs, err := ConvertAndAddImg(ctx, imgsDto)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(addedImgs.Success) == 0 {
+		t.Fatal("Failed to add test image")
+	}
+
+	imgId := addedImgs.Success[0].ImgId
+	newName := "renamed-test-image"
+
+	// Test renaming
+	renamedImg, err := RenameImgs(ctx, imgId, newName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify results
+	if renamedImg.ImgId != imgId {
+		t.Errorf("Expected ImgId %s, got %s", imgId, renamedImg.ImgId)
+	}
+	if renamedImg.ImgName != newName {
+		t.Errorf("Expected ImgName %s, got %s", newName, renamedImg.ImgName)
+	}
+
+	// Test with non-existent ID
+	_, err = RenameImgs(ctx, "non-existent-id", "new-name")
+	if err == nil {
+		t.Error("Expected error when renaming non-existent image, got nil")
+	}
+
+	// Cleanup
+	_, err = DeleteImgs(ctx, []string{imgId})
+	if err != nil {
+		t.Logf("Failed to cleanup test image: %v", err)
+	}
+}

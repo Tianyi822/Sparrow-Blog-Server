@@ -2,6 +2,7 @@ package imgService
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"h2blog/internal/model/dto"
 	"h2blog/internal/model/po"
@@ -185,4 +186,52 @@ func DeleteImgs(ctx context.Context, imgIds []string) (vo.ImgInfosVo, error) {
 	imgInfosVo.Fail = failImgsVo
 
 	return imgInfosVo, nil
+}
+
+// RenameImgs 重命名图片
+// - ctx: 上下文
+// - imgId: 图片 ID
+// - newName: 新的图片名称
+//
+// 返回值:
+// - vo.ImgInfosVo: 成功重命名的图片信息
+// - error: 错误信息
+func RenameImgs(ctx context.Context, imgId string, newName string) (vo.ImgInfoVo, error) {
+	var imgInfoVo vo.ImgInfoVo
+
+	// 根据 id 查询图片信息
+	imgPo, err := imgInfoRepo.FindImgById(ctx, imgId)
+	if err != nil {
+		return imgInfoVo, err
+	}
+
+	// 更新 OSS 中的图片名称
+	if imgPo != nil {
+		// 生成新的 OSS 路径
+		newOssPath := oss.GenOssSavePath(newName, imgPo.ImgType)
+		// 生成旧的 OSS 路径
+		oldOssPath := oss.GenOssSavePath(imgPo.ImgName, imgPo.ImgType)
+		// 重命名 OSS 中的图片
+		err = storage.Storage.RenameObject(ctx, oldOssPath, newOssPath)
+	} else {
+		return imgInfoVo, errors.New("图片不存在")
+	}
+
+	// OSS 重命名失败
+	if err != nil {
+		return imgInfoVo, err
+	}
+
+	// 更新数据库中的图片信息
+	imgPo.ImgName = newName
+	_, err = imgInfoRepo.UpdateImgNameById(ctx, imgId, newName)
+	if err != nil {
+		return imgInfoVo, err
+	}
+
+	// 返回图片信息
+	imgInfoVo.ImgId = imgId
+	imgInfoVo.ImgName = newName
+
+	return imgInfoVo, nil
 }
