@@ -73,32 +73,25 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (*vo.ImgInfosVo
 			return handleConvertedImgsData(ctx, imgPos, successImgsVo, failImgsVo)
 		case data, ok := <-outputCh:
 			if ok {
-				// 生成 ID
-				imgId := genImgId(data.ImgDto.ImgName)
-				imgPo := po.ImgInfo{
-					ImgId:   imgId,
-					ImgName: data.ImgDto.ImgName,
-				}
 				if data.Flag { // 转换成功，存入数据库
-					// 添加成功标志
-					imgPo.IsConverted = true
-					// 转换成功则为 webp 格式
-					imgPo.ImgType = oss.Webp
+					// 生成 ID
+					imgId := genImgId(data.ImgDto.ImgName)
+					// 构建 po 对象
+					imgPos = append(imgPos, po.ImgInfo{
+						ImgId:   imgId,
+						ImgName: data.ImgDto.ImgName,
+						ImgType: oss.Webp,
+					})
 					successImgsVo = append(successImgsVo, vo.ImgInfoVo{
 						ImgId:   imgId,
 						ImgName: data.ImgDto.ImgName,
 					})
 				} else { // 转换失败，存入失败列表
-					// 标志转换失败
-					imgPo.IsConverted = false
-					// 转换失败保留原有格式
-					imgPo.ImgType = data.ImgDto.ImgType
 					failImgsVo = append(failImgsVo, vo.ImgInfoVo{
-						ImgId:   imgId,
 						ImgName: data.ImgDto.ImgName,
+						Err:     data.Err,
 					})
 				}
-				imgPos = append(imgPos, imgPo)
 			} else { // 通道关闭
 				return handleConvertedImgsData(ctx, imgPos, successImgsVo, failImgsVo)
 			}
