@@ -14,6 +14,28 @@ import (
 	"h2blog/storage/oss"
 )
 
+// FindImgById 根据图片ID查询单条图片信息
+// - ctx: 上下文对象
+// - imgId: 图片ID
+//
+// 返回值
+// - vo.ImgInfoVo 是包含查询结果的 VO 对象
+// - error 是可能出现的错误信息
+func FindImgById(ctx context.Context, imgId string) (*vo.ImgInfoVo, error) {
+	// TODO: 这里应该返回的是一个可访问图片的 Url，该 Url 有访问时限，但在前端开发到这个功能之前，暂时都是返回一个 vo
+
+	imgPo, err := imgInfoRepo.FindImgById(ctx, imgId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &vo.ImgInfoVo{
+		ImgId:   imgPo.ImgId,
+		ImgName: imgPo.ImgName,
+		ImgType: imgPo.ImgType,
+	}, nil
+}
+
 // FindImgsByNameLike 根据图片名模糊查询图片信息
 // - ctx 是上下文对象，用于控制请求的生命周期
 // - name 是图片名

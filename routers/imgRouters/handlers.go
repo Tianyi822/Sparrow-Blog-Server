@@ -81,7 +81,7 @@ func renameImgName(ctx *gin.Context) {
 	resp.Ok(ctx, "修改成功", imgInfoVo)
 }
 
-func findImgsByNameLike(ctx *gin.Context) {
+func getImgsByNameLike(ctx *gin.Context) {
 	name := ctx.Param("name")
 
 	imgInfosVo, err := imgService.FindImgsByNameLike(ctx, name)
@@ -90,4 +90,15 @@ func findImgsByNameLike(ctx *gin.Context) {
 	}
 
 	resp.Ok(ctx, "查询成功", imgInfosVo)
+}
+
+func getImgByID(ctx *gin.Context) {
+	imgId := ctx.Param("id")
+	imgInfoVo, err := imgService.FindImgById(ctx, imgId)
+	if err != nil {
+		resp.Err(ctx, err.Error(), nil)
+		return
+	}
+
+	resp.Ok(ctx, "查询成功", imgInfoVo)
 }

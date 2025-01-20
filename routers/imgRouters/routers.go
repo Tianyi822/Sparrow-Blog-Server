@@ -13,5 +13,7 @@ func Routers(e *gin.Engine) {
 	// 图片重命名
 	imgGroup.PUT("/rename", renameImgName)
 	// 图片模糊查询
-	imgGroup.GET("/find/:name", findImgsByNameLike)
+	imgGroup.GET("/get_list/:name", getImgsByNameLike)
+	// 根据 ID 获取图片
+	imgGroup.GET("/get/:id", getImgByID)
 }
