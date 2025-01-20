@@ -39,7 +39,7 @@ type task struct {
 type OutputData struct {
 	ImgDto dto.ImgDto // 转换后的图片信息
 	Flag   bool       // 转换是否成功
-	Err    string     // 若有错误则进行记录
+	Err    error      // 若有错误则进行记录
 }
 
 // CompletionStatus 完成状态
@@ -159,7 +159,7 @@ func (c *converter) handleTask(task task) {
 		c.outputCh <- OutputData{
 			ImgDto: task.imgDto,
 			Flag:   err == nil,
-			Err:    err.Error(),
+			Err:    err,
 		}
 	} else {
 		// 发送处理结果到输出通道
@@ -187,7 +187,7 @@ func (c *converter) processTask(ctx context.Context, task task) error {
 	if err != nil {
 		msg := fmt.Sprintf("下载图片失败: %v", err)
 		logger.Error(msg)
-		return errors.New(msg)
+		return NewWebErr(DownloadError, msg)
 	}
 
 	// 将图片转换为WebP格式
@@ -195,20 +195,21 @@ func (c *converter) processTask(ctx context.Context, task task) error {
 	if err != nil {
 		msg := fmt.Sprintf("转换图片失败: %v", err)
 		logger.Error(msg)
-		return errors.New(msg)
+		return NewWebErr(ConvertError, msg)
 	}
 
 	// 将转换后的WebP图片上传到OSS
 	if err := storage.Storage.PutContentToOss(ctx, converted, oss.GenOssSavePath(task.imgDto.ImgName, oss.Webp)); err != nil {
 		msg := fmt.Sprintf("上传图片失败: %v", err)
 		logger.Error(msg)
-		return errors.New(msg)
+		return NewWebErr(UploadError, msg)
 	}
+
 	// 删除原来的图片
 	if err := storage.Storage.DeleteObject(ctx, oss.GenOssSavePath(task.imgDto.ImgName, task.imgDto.ImgType)); err != nil {
 		msg := fmt.Sprintf("删除图片失败: %v", err)
 		logger.Error(msg)
-		return errors.New(msg)
+		return NewWebErr(DeleteError, msg)
 	}
 
 	return nil
