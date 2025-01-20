@@ -54,3 +54,8 @@ func ConflictRequest(ctx *gin.Context, msg string, data any) {
 func TokenIsUnauthorized(ctx *gin.Context, msg string, data any) {
 	MakeResp(ctx, http.StatusUnauthorized, msg, data)
 }
+
+// RedirectUrl 重定向
+func RedirectUrl(ctx *gin.Context, url string) {
+	ctx.Redirect(http.StatusFound, url)
+}
