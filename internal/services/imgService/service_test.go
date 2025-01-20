@@ -204,3 +204,17 @@ func TestRenameImgs(t *testing.T) {
 		t.Logf("Failed to cleanup test image: %v", err)
 	}
 }
+
+func TestFindNameLikeImgs(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	imgs, err := FindNameLikeImgs(ctx, "萤")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, img := range imgs.Success {
+		t.Logf("Found image: %#v", img)
+	}
+}
