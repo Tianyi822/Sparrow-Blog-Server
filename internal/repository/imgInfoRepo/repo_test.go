@@ -355,3 +355,68 @@ func TestImgInfo_DeleteBatch(t *testing.T) {
 		})
 	}
 }
+
+func TestImgInfo_UpdateNameById(t *testing.T) {
+	ctx := context.Background()
+
+	// Prepare test data
+	testImg := po.ImgInfo{
+		ImgId:      "update_test_1",
+		ImgName:    "original.jpg",
+		CreateTime: time.Now(),
+		UpdateTime: time.Now(),
+	}
+
+	_, err := AddImgInfo(ctx, &testImg)
+	if err != nil {
+		t.Fatalf("Failed to prepare test data: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		id       string
+		newName  string
+		wantRows int64
+		wantErr  bool
+	}{
+		{
+			name:     "正常更新名称",
+			id:       "update_test_1",
+			newName:  "updated.jpg",
+			wantRows: 1,
+			wantErr:  false,
+		},
+		{
+			name:     "更新不存在的记录",
+			id:       "nonexistent_id",
+			newName:  "new.jpg",
+			wantRows: 0,
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Start transaction
+			tx := storage.Storage.Db.Begin()
+			defer tx.Rollback()
+
+			// Execute test
+			rows, err := UpdateImgNameById(ctx, tt.id, tt.newName)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.wantRows, rows)
+
+				// Verify name was updated
+				if tt.wantRows > 0 {
+					var updated po.ImgInfo
+					tx.Where("img_id = ?", tt.id).First(&updated)
+					assert.Equal(t, tt.newName, updated.ImgName)
+				}
+			}
+		})
+	}
+}

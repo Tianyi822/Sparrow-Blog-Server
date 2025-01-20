@@ -144,3 +144,35 @@ func DeleteImgInfoBatch(ctx context.Context, ids []string) (int64, error) {
 
 	return result.RowsAffected, nil
 }
+
+// UpdateImgNameById 更新图片信息记录的名称
+// - ctx: 上下文对象
+// - id: 图片信息ID
+// - name: 新的名称
+//
+// 返回值:
+// - int64: 受影响的行数
+// - error: 错误信息
+func UpdateImgNameById(ctx context.Context, id string, name string) (int64, error) {
+	tx := storage.Storage.Db.Model(&po.ImgInfo{}).WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("更新图片信息数据失败: %v", r)
+			tx.Rollback()
+		}
+	}()
+
+	logger.Info("更新图片信息数据")
+	result := tx.Model(&po.ImgInfo{}).Where("img_id = ?", id).Update("img_name", name)
+	if result.Error != nil {
+		tx.Rollback()
+		msg := fmt.Sprintf("更新图片信息数据失败: %v", result.Error)
+		logger.Error(msg)
+		return 0, errors.New(msg)
+	}
+	// 提交事务
+	tx.Commit()
+	logger.Info("更新图片信息数据成功: %v", result.RowsAffected)
+
+	return result.RowsAffected, nil
+}
