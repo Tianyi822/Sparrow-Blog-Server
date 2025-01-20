@@ -67,6 +67,11 @@ func renameImgName(ctx *gin.Context) {
 		return
 	}
 
+	if len(dto.ImgName) == 0 {
+		resp.BadRequest(ctx, "图片名称不能为空", nil)
+		return
+	}
+
 	imgInfoVo, err := imgService.RenameImgs(ctx, dto.ImgId, dto.ImgName)
 	if err != nil {
 		resp.Err(ctx, err.Error(), nil)
