@@ -61,18 +61,18 @@ func (s *storage) DeleteObject(ctx context.Context, oldName string) error {
 
 // RenameObject 重命名对象
 // - ctx 上下文对象，用于控制请求的截止时间、取消信号等
-// - oldName 原对象名称
-// - newName 新对象名称
-func (s *storage) RenameObject(ctx context.Context, oldName, newName string) error {
+// - oldPath 原对象路径
+// - newPath 新对象路径
+func (s *storage) RenameObject(ctx context.Context, oldPath, newPath string) error {
 	// 创建文件拷贝器
 	c := s.OssClient.NewCopier()
 
 	// 构建拷贝对象的请求
 	copyRequest := &oss.CopyObjectRequest{
 		Bucket:       oss.Ptr(config.OSSConfig.Bucket), // 目标存储空间名称
-		Key:          oss.Ptr(newName),                 // 目标对象名称
+		Key:          oss.Ptr(newPath),                 // 目标对象名称
 		SourceBucket: oss.Ptr(config.OSSConfig.Bucket), // 源存储空间名称
-		SourceKey:    oss.Ptr(oldName),                 // 源对象名称
+		SourceKey:    oss.Ptr(oldPath),                 // 源对象名称
 		StorageClass: oss.StorageClassStandard,         // 指定存储类型为归档类型
 	}
 	// 执行拷贝对象的操作
@@ -88,13 +88,13 @@ func (s *storage) RenameObject(ctx context.Context, oldName, newName string) err
 	// 构建删除对象的请求
 	deleteRequest := &oss.DeleteObjectRequest{
 		Bucket: oss.Ptr(config.OSSConfig.Bucket), // 存储空间名称
-		Key:    oss.Ptr(oldName),                 // 要删除的对象名称
+		Key:    oss.Ptr(oldPath),                 // 要删除的对象名称
 	}
 	// 执行删除对象的操作
 	deleteResult, err := s.OssClient.DeleteObject(ctx, deleteRequest)
 	if err != nil {
 		// 记录错误信息，并返回自定义错误信息
-		msg := fmt.Sprintf("删除 (%v) 对象失败 %v", oldName, err)
+		msg := fmt.Sprintf("删除 (%v) 对象失败 %v", oldPath, err)
 		logger.Error(msg)
 		return errors.New(msg)
 	}
