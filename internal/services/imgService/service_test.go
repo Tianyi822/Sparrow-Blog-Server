@@ -68,11 +68,11 @@ func TestConvertAndAddImg(t *testing.T) {
 	for _, imgVo := range imgsVo.Success {
 		t.Logf("imgVo Successed: %#v\n", imgVo)
 	}
-	for _, imgVo := range imgsVo.Fail {
+	for _, imgVo := range imgsVo.Failure {
 		t.Logf("imgVo Failed: %#v\n", imgVo)
 	}
 	t.Logf("success len = %v\n", len(imgsVo.Success))
-	t.Logf("fail len = %v\n", len(imgsVo.Fail))
+	t.Logf("fail len = %v\n", len(imgsVo.Failure))
 }
 
 func TestDeleteImgs(t *testing.T) {
@@ -133,8 +133,8 @@ func TestDeleteImgs(t *testing.T) {
 		t.Logf("Deleted image: %#v", img)
 	}
 
-	t.Logf("Failed to delete images: %d", len(imgsVo.Fail))
-	for _, img := range imgsVo.Fail {
+	t.Logf("Failed to delete images: %d", len(imgsVo.Failure))
+	for _, img := range imgsVo.Failure {
 		t.Logf("Failed to delete image: %#v", img)
 	}
 
@@ -148,8 +148,8 @@ func TestDeleteImgs(t *testing.T) {
 	if len(imgsVo.Success) != 0 {
 		t.Errorf("Expected 0 successful deletions for non-existent IDs, got %d", len(imgsVo.Success))
 	}
-	if len(imgsVo.Fail) != len(nonExistentIds) {
-		t.Errorf("Expected %d failed deletions for non-existent IDs, got %d", len(nonExistentIds), len(imgsVo.Fail))
+	if len(imgsVo.Failure) != len(nonExistentIds) {
+		t.Errorf("Expected %d failed deletions for non-existent IDs, got %d", len(nonExistentIds), len(imgsVo.Failure))
 	}
 }
 

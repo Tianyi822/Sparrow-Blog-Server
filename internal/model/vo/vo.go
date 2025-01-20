@@ -26,7 +26,7 @@ func (iv *ImgInfoVo) VoFlag() string {
 
 type ImgInfosVo struct {
 	Success []ImgInfoVo `json:"success,omitempty"`
-	Fail    []ImgInfoVo `json:"fail,omitempty"`
+	Failure []ImgInfoVo `json:"failure,omitempty"`
 }
 
 func (isv *ImgInfosVo) VoFlag() string {

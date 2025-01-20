@@ -110,7 +110,7 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (vo.ImgInfosVo,
 				}
 				// 将成功和失败的数据返回
 				imgInfosVo.Success = successImgsVo
-				imgInfosVo.Fail = failImgsVo
+				imgInfosVo.Failure = failImgsVo
 				return imgInfosVo, nil
 			}
 		case <-webp.Converter.GetCompletionStatus():
@@ -121,7 +121,7 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (vo.ImgInfosVo,
 			}
 			// 将成功和失败的数据返回
 			imgInfosVo.Success = successImgsVo
-			imgInfosVo.Fail = failImgsVo
+			imgInfosVo.Failure = failImgsVo
 			return imgInfosVo, nil
 		}
 	}
@@ -183,7 +183,7 @@ func DeleteImgs(ctx context.Context, imgIds []string) (vo.ImgInfosVo, error) {
 	}
 
 	imgInfosVo.Success = successImgsVo
-	imgInfosVo.Fail = failImgsVo
+	imgInfosVo.Failure = failImgsVo
 
 	return imgInfosVo, nil
 }
