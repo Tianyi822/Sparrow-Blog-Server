@@ -48,17 +48,14 @@ func genImgId(title string) string {
 // 返回值
 // - vo.ImgInfosVo 是包含转换成功和失败的图片信息的 VO 对象
 // - error 是可能出现的错误信息
-func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (vo.ImgInfosVo, error) {
-	// 图片 vo 对象，包含压缩成功的和未成功的
-	var imgInfosVo vo.ImgInfosVo
-
+func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (*vo.ImgInfosVo, error) {
 	if !webp.Converter.IsEmpty() {
-		return imgInfosVo, fmt.Errorf("转换器中还有未完成的任务")
+		return nil, fmt.Errorf("转换器中还有未完成的任务")
 	}
 
 	err := webp.Converter.AddBatchTasks(ctx, imgsDto.Imgs)
 	if err != nil {
-		return imgInfosVo, err
+		return nil, err
 	}
 
 	// 获取转换器中的输出通道
@@ -73,7 +70,7 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (vo.ImgInfosVo,
 	for {
 		select {
 		case <-ctx.Done():
-			break
+			return handleConvertedImgsData(ctx, imgPos, successImgsVo, failImgsVo)
 		case data, ok := <-outputCh:
 			if ok {
 				// 生成 ID
@@ -103,28 +100,27 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (vo.ImgInfosVo,
 				}
 				imgPos = append(imgPos, imgPo)
 			} else { // 通道关闭
-				// 保存数据到数据库
-				_, err := imgInfoRepo.AddImgInfoBatch(ctx, imgPos)
-				if err != nil {
-					return imgInfosVo, err
-				}
-				// 将成功和失败的数据返回
-				imgInfosVo.Success = successImgsVo
-				imgInfosVo.Failure = failImgsVo
-				return imgInfosVo, nil
+				return handleConvertedImgsData(ctx, imgPos, successImgsVo, failImgsVo)
 			}
 		case <-webp.Converter.GetCompletionStatus():
-			// 保存数据到数据库
-			_, err := imgInfoRepo.AddImgInfoBatch(ctx, imgPos)
-			if err != nil {
-				return imgInfosVo, err
-			}
-			// 将成功和失败的数据返回
-			imgInfosVo.Success = successImgsVo
-			imgInfosVo.Failure = failImgsVo
-			return imgInfosVo, nil
+			return handleConvertedImgsData(ctx, imgPos, successImgsVo, failImgsVo)
 		}
 	}
+}
+
+// handleConvertedImgsData 处理转换后的图片数据
+func handleConvertedImgsData(ctx context.Context, imgPos []po.ImgInfo, successImgsVo, failImgsVo []vo.ImgInfoVo) (*vo.ImgInfosVo, error) {
+	// 图片 vo 对象，包含压缩成功的和未成功的
+	imgInfosVo := &vo.ImgInfosVo{}
+	// 保存数据到数据库
+	_, err := imgInfoRepo.AddImgInfoBatch(ctx, imgPos)
+	if err != nil {
+		return imgInfosVo, err
+	}
+	// 将成功和失败的数据返回
+	imgInfosVo.Success = successImgsVo
+	imgInfosVo.Failure = failImgsVo
+	return imgInfosVo, nil
 }
 
 // DeleteImgs 批量删除图片
@@ -134,9 +130,7 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (vo.ImgInfosVo,
 // - 返回值
 // - vo.ImgInfosVo: 包含压缩成功的和未成功的图片信息
 // - error: 错误信息
-func DeleteImgs(ctx context.Context, imgIds []string) (vo.ImgInfosVo, error) {
-	// 图片 vo 对象，包含压缩成功的和未成功的
-	var imgInfosVo vo.ImgInfosVo
+func DeleteImgs(ctx context.Context, imgIds []string) (*vo.ImgInfosVo, error) {
 	// 用于保存删除成功和失败的数据
 	var successImgsVo []vo.ImgInfoVo
 	var failImgsVo []vo.ImgInfoVo
@@ -179,13 +173,13 @@ func DeleteImgs(ctx context.Context, imgIds []string) (vo.ImgInfosVo, error) {
 	// 执行批量删除操作
 	_, err := imgInfoRepo.DeleteImgInfoBatch(ctx, deleteIds)
 	if err != nil {
-		return imgInfosVo, err
+		return nil, err
 	}
 
-	imgInfosVo.Success = successImgsVo
-	imgInfosVo.Failure = failImgsVo
-
-	return imgInfosVo, nil
+	return &vo.ImgInfosVo{
+		Success: successImgsVo,
+		Failure: failImgsVo,
+	}, nil
 }
 
 // RenameImgs 重命名图片
