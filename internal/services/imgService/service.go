@@ -156,13 +156,12 @@ func DeleteImgs(ctx context.Context, imgIds []string) (*vo.ImgInfosVo, error) {
 // 返回值:
 // - vo.ImgInfosVo: 成功重命名的图片信息
 // - error: 错误信息
-func RenameImgs(ctx context.Context, imgId string, newName string) (vo.ImgInfoVo, error) {
-	var imgInfoVo vo.ImgInfoVo
+func RenameImgs(ctx context.Context, imgId string, newName string) (*vo.ImgInfoVo, error) {
 
 	// 根据 id 查询图片信息
 	imgPo, err := imgInfoRepo.FindImgById(ctx, imgId)
 	if err != nil {
-		return imgInfoVo, err
+		return nil, err
 	}
 
 	// 更新 OSS 中的图片名称
@@ -174,24 +173,24 @@ func RenameImgs(ctx context.Context, imgId string, newName string) (vo.ImgInfoVo
 		// 重命名 OSS 中的图片
 		err = storage.Storage.RenameObject(ctx, oldOssPath, newOssPath)
 	} else {
-		return imgInfoVo, errors.New("图片不存在")
+		return nil, errors.New("图片不存在")
 	}
 
 	// OSS 重命名失败
 	if err != nil {
-		return imgInfoVo, err
+		return nil, err
 	}
 
 	// 更新数据库中的图片信息
 	imgPo.ImgName = newName
 	_, err = imgInfoRepo.UpdateImgNameById(ctx, imgId, newName)
 	if err != nil {
-		return imgInfoVo, err
+		return nil, err
 	}
 
 	// 返回图片信息
-	imgInfoVo.ImgId = imgId
-	imgInfoVo.ImgName = newName
-
-	return imgInfoVo, nil
+	return &vo.ImgInfoVo{
+		ImgId:   imgId,
+		ImgName: newName,
+	}, nil
 }
