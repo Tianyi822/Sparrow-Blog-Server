@@ -8,39 +8,11 @@ import (
 	"h2blog/internal/model/po"
 	"h2blog/internal/model/vo"
 	"h2blog/internal/repository/imgInfoRepo"
-	"h2blog/pkg/logger"
 	"h2blog/pkg/utils"
 	"h2blog/pkg/webp"
 	"h2blog/storage"
 	"h2blog/storage/oss"
 )
-
-// genImgId 用于生成图片的唯一标识符
-//   - title 是图片的标题
-//
-// 返回值
-//   - string 表示生成的图片ID
-func genImgId(title string) string {
-	// 使用envs包的HashWithLength函数生成一个长度为16的哈希字符串作为图片ID
-	str, err := utils.HashWithLength(title, 16)
-	// 检查是否生成成功，如果失败则记录错误并尝试重新生成
-	if err != nil {
-		// 使用logger包记录错误信息，包括错误详情
-		logger.Error("生成图片 ID 失败: %v，准备重新生成", err)
-		// 初始化计数器，用于限制重试次数
-		count := 0
-		title = fmt.Sprintf("%v%d", title, count)
-		// 使用for循环尝试重新生成图片ID，最多重试3次
-		for count <= 3 && err != nil {
-			str, err = utils.HashWithLength(title, 16)
-			count++
-			title = fmt.Sprintf("%v%d", title, count)
-		}
-	}
-	logger.Info("生成图片 ID 成功: %s", str)
-	// 返回生成的图片ID
-	return str
-}
 
 // ConvertAndAddImg 添加图片并转换
 // - ctx 是上下文对象，用于控制请求的生命周期
@@ -76,7 +48,7 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (*vo.ImgInfosVo
 			if ok {
 				if data.Flag { // 转换成功，存入数据库
 					// 生成 ID
-					imgId := genImgId(data.ImgDto.ImgName)
+					imgId := utils.GenId(data.ImgDto.ImgName)
 					// 构建 po 对象
 					imgPos = append(imgPos, po.ImgInfo{
 						ImgId:   imgId,

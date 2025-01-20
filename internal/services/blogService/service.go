@@ -2,7 +2,6 @@ package blogService
 
 import (
 	"errors"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"h2blog/internal/model/dto"
 	"h2blog/internal/model/po"
@@ -14,33 +13,6 @@ import (
 	"h2blog/storage"
 	"h2blog/storage/oss"
 )
-
-// genBlogId 用于生成博客的唯一标识符
-//   - title 是博客的标题
-//
-// 返回值
-//   - string 表示生成的博客ID
-func genBlogId(title string) string {
-	// 使用envs包的HashWithLength函数生成一个长度为16的哈希字符串作为博客ID
-	str, err := utils.HashWithLength(title, 16)
-	// 检查是否生成成功，如果失败则记录错误并尝试重新生成
-	if err != nil {
-		// 使用logger包记录错误信息，包括错误详情
-		logger.Error("生成博客 ID 失败: %v，准备重新生成", err)
-		// 初始化计数器，用于限制重试次数
-		count := 0
-		title = fmt.Sprintf("%v%d", title, count)
-		// 使用for循环尝试重新生成图片ID，最多重试3次
-		for count <= 3 && err != nil {
-			str, err = utils.HashWithLength(title, 16)
-			count++
-			title = fmt.Sprintf("%v%d", title, count)
-		}
-	}
-	logger.Info("生成博客 ID 成功: %s", str)
-	// 返回生成的博客ID
-	return str
-}
 
 // GetH2BlogInfoById 用于获取指定博客信息
 //   - ctx 是 Gin 框架的上下文对象，用于处理 HTTP 请求和响应
@@ -96,7 +68,7 @@ func AddH2BlogInfo(ctx *gin.Context, blogInfoDto *dto.BlogInfoDto) (int64, error
 	// 将博客信息保存到数据库中
 	logger.Info("准备保存博客信息")
 	// 先查询是否有该数据
-	blogId := genBlogId(blogInfoDto.Title)
+	blogId := utils.GenId(blogInfoDto.Title)
 	blogInfoPo, err := blogInfoRepo.FindBlogById(ctx, blogId)
 	// 根据错误情况决定是添加一条新的博客信息还是更新已有的博客信息
 	if err != nil {
