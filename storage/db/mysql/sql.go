@@ -5,7 +5,7 @@ const createDatabaseSql = `CREATE DATABASE IF NOT EXISTS %s DEFAULT CHARACTER SE
 
 // 创建一个名为 LOGIN_RECORD 的表，如果该表不存在则创建
 const createLoginRecordTable = `
-	CREATE TABLE IF NOT EXISTS LOGIN_RECORD
+	CREATE TABLE IF NOT EXISTS H2_LOGIN_RECORD
 	(
 		id          INT 		 PRIMARY KEY AUTO_INCREMENT NOT NULL       					     	COMMENT '记录ID',
 		ipv4        VARCHAR(15)                             NOT NULL						     	COMMENT 'IPv4地址',
