@@ -105,6 +105,12 @@ func ConnectMysql() *gorm.DB {
 			handleError("创建 H2_IMG_INFO 表失败", err)
 		}
 	}
+	if !tableExists(db, "H2_COMMENT") {
+		err = db.Exec(createCommentTableSQL).Error
+		if err != nil {
+			handleError("创建 H2_COMMENT 表失败", err)
+		}
+	}
 
 	// 记录日志，表示 MySQL 数据库连接成功
 	logger.Info("MySQL 数据库连接成功")

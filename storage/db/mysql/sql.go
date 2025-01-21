@@ -55,3 +55,19 @@ const createH2ImgInfoTableSQL = `
 	  DEFAULT CHARSET = utf8mb4
 	  COLLATE = utf8mb4_unicode_ci;
 `
+
+const createCommentTableSQL = `
+	CREATE TABLE H2_COMMENT (
+	  comment_id 	VARCHAR(16) 	PRIMARY KEY NOT NULL 															COMMENT '评论ID',
+	  parent_id 	VARCHAR(16) 				NOT NULL 															COMMENT '父评论ID，或博客ID',
+	  content 		TEXT 						NOT NULL 															COMMENT '评论内容(最大支持64KB)',
+	  create_time 	TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
+	  update_time 	TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
+	  INDEX (comment_id),
+	  INDEX (parent_id),
+	  INDEX (create_time)
+	) COMMENT='评论主表'
+	  ENGINE=InnoDB
+	  DEFAULT CHARSET = utf8mb4
+	  COLLATE = utf8mb4_unicode_ci;
+`
