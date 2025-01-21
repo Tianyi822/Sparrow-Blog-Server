@@ -30,7 +30,9 @@ const createH2BlogInfoTableSQL = `
 	    brief      		VARCHAR(255)				NOT NULL 														COMMENT '博客简介',
 	    create_time		TIMESTAMP					NOT NULL DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
 	    update_time		TIMESTAMP					NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
-	    CONSTRAINT uc_title UNIQUE (title) COMMENT '标题唯一约束'
+	    INDEX (blog_id),
+	    INDEX (title),
+	    INDEX (create_time)
 	) COMMENT = '博客信息表'
 	  ENGINE = InnoDB
 	  DEFAULT CHARSET = utf8mb4
@@ -44,7 +46,10 @@ const createH2ImgInfoTableSQL = `
 	    img_name 		VARCHAR(255) 				NOT NULL	UNIQUE 													COMMENT '图片名称',
 	    img_type 		VARCHAR(10) 				NOT NULL 															COMMENT '图片类型',
 	    create_time 	TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
-	    update_time 	TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间'
+	    update_time 	TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
+	    INDEX (img_id),
+	    INDEX (img_name),
+	    INDEX (create_time)
 	) COMMENT='图片信息表' 
 	  ENGINE = InnoDB
 	  DEFAULT CHARSET = utf8mb4
