@@ -209,7 +209,7 @@ func TestFindNameLikeImgs(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	imgs, err := FindNameLikeImgs(ctx, "萤")
+	imgs, err := FindImgsByNameLike(ctx, "萤")
 	if err != nil {
 		t.Fatal(err)
 	}
