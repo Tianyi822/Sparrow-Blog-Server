@@ -57,7 +57,7 @@ const createH2ImgInfoTableSQL = `
 `
 
 const createCommentTableSQL = `
-	CREATE TABLE H2_COMMENT (
+	CREATE TABLE IF NOT EXISTS H2_COMMENT (
 	  comment_id 	VARCHAR(16) 	PRIMARY KEY NOT NULL 															COMMENT '评论ID',
 	  parent_id 	VARCHAR(16) 				NOT NULL 															COMMENT '父评论ID，或博客ID',
 	  content 		TEXT 						NOT NULL 															COMMENT '评论内容(最大支持64KB)',
@@ -66,8 +66,8 @@ const createCommentTableSQL = `
 	  INDEX (comment_id),
 	  INDEX (parent_id),
 	  INDEX (create_time)
-	) COMMENT='评论主表'
-	  ENGINE=InnoDB
+	) COMMENT = '评论主表'
+	  ENGINE = InnoDB
 	  DEFAULT CHARSET = utf8mb4
 	  COLLATE = utf8mb4_unicode_ci;
 `
