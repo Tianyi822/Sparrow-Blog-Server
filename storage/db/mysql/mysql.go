@@ -85,11 +85,11 @@ func ConnectMysql() *gorm.DB {
 	}
 
 	// 创建相关基础数据表
-	if !tableExists(db, "LOGIN_RECORD") {
-		// 创建 LOGIN_RECORD 表
+	if !tableExists(db, "H2_LOGIN_RECORD") {
+		// 创建 H2_LOGIN_RECORD 表
 		err = db.Exec(createLoginRecordTable).Error
 		if err != nil {
-			handleError("创建 LOGIN_RECORD 表失败", err)
+			handleError("创建 H2_LOGIN_RECORD 表失败", err)
 		}
 	}
 	if !tableExists(db, "H2_BLOG_INFO") {
