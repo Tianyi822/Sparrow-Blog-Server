@@ -25,3 +25,19 @@ type ImgInfo struct {
 func (ii *ImgInfo) TableName() string {
 	return "H2_IMG_INFO"
 }
+
+type Comment struct {
+	CommentId  string    `gorm:"column:comment_id;primaryKey"`                                // 评论ID
+	UserName   string    `gorm:"column:user_name"`                                            // 用户名
+	UserEmail  string    `gorm:"column:user_email"`                                           // 用户邮箱
+	UserUrl    string    `gorm:"column:user_url"`                                             // 用户网址
+	BlogId     string    `gorm:"column:blog_id"`                                              // 博客ID
+	ParentId   string    `gorm:"column:parent_id"`                                            // 父评论或楼主评论ID
+	Content    string    `gorm:"column:content"`                                              // 评论内容
+	CreateTime time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
+	UpdateTime time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
+}
+
+func (c *Comment) TableName() string {
+	return "H2_COMMENT"
+}
