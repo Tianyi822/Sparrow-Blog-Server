@@ -10,14 +10,14 @@ import (
 	"strings"
 )
 
-// FindCommentByContentLike 根据评论内容模糊查询评论
+// FindCommentsByContentLike 根据评论内容模糊查询评论
 // - ctx: 上下文对象
 // - content: 评论内容
 //
 // 返回值:
 // - []po.Comment: 符合模糊查询的评论列表
 // - error: 错误信息
-func FindCommentByContentLike(ctx context.Context, content string) ([]po.Comment, error) {
+func FindCommentsByContentLike(ctx context.Context, content string) ([]po.Comment, error) {
 	var comments []po.Comment
 
 	logger.Info("查询评论数据")
@@ -32,6 +32,50 @@ func FindCommentByContentLike(ctx context.Context, content string) ([]po.Comment
 	}
 
 	logger.Info("查询评论数据成功: %v", result.RowsAffected)
+
+	return comments, nil
+}
+
+// FindCommentsByBlogId 根据博客ID查询评论
+// - ctx: 上下文对象
+// - blogId: 博客ID
+//
+// 返回值:
+// - []po.Comment: 符合博客ID的评论列表
+// - error: 错误信息
+func FindCommentsByBlogId(ctx context.Context, blogId string) ([]po.Comment, error) {
+	var comments []po.Comment
+
+	logger.Info("根据博客 ID 查询评论数据")
+	result := storage.Storage.Db.Model(&po.Comment{}).Where("blog_id = ?", blogId).Find(&comments)
+	if result.Error != nil {
+		msg := fmt.Sprintf("根据博客 ID 查询评论数据失败: %v", result.Error)
+		logger.Error(msg)
+		return nil, errors.New(msg)
+	}
+	logger.Info("根据博客 ID 查询评论数据成功: %v", result.RowsAffected)
+
+	return comments, nil
+}
+
+// FindCommentsByParentId 根据楼主评论ID查询评论
+// - ctx: 上下文对象
+// - parentId: 楼主评论ID
+//
+// 返回值:
+// - []po.Comment: 符合楼主评论ID的评论列表
+// - error: 错误信息
+func FindCommentsByParentId(ctx context.Context, originPostId string) ([]po.Comment, error) {
+	var comments []po.Comment
+
+	logger.Info("根据父评论 ID 查询评论数据")
+	result := storage.Storage.Db.Model(&po.Comment{}).Where("original_poster_id = ?", originPostId).Find(&comments)
+	if result.Error != nil {
+		msg := fmt.Sprintf("根据父评论 ID 查询评论数据失败: %v", result.Error)
+		logger.Error(msg)
+		return nil, errors.New(msg)
+	}
+	logger.Info("根据父评论 ID 查询评论数据成功: %v", result.RowsAffected)
 
 	return comments, nil
 }
