@@ -195,7 +195,7 @@ func TestFindCommentByContentLike(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			comments, err := FindCommentByContentLike(ctx, tt.content)
+			comments, err := FindCommentsByContentLike(ctx, tt.content)
 
 			if tt.wantErr {
 				assert.Error(t, err)
