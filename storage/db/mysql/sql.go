@@ -59,17 +59,17 @@ const createH2ImgInfoTableSQL = `
 const createCommentTableSQL = `
 	CREATE TABLE IF NOT EXISTS H2_COMMENT
 	(
-		comment_id 		VARCHAR(16) 	PRIMARY KEY NOT NULL 															COMMENT '评论ID',
-		user_name     	VARCHAR(50)     			NOT NULL 															COMMENT '用户名',
-		user_email 		VARCHAR(50)  				NOT NULL  															COMMENT '用户邮箱',
-		user_url        VARCHAR(200) 				NOT NULL 															COMMENT '用户邮箱',
-		blog_id 		VARCHAR(16) 				NOT NULL 															COMMENT '博客ID',
-		parent_id 		VARCHAR(16) 				NOT NULL 															COMMENT '父评论或楼主评论ID',
-		content 		TEXT 						NOT NULL 															COMMENT '评论内容(最大支持64KB)',
-		create_time 	TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
-		update_time 	TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
+		comment_id 			VARCHAR(16) 	PRIMARY KEY NOT NULL 															COMMENT '评论ID',
+		user_name     		VARCHAR(50)     			NOT NULL 															COMMENT '用户名',
+		user_email 			VARCHAR(50)  				NOT NULL  															COMMENT '用户邮箱',
+		user_url        	VARCHAR(200) 				NOT NULL 															COMMENT '用户邮箱',
+		blog_id 			VARCHAR(16) 				NOT NULL 															COMMENT '博客ID',
+		original_poster_id 	VARCHAR(16) 				NOT NULL 															COMMENT '楼主评论ID',
+		content 			TEXT 						NOT NULL 															COMMENT '评论内容(最大支持64KB)',
+		create_time 		TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
+		update_time 		TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
 		INDEX (comment_id),
-		INDEX (parent_id),
+		INDEX (original_poster_id),
 		INDEX (create_time)
 	) COMMENT = '评论主表'
 	  ENGINE = InnoDB
