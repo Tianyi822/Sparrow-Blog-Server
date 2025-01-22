@@ -130,8 +130,15 @@ func DeleteImgInfoBatch(ctx context.Context, ids []string) (int64, error) {
 	}()
 
 	logger.Info("批量删除图片信息数据")
+
+	// 将ID转换为ImgInfo对象
+	var imgs []po.ImgInfo
+	for _, id := range ids {
+		imgs = append(imgs, po.ImgInfo{ImgId: id})
+	}
+
 	// 执行删除操作
-	result := tx.Delete(&po.ImgInfo{}, ids)
+	result := tx.Delete(imgs)
 	if result.Error != nil {
 		tx.Rollback()
 		msg := fmt.Sprintf("批量删除图片信息数据失败: %v", result.Error)
