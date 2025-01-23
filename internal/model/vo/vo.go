@@ -1,5 +1,7 @@
 package vo
 
+import "time"
+
 type Vo interface {
 	// VoFlag 用例标志
 	VoFlag() string
@@ -33,4 +35,25 @@ type ImgInfosVo struct {
 
 func (isv *ImgInfosVo) VoFlag() string {
 	return "ImgInfosVo"
+}
+
+type CommentVo struct {
+	CommentId  string    `json:"comment_id,omitempty"`
+	UserName   string    `json:"user_name,omitempty"`
+	UserEmail  string    `json:"user_email,omitempty"`
+	UserUrl    string    `json:"user_url,omitempty"`
+	Content    string    `json:"content,omitempty"`
+	CreateTime time.Time `json:"create_time,omitempty"`
+}
+
+func (cv *CommentVo) VoFlag() string {
+	return "CommentVo"
+}
+
+type CommentsVo struct {
+	SubComments []CommentVo
+}
+
+func (csv *CommentsVo) VoFlag() string {
+	return "CommentsVo"
 }
