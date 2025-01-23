@@ -7,10 +7,11 @@
 // - 内存使用监控
 //
 // 使用示例：
-//  c := NewCache()
-//  ctx := context.Background()
-//  err := c.Set(ctx, "user:1001", userData, 10*time.Minute)
-//  val, ok, err := c.GetInt(ctx, "counter")
+//
+//	c := NewCache()
+//	ctx := context.Background()
+//	err := c.Set(ctx, "user:1001", userData, 10*time.Minute)
+//	val, ok, err := c.GetInt(ctx, "counter")
 //
 // 注意事项：
 // - 存储指针类型时需要自行管理生命周期
@@ -24,6 +25,24 @@ import (
 	"reflect"
 	"sync"
 	"time"
+)
+
+// 缓存操作错误类型定义
+var (
+	// ErrTypeMismatch 当类型转换不匹配时返回（例如尝试将字符串转换为整型）
+	ErrTypeMismatch = errors.New("type mismatch")
+
+	// ErrOutOfRange 当数值超出目标类型范围时返回（例如将float64(1e100)转换为int）
+	ErrOutOfRange = errors.New("value out of range")
+
+	// ErrMaxEntries 当达到最大缓存条目限制时返回（需通过WithMaxEntries选项设置）
+	ErrMaxEntries = errors.New("max entries reached")
+
+	// ErrPointerNotAllowed 当尝试存储指针类型时返回
+	ErrPointerNotAllowed = errors.New("pointer values are not allowed")
+
+	// ErrNotFound 当条目不存在或已过期时返回
+	ErrNotFound = errors.New("entry not found")
 )
 
 // cacheItem 表示缓存中的单个条目
@@ -58,22 +77,25 @@ func NewCache() *Cache {
 // Set 设置缓存条目。当存在同名key时会覆盖旧值并重置TTL
 //
 // 示例:
-//  err := cache.Set(ctx, "user:1001", userData, 10*time.Minute)
-//  if err != nil {
-//      log.Printf("缓存写入失败: %v", err)
-//  }
+//
+//	err := cache.Set(ctx, "user:1001", userData, 10*time.Minute)
+//	if err != nil {
+//	    log.Printf("缓存写入失败: %v", err)
+//	}
 //
 // 参数:
-//  ctx   上下文，用于取消操作和超时控制
-//  key   条目键（推荐使用冒号分隔的命名规范，如"type:id"）
-//  value 要存储的值（仅支持非指针类型）
-//  ttl   存活时间（小于等于0时条目会立即过期）
+//
+//	ctx   上下文，用于取消操作和超时控制
+//	key   条目键（推荐使用冒号分隔的命名规范，如"type:id"）
+//	value 要存储的值（仅支持非指针类型）
+//	ttl   存活时间（小于等于0时条目会立即过期）
 //
 // 返回值:
-//  error 可能返回的错误包括：
-//   - context.Canceled 上下文取消
-//   - context.DeadlineExceeded 操作超时
-//   - ErrMaxEntries 达到最大条目限制（需通过WithMaxEntries设置）
+//
+//	error 可能返回的错误包括：
+//	 - context.Canceled 上下文取消
+//	 - context.DeadlineExceeded 操作超时
+//	 - ErrMaxEntries 达到最大条目限制（需通过WithMaxEntries设置）
 func (c *Cache) Set(ctx context.Context, key string, value any, ttl time.Duration) error {
 	select {
 	case <-ctx.Done():
@@ -101,80 +123,64 @@ func (c *Cache) Set(ctx context.Context, key string, value any, ttl time.Duratio
 //
 // 返回值:
 // - any 	存储的原始值
-// - bool   是否找到有效条目
 // - error  操作过程中遇到的错误
-func (c *Cache) Get(ctx context.Context, key string) (any, bool, error) {
+func (c *Cache) Get(ctx context.Context, key string) (any, error) {
 	select {
 	case <-ctx.Done():
-		return nil, false, ctx.Err()
+		return nil, ctx.Err()
 	default:
 		c.mu.RLock()
 		defer c.mu.RUnlock()
 
 		item, exists := c.items[key]
 		if !exists {
-			return nil, false, nil
+			return nil, ErrNotFound
 		}
 
 		if time.Now().After(item.expireAt) {
 			delete(c.items, key)
-			return nil, false, nil
+			return nil, ErrNotFound
 		}
 
-		return item.value, true, nil
+		return item.value, nil
 	}
 }
 
-// 缓存操作错误类型定义
-var (
-	// ErrTypeMismatch 当类型转换不匹配时返回（例如尝试将字符串转换为整型）
-	ErrTypeMismatch = errors.New("type mismatch")
-	
-	// ErrOutOfRange 当数值超出目标类型范围时返回（例如将float64(1e100)转换为int）
-	ErrOutOfRange   = errors.New("value out of range")
-	
-	// ErrMaxEntries 当达到最大缓存条目限制时返回（需通过WithMaxEntries选项设置）
-	ErrMaxEntries   = errors.New("max entries reached")
-	
-	// ErrPointerNotAllowed 当尝试存储指针类型时返回
-	ErrPointerNotAllowed = errors.New("pointer values are not allowed")
-)
-
 // GetInt 获取int类型值 (自动处理类型转换)
-func (c *Cache) GetInt(ctx context.Context, key string) (int, bool, error) {
-	val, ok, err := c.Get(ctx, key)
-	if !ok || err != nil {
-		return 0, ok, err
+func (c *Cache) GetInt(ctx context.Context, key string) (int, error) {
+	val, err := c.Get(ctx, key)
+	if err != nil {
+		return 0, err
 	}
 
 	switch v := val.(type) {
 	case int: // 原生int类型直接返回
-		return v, true, nil
+		return v, nil
 	case int8, int16, int32: // 小整型安全转换
-		return int(v.(int32)), true, nil // 类型断言后转换
+		return int(v.(int32)), nil // 类型断言后转换
 	case int64: // 64位整型需要范围检查
 		if v > math.MaxInt || v < math.MinInt {
-			return 0, true, ErrOutOfRange // 数值超出int范围
+			return 0, ErrOutOfRange // 数值超出int范围
 		}
-		return int(v), true, nil
+		return int(v), nil
 	case uint, uint8, uint16, uint32, uint64:
 		u := reflect.ValueOf(v).Uint()
 		if u > math.MaxInt {
-			return 0, true, ErrOutOfRange
+			return 0, ErrOutOfRange
 		}
-		return int(u), true, nil
+		return int(u), nil
 	case float32:
 		if v > math.MaxInt || v < math.MinInt {
-			return 0, true, ErrOutOfRange
+			return 0, ErrOutOfRange
 		}
-		return int(v), true, nil
+		return int(v), nil
 	case float64:
 		if v > math.MaxInt || v < math.MinInt {
-			return 0, true, ErrOutOfRange
+			return 0, ErrOutOfRange
 		}
-		return int(v), true, nil
+		return int(v), nil
 	default:
-		return 0, true, ErrTypeMismatch
+		return 0, ErrTypeMismatch
 	}
 }
 
@@ -184,49 +190,48 @@ func (c *Cache) GetInt(ctx context.Context, key string) (int, bool, error) {
 //
 // 返回值:
 // - uint 转换后的无符号整数值
-// - bool 是否找到有效条目
 // - error 转换错误（ErrTypeMismatch/ErrOutOfRange）或操作错误
 //
 // 支持的类型转换:
 // - 所有无符号整型（uint8/16/32/64）
 // - 有符号整型（int8/16/32/64）需为非负数
 // - 浮点型（float32/64）需在[0, math.MaxUint64]范围内
-func (c *Cache) GetUint(ctx context.Context, key string) (uint, bool, error) {
-	val, ok, err := c.Get(ctx, key)
-	if !ok || err != nil {
-		return 0, ok, err
+func (c *Cache) GetUint(ctx context.Context, key string) (uint, error) {
+	val, err := c.Get(ctx, key)
+	if err != nil {
+		return 0, err
 	}
 
 	switch v := val.(type) {
 	case uint:
-		return v, true, nil
+		return v, nil
 	case uint8:
-		return uint(v), true, nil
+		return uint(v), nil
 	case uint16:
-		return uint(v), true, nil
+		return uint(v), nil
 	case uint32:
-		return uint(v), true, nil
+		return uint(v), nil
 	case uint64:
-		return uint(v), true, nil
+		return uint(v), nil
 	case int, int8, int16, int32, int64:
 		i := reflect.ValueOf(v).Int()
 		if i < 0 {
-			return 0, true, ErrOutOfRange
+			return 0, ErrOutOfRange
 		}
-		return uint(i), true, nil
+		return uint(i), nil
 	case float32: // 32位浮点数需要双重检查
 		// 先转换为float64进行精确范围验证
 		if v < 0 || float64(v) > math.MaxUint64 {
-			return 0, true, ErrOutOfRange // 值超出无符号整型范围
+			return 0, ErrOutOfRange // 值超出无符号整型范围
 		}
-		return uint(v), true, nil // 安全转换为uint
+		return uint(v), nil // 安全转换为uint
 	case float64: // 64位浮点数直接检查
 		if v < 0 || v > math.MaxUint64 {
-			return 0, true, ErrOutOfRange // 值超出无符号整型范围
+			return 0, ErrOutOfRange // 值超出无符号整型范围
 		}
-		return uint(v), true, nil // 直接转换（可能丢失小数部分）
+		return uint(v), nil // 直接转换（可能丢失小数部分）
 	default:
-		return 0, true, ErrTypeMismatch
+		return 0, ErrTypeMismatch
 	}
 }
 
@@ -236,29 +241,28 @@ func (c *Cache) GetUint(ctx context.Context, key string) (uint, bool, error) {
 //
 // 返回值:
 // - float64 转换后的浮点数值
-// - bool    是否找到有效条目
 // - error   转换错误（ErrTypeMismatch）或操作错误
 //
 // 支持的类型转换:
 // - 所有整型（int/uint系列）和浮点型
 // - 其他类型返回ErrTypeMismatch
-func (c *Cache) GetFloat(ctx context.Context, key string) (float64, bool, error) {
-	val, ok, err := c.Get(ctx, key)
-	if !ok || err != nil {
-		return 0, ok, err
+func (c *Cache) GetFloat(ctx context.Context, key string) (float64, error) {
+	val, err := c.Get(ctx, key)
+	if err != nil {
+		return 0, err
 	}
 
 	switch v := val.(type) {
 	case float32:
-		return float64(v), true, nil
+		return float64(v), nil
 	case float64:
-		return v, true, nil
+		return v, nil
 	case int, int8, int16, int32, int64:
-		return float64(reflect.ValueOf(v).Int()), true, nil
+		return float64(reflect.ValueOf(v).Int()), nil
 	case uint, uint8, uint16, uint32, uint64:
-		return float64(reflect.ValueOf(v).Uint()), true, nil
+		return float64(reflect.ValueOf(v).Uint()), nil
 	default:
-		return 0, true, ErrTypeMismatch
+		return 0, ErrTypeMismatch
 	}
 }
 
@@ -268,21 +272,20 @@ func (c *Cache) GetFloat(ctx context.Context, key string) (float64, bool, error)
 //
 // 返回值:
 // - bool  转换后的布尔值
-// - bool  是否找到有效条目
 // - error 转换错误（ErrTypeMismatch）或操作错误
 //
 // 注意:
 // - 仅支持原生bool类型，不支持字符串/数字到bool的转换
-func (c *Cache) GetBool(ctx context.Context, key string) (bool, bool, error) {
-	val, ok, err := c.Get(ctx, key)
-	if !ok || err != nil {
-		return false, ok, err
+func (c *Cache) GetBool(ctx context.Context, key string) (bool, error) {
+	val, err := c.Get(ctx, key)
+	if err != nil {
+		return false, err
 	}
 
 	if b, ok := val.(bool); ok {
-		return b, true, nil
+		return b, nil
 	}
-	return false, true, ErrTypeMismatch
+	return false, ErrTypeMismatch
 }
 
 // GetString 获取字符串类型值
@@ -291,33 +294,34 @@ func (c *Cache) GetBool(ctx context.Context, key string) (bool, bool, error) {
 //
 // 返回值:
 // - string 转换后的字符串值
-// - bool   是否找到有效条目
 // - error  转换错误（ErrTypeMismatch）或操作错误
 //
 // 注意:
 // - 仅支持原生string类型，不支持自动类型转换
-func (c *Cache) GetString(ctx context.Context, key string) (string, bool, error) {
-	val, ok, err := c.Get(ctx, key)
-	if !ok || err != nil {
-		return "", ok, err
+func (c *Cache) GetString(ctx context.Context, key string) (string, error) {
+	val, err := c.Get(ctx, key)
+	if err != nil {
+		return "", err
 	}
 
 	if s, ok := val.(string); ok {
-		return s, true, nil
+		return s, nil
 	}
-	return "", true, ErrTypeMismatch
+	return "", ErrTypeMismatch
 }
 
 // Delete 删除指定键的缓存条目，无论该条目是否过期
 //
 // 参数:
-//  ctx 上下文，用于取消操作和超时控制
-//  key 要删除的条目键
+//
+//	ctx 上下文，用于取消操作和超时控制
+//	key 要删除的条目键
 //
 // 返回值:
-//  error 可能返回的错误包括：
-//   - context.Canceled 上下文取消
-//   - context.DeadlineExceeded 操作超时
+//
+//	error 可能返回的错误包括：
+//	 - context.Canceled 上下文取消
+//	 - context.DeadlineExceeded 操作超时
 //
 // 注意：
 // - 删除不存在的key不会返回错误
