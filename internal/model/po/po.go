@@ -32,7 +32,7 @@ type Comment struct {
 	UserEmail    string    `gorm:"column:user_email"`                                           // 用户邮箱
 	UserUrl      string    `gorm:"column:user_url"`                                             // 用户网址
 	BlogId       string    `gorm:"column:blog_id"`                                              // 博客ID
-	OriginPostId string    `gorm:"column:original_poster_id"`                                   // 或楼主评论ID
+	OriginPostId string    `gorm:"column:original_poster_id"`                                   // 楼主评论ID
 	Content      string    `gorm:"column:content"`                                              // 评论内容
 	CreateTime   time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
 	UpdateTime   time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
