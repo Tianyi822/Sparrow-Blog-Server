@@ -47,7 +47,10 @@ func FindCommentsByBlogId(ctx context.Context, blogId string) ([]po.Comment, err
 	var comments []po.Comment
 
 	logger.Info("根据博客 ID 查询评论数据")
-	result := storage.Storage.Db.Model(&po.Comment{}).Where("blog_id = ?", blogId).Find(&comments)
+	result := storage.Storage.Db.Model(&po.Comment{}).
+		WithContext(ctx).
+		Where("blog_id = ?", blogId).
+		Find(&comments)
 	if result.Error != nil {
 		msg := fmt.Sprintf("根据博客 ID 查询评论数据失败: %v", result.Error)
 		logger.Error(msg)
@@ -69,7 +72,10 @@ func FindCommentsByParentId(ctx context.Context, originPostId string) ([]po.Comm
 	var comments []po.Comment
 
 	logger.Info("根据父评论 ID 查询评论数据")
-	result := storage.Storage.Db.Model(&po.Comment{}).Where("original_poster_id = ?", originPostId).Find(&comments)
+	result := storage.Storage.Db.Model(&po.Comment{}).
+		WithContext(ctx).
+		Where("original_poster_id = ?", originPostId).
+		Find(&comments)
 	if result.Error != nil {
 		msg := fmt.Sprintf("根据父评论 ID 查询评论数据失败: %v", result.Error)
 		logger.Error(msg)
