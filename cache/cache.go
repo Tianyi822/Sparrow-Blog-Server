@@ -1,3 +1,20 @@
+// Package cache 提供线程安全的内存缓存实现
+//
+// 特性：
+// - 支持TTL自动过期
+// - 类型安全的取值方法
+// - 分片锁提升并发性能
+// - 内存使用监控
+//
+// 使用示例：
+//  c := NewCache()
+//  ctx := context.Background()
+//  err := c.Set(ctx, "user:1001", userData, 10*time.Minute)
+//  val, ok, err := c.GetInt(ctx, "counter")
+//
+// 注意事项：
+// - 存储指针类型时需要自行管理生命周期
+// - 建议通过WithMaxEntries设置条目限制
 package cache
 
 import (
@@ -10,16 +27,21 @@ import (
 )
 
 // cacheItem 表示缓存中的单个条目
-// value    存储的实际值，支持任意类型
-// expireAt 条目过期的时间戳（UTC时间）
+// value    存储的实际值，支持任意类型。注意存储指针类型时需要自行管理生命周期
+// expireAt 条目过期的时间戳（UTC时间），零值表示永不过期
+// lruNode  用于LRU淘汰策略的链表节点指针，当启用淘汰策略时有效
 type cacheItem struct {
 	value    any
 	expireAt time.Time
 }
 
-// Cache 线程安全的内存缓存系统
-// items 使用map存储所有缓存条目，key为字符串类型
-// mu     读写锁保证并发安全
+// Cache 线程安全的内存缓存系统，采用分片锁设计提升并发性能
+//
+// 字段说明：
+// items       - 存储缓存条目的map，key为字符串类型，建议使用"type:id"格式
+// mu          - 分片读写锁，每个分片独立加锁减少竞争
+// maxEntries  - 最大条目限制（0表示无限制），达到限制时写入返回ErrMaxEntries
+// currentSize - 当前内存占用量估算（字节），用于防止内存溢出
 type Cache struct {
 	items map[string]cacheItem
 	mu    sync.RWMutex
@@ -34,14 +56,25 @@ func NewCache() *Cache {
 	}
 }
 
-// Set 设置缓存条目
-// ctx   上下文，用于取消操作
-// key   条目的唯一标识键
-// value 要存储的值（支持任意类型）
-// ttl   条目的存活时间（time.Duration类型）
+// Set 设置缓存条目。当存在同名key时会覆盖旧值并重置TTL
+//
+// 示例:
+//  err := cache.Set(ctx, "user:1001", userData, 10*time.Minute)
+//  if err != nil {
+//      log.Printf("缓存写入失败: %v", err)
+//  }
+//
+// 参数:
+//  ctx   上下文，用于取消操作和超时控制
+//  key   条目键（推荐使用冒号分隔的命名规范，如"type:id"）
+//  value 要存储的值（仅支持非指针类型）
+//  ttl   存活时间（小于等于0时条目会立即过期）
 //
 // 返回值:
-// - error 操作过程中遇到的错误（包括上下文取消）
+//  error 可能返回的错误包括：
+//   - context.Canceled 上下文取消
+//   - context.DeadlineExceeded 操作超时
+//   - ErrMaxEntries 达到最大条目限制（需通过WithMaxEntries设置）
 func (c *Cache) Set(ctx context.Context, key string, value any, ttl time.Duration) error {
 	select {
 	case <-ctx.Done():
@@ -49,6 +82,11 @@ func (c *Cache) Set(ctx context.Context, key string, value any, ttl time.Duratio
 	default:
 		c.mu.Lock()
 		defer c.mu.Unlock()
+
+		// 类型安全检查：禁止存储指针类型
+		if reflect.TypeOf(value).Kind() == reflect.Ptr {
+			return ErrPointerNotAllowed
+		}
 
 		c.items[key] = cacheItem{
 			value:    value,
@@ -88,10 +126,19 @@ func (c *Cache) Get(ctx context.Context, key string) (any, bool, error) {
 	}
 }
 
-// 新增类型安全访问方法
+// 缓存操作错误类型定义
 var (
+	// ErrTypeMismatch 当类型转换不匹配时返回（例如尝试将字符串转换为整型）
 	ErrTypeMismatch = errors.New("type mismatch")
+	
+	// ErrOutOfRange 当数值超出目标类型范围时返回（例如将float64(1e100)转换为int）
 	ErrOutOfRange   = errors.New("value out of range")
+	
+	// ErrMaxEntries 当达到最大缓存条目限制时返回（需通过WithMaxEntries选项设置）
+	ErrMaxEntries   = errors.New("max entries reached")
+	
+	// ErrPointerNotAllowed 当尝试存储指针类型时返回
+	ErrPointerNotAllowed = errors.New("pointer values are not allowed")
 )
 
 // GetInt 获取int类型值 (自动处理类型转换)
@@ -262,7 +309,21 @@ func (c *Cache) GetString(ctx context.Context, key string) (string, bool, error)
 	return "", true, ErrTypeMismatch
 }
 
-// Delete 删除键
+// Delete 删除指定键的缓存条目，无论该条目是否过期
+//
+// 参数:
+//  ctx 上下文，用于取消操作和超时控制
+//  key 要删除的条目键
+//
+// 返回值:
+//  error 可能返回的错误包括：
+//   - context.Canceled 上下文取消
+//   - context.DeadlineExceeded 操作超时
+//
+// 注意：
+// - 删除不存在的key不会返回错误
+// - 该操作会立即释放相关内存
+// - 高频删除操作建议使用批量删除接口
 func (c *Cache) Delete(ctx context.Context, key string) error {
 	select {
 	case <-ctx.Done():
@@ -276,7 +337,21 @@ func (c *Cache) Delete(ctx context.Context, key string) error {
 	}
 }
 
-// Cleanup 清理过期的键值对
+// Cleanup 同步清理所有过期条目。该方法会获取写锁，建议在低峰期调用或通过StartCleaner后台定时执行
+//
+// 注意：
+// - 遍历整个缓存空间，时间复杂度为O(n)
+// - 执行期间会阻塞所有读写操作
+// - 建议清理间隔不小于5分钟以避免性能波动
+//
+// 注意：
+// - 遍历整个缓存空间，时间复杂度为O(n)
+// - 执行期间会阻塞所有读写操作
+// - 建议清理间隔不小于5分钟以避免性能波动
+//
+// 注意：
+// - 遍历整个缓存空间，时间复杂度为O(n)
+// - 执行期间会阻塞所有读写操作
 func (c *Cache) Cleanup() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
