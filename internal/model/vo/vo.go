@@ -38,22 +38,15 @@ func (isv *ImgInfosVo) VoFlag() string {
 }
 
 type CommentVo struct {
-	CommentId  string    `json:"comment_id,omitempty"`
-	UserName   string    `json:"user_name,omitempty"`
-	UserEmail  string    `json:"user_email,omitempty"`
-	UserUrl    string    `json:"user_url,omitempty"`
-	Content    string    `json:"content,omitempty"`
-	CreateTime time.Time `json:"create_time,omitempty"`
+	CommentId   string      `json:"comment_id,omitempty"`
+	UserName    string      `json:"user_name,omitempty"`
+	UserEmail   string      `json:"user_email,omitempty"`
+	UserUrl     string      `json:"user_url,omitempty"`
+	Content     string      `json:"content,omitempty"`
+	CreateTime  time.Time   `json:"create_time,omitempty"`
+	SubComments []CommentVo `json:"sub_comments,omitempty"`
 }
 
 func (cv *CommentVo) VoFlag() string {
 	return "CommentVo"
-}
-
-type CommentsVo struct {
-	SubComments []CommentVo
-}
-
-func (csv *CommentsVo) VoFlag() string {
-	return "CommentsVo"
 }

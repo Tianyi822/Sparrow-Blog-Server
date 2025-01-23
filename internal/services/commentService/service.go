@@ -7,33 +7,45 @@ import (
 )
 
 // GetCommentsByBlogId 根据博客ID获取评论
-func GetCommentsByBlogId(ctx context.Context, blogId string) (*vo.CommentsVo, error) {
-	// 获取评论
+// - ctx: 上下文对象
+// - blogId: 博客ID
+//
+// 返回值:
+// - []vo.CommentVo: 评论列表
+// - error: 错误信息
+func GetCommentsByBlogId(ctx context.Context, blogId string) ([]vo.CommentVo, error) {
+	// 获取楼主评论
 	comments, err := commentRepo.FindCommentsByBlogId(ctx, blogId)
 	if err != nil {
 		return nil, err
 	}
 
-	// 用于保存评论
-	commentsVo := &vo.CommentsVo{}
+	// 保存所有楼主评论
+	var commentVos []vo.CommentVo
+
+	// 遍历所有楼主评论
 	for _, comment := range comments {
-		// 获取子评论
-		subComments, err := commentRepo.FindCommentsByParentId(ctx, comment.CommentId)
+		// 用于保存评论
+		commentVo := vo.CommentVo{}
+		// 获取楼层子评论
+		subComments, err := commentRepo.FindCommentsByOriginPostId(ctx, comment.CommentId)
 		if err != nil {
 			return nil, err
 		}
 		// 将子评论转为 Vo，并保存
 		for _, subComment := range subComments {
-			commentsVo.SubComments = append(commentsVo.SubComments, vo.CommentVo{
+			commentVo.SubComments = append(commentVo.SubComments, vo.CommentVo{
 				CommentId:  subComment.CommentId,
 				Content:    subComment.Content,
-				UserName:   subComment.UserName,
-				UserEmail:  subComment.UserEmail,
-				UserUrl:    subComment.UserUrl,
+				UserName:   subComment.CommenterName,
+				UserEmail:  subComment.CommenterEmail,
+				UserUrl:    subComment.CommenterUrl,
 				CreateTime: subComment.CreateTime,
 			})
 		}
+		// 添加到楼主评论集合
+		commentVos = append(commentVos, commentVo)
 	}
 
-	return commentsVo, nil
+	return commentVos, nil
 }
