@@ -61,14 +61,14 @@ func FindCommentsByBlogId(ctx context.Context, blogId string) ([]po.Comment, err
 	return comments, nil
 }
 
-// FindCommentsByParentId 根据楼主评论ID查询评论
+// FindCommentsByOriginPostId 根据楼主评论ID查询评论
 // - ctx: 上下文对象
 // - parentId: 楼主评论ID
 //
 // 返回值:
 // - []po.Comment: 符合楼主评论ID的评论列表
 // - error: 错误信息
-func FindCommentsByParentId(ctx context.Context, originPostId string) ([]po.Comment, error) {
+func FindCommentsByOriginPostId(ctx context.Context, originPostId string) ([]po.Comment, error) {
 	var comments []po.Comment
 
 	logger.Info("根据父评论 ID 查询评论数据")
