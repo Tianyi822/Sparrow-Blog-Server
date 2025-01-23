@@ -27,15 +27,15 @@ func (ii *ImgInfo) TableName() string {
 }
 
 type Comment struct {
-	CommentId    string    `gorm:"column:comment_id;primaryKey"`                                // 评论ID
-	UserName     string    `gorm:"column:user_name"`                                            // 用户名
-	UserEmail    string    `gorm:"column:user_email"`                                           // 用户邮箱
-	UserUrl      string    `gorm:"column:user_url"`                                             // 用户网址
-	BlogId       string    `gorm:"column:blog_id"`                                              // 博客ID
-	OriginPostId string    `gorm:"column:original_poster_id"`                                   // 楼主评论ID
-	Content      string    `gorm:"column:content"`                                              // 评论内容
-	CreateTime   time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
-	UpdateTime   time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
+	CommentId      string    `gorm:"column:comment_id;primaryKey"`                                // 评论ID
+	CommenterName  string    `gorm:"column:commenter_name"`                                       // 评论者名
+	CommenterEmail string    `gorm:"column:commenter_email"`                                      // 评论者邮箱
+	CommenterUrl   string    `gorm:"column:commenter_url"`                                        // 评论者网址
+	BlogId         string    `gorm:"column:blog_id"`                                              // 博客ID
+	OriginPostId   string    `gorm:"column:original_poster_id"`                                   // 楼主评论ID
+	Content        string    `gorm:"column:content"`                                              // 评论内容
+	CreateTime     time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
+	UpdateTime     time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
 }
 
 func (c *Comment) TableName() string {
