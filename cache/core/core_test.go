@@ -1,4 +1,4 @@
-package cache
+package core
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 )
 
 func TestDelete(t *testing.T) {
-	c := NewCache()
+	c := NewCore()
 	ctx := context.Background()
 
 	t.Run("basic deletion", func(t *testing.T) {
@@ -51,7 +51,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestConcurrentDeleteAndGet(t *testing.T) {
-	c := NewCache()
+	c := NewCore()
 	ctx := context.Background()
 	keys := []string{"k1", "k2", "k3", "k4", "k5"}
 
@@ -90,7 +90,7 @@ func TestConcurrentDeleteAndGet(t *testing.T) {
 }
 
 func TestEdgeCases(t *testing.T) {
-	c := NewCache()
+	c := NewCore()
 	ctx := context.Background()
 
 	t.Run("empty string key", func(t *testing.T) {
@@ -164,7 +164,7 @@ func TestEdgeCases(t *testing.T) {
 }
 
 func TestCleanupBehavior(t *testing.T) {
-	c := NewCache()
+	c := NewCore()
 	ctx := context.Background()
 
 	// Setup test data

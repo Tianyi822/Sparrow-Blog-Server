@@ -1,4 +1,4 @@
-// Package cache 提供线程安全的内存缓存实现
+// Package core 提供线程安全的内存缓存核心实现
 //
 // 特性：
 // - 支持TTL自动过期
@@ -8,7 +8,7 @@
 //
 // 使用示例：
 //
-//	c := NewCache()
+//	c := NewCore()
 //	ctx := context.Background()
 //	err := c.Set(ctx, "user:1001", userData, 10*time.Minute)
 //	val, ok, err := c.GetInt(ctx, "counter")
@@ -16,7 +16,7 @@
 // 注意事项：
 // - 存储指针类型时需要自行管理生命周期
 // - 建议通过WithMaxEntries设置条目限制
-package cache
+package core
 
 import (
 	"context"
@@ -35,9 +35,6 @@ var (
 	// ErrOutOfRange 当数值超出目标类型范围时返回（例如将float64(1e100)转换为int）
 	ErrOutOfRange = errors.New("value out of range")
 
-	// ErrMaxEntries 当达到最大缓存条目限制时返回（需通过WithMaxEntries选项设置）
-	ErrMaxEntries = errors.New("max entries reached")
-
 	// ErrPointerNotAllowed 当尝试存储指针类型时返回
 	ErrPointerNotAllowed = errors.New("pointer values are not allowed")
 
@@ -53,23 +50,23 @@ type cacheItem struct {
 	expireAt time.Time
 }
 
-// Cache 线程安全的内存缓存系统，采用分片锁设计提升并发性能
+// Core 线程安全的内存缓存核心系统，采用分片锁设计提升并发性能
 //
 // 字段说明：
 // items       - 存储缓存条目的map，key为字符串类型，建议使用"type:id"格式
 // mu          - 分片读写锁，每个分片独立加锁减少竞争
 // maxEntries  - 最大条目限制（0表示无限制），达到限制时写入返回ErrMaxEntries
 // currentSize - 当前内存占用量估算（字节），用于防止内存溢出
-type Cache struct {
+type Core struct {
 	items map[string]cacheItem
 	mu    sync.RWMutex
 }
 
-// NewCache 创建并初始化新的缓存实例
+// NewCore 创建并初始化新的缓存核心实例
 // 返回值:
-// - *Cache 初始化完成的缓存指针
-func NewCache() *Cache {
-	return &Cache{
+// - *Core 初始化完成的缓存指针
+func NewCore() *Core {
+	return &Core{
 		items: make(map[string]cacheItem),
 	}
 }
@@ -96,7 +93,7 @@ func NewCache() *Cache {
 //	 - context.Canceled 上下文取消
 //	 - context.DeadlineExceeded 操作超时
 //	 - ErrMaxEntries 达到最大条目限制（需通过WithMaxEntries设置）
-func (c *Cache) Set(ctx context.Context, key string, value any, ttl time.Duration) error {
+func (c *Core) Set(ctx context.Context, key string, value any, ttl time.Duration) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -124,7 +121,7 @@ func (c *Cache) Set(ctx context.Context, key string, value any, ttl time.Duratio
 // 返回值:
 // - any 	存储的原始值
 // - error  操作过程中遇到的错误
-func (c *Cache) Get(ctx context.Context, key string) (any, error) {
+func (c *Core) Get(ctx context.Context, key string) (any, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -147,7 +144,7 @@ func (c *Cache) Get(ctx context.Context, key string) (any, error) {
 }
 
 // GetInt 获取int类型值 (自动处理类型转换)
-func (c *Cache) GetInt(ctx context.Context, key string) (int, error) {
+func (c *Core) GetInt(ctx context.Context, key string) (int, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
 		return 0, err
@@ -196,7 +193,7 @@ func (c *Cache) GetInt(ctx context.Context, key string) (int, error) {
 // - 所有无符号整型（uint8/16/32/64）
 // - 有符号整型（int8/16/32/64）需为非负数
 // - 浮点型（float32/64）需在[0, math.MaxUint64]范围内
-func (c *Cache) GetUint(ctx context.Context, key string) (uint, error) {
+func (c *Core) GetUint(ctx context.Context, key string) (uint, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
 		return 0, err
@@ -246,7 +243,7 @@ func (c *Cache) GetUint(ctx context.Context, key string) (uint, error) {
 // 支持的类型转换:
 // - 所有整型（int/uint系列）和浮点型
 // - 其他类型返回ErrTypeMismatch
-func (c *Cache) GetFloat(ctx context.Context, key string) (float64, error) {
+func (c *Core) GetFloat(ctx context.Context, key string) (float64, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
 		return 0, err
@@ -276,7 +273,7 @@ func (c *Cache) GetFloat(ctx context.Context, key string) (float64, error) {
 //
 // 注意:
 // - 仅支持原生bool类型，不支持字符串/数字到bool的转换
-func (c *Cache) GetBool(ctx context.Context, key string) (bool, error) {
+func (c *Core) GetBool(ctx context.Context, key string) (bool, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
 		return false, err
@@ -298,7 +295,7 @@ func (c *Cache) GetBool(ctx context.Context, key string) (bool, error) {
 //
 // 注意:
 // - 仅支持原生string类型，不支持自动类型转换
-func (c *Cache) GetString(ctx context.Context, key string) (string, error) {
+func (c *Core) GetString(ctx context.Context, key string) (string, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
 		return "", err
@@ -327,7 +324,7 @@ func (c *Cache) GetString(ctx context.Context, key string) (string, error) {
 // - 删除不存在的key不会返回错误
 // - 该操作会立即释放相关内存
 // - 高频删除操作建议使用批量删除接口
-func (c *Cache) Delete(ctx context.Context, key string) error {
+func (c *Core) Delete(ctx context.Context, key string) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -355,7 +352,7 @@ func (c *Cache) Delete(ctx context.Context, key string) error {
 // 注意：
 // - 遍历整个缓存空间，时间复杂度为O(n)
 // - 执行期间会阻塞所有读写操作
-func (c *Cache) Cleanup() {
+func (c *Core) Cleanup() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
