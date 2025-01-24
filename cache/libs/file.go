@@ -10,28 +10,28 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
-// FileOp 文件操作核心结构体
-// 负责管理文件的生命周期、缓冲写入、自动分割和压缩等操作
+// FileOp 文件操作核心结构体，负责管理文件的生命周期、缓冲写入、自动分割和压缩等操作
 type FileOp struct {
+	rwMu           sync.RWMutex  // 读写锁保护并发访问
 	file           *os.File      // 底层文件句柄（nil表示未打开）
-	writer         *bufio.Writer // 缓冲写入器（默认缓冲区大小4096字节）
-	isOpen         bool          // 文件可写状态标识（true时允许写入操作）
-	needCompress   bool          // 分割后压缩开关（true启用tar.gz压缩）
-	maxSize        int           // 文件分割阈值（单位MB，0表示不分割）
-	path           string        // 当前活跃文件绝对路径（包含文件名）
-	filePrefixName string        // 文件名主部（不含扩展名，用于构建分割文件名）
-	fileSuffixName string        // 文件扩展名（不含点，用于构建分割文件名）
+	writer         *bufio.Writer // 缓冲写入器（默认4KB缓冲区）
+	isOpen         bool          // 文件可写状态标识
+	needCompress   bool          // 分割后压缩开关
+	maxSize        int           // 文件分割阈值（单位MB）
+	path           string        // 当前活跃文件绝对路径
+	filePrefixName string        // 文件名主部（不含扩展名）
+	fileSuffixName string        // 文件扩展名
 }
 
-// FWConfig 文件写入器配置结构
-// 用于定义文件滚动切割和压缩的配置参数
+// FWConfig 定义文件滚动切割和压缩的配置参数
 type FWConfig struct {
-	NeedCompress bool   // 是否启用压缩 (true: 文件分割后进行tar.gz压缩)
-	MaxSize      int    // 单个文件最大尺寸 (单位MB，建议值1-1024)
-	Path         string // 文件完整路径 (示例: "/var/log/app/error.log")
+	NeedCompress bool   // 是否启用分割后压缩
+	MaxSize      int    // 单个文件最大尺寸（单位MB）
+	Path         string // 文件完整路径
 }
 
 // CreateFileWriter 初始化文件写入器实例
@@ -134,6 +134,9 @@ func (fw *FileOp) needSplit() (bool, error) {
 // 实现自动文件分割和压缩逻辑
 // context: 要写入的字节数据
 func (fw *FileOp) Write(context []byte) (err error) {
+	fw.rwMu.Lock()
+	defer fw.rwMu.Unlock()
+
 	// 错误处理包装
 	defer func() {
 		if err != nil {
@@ -169,14 +172,17 @@ func (fw *FileOp) Write(context []byte) (err error) {
 
 		// 压缩文件
 		if fw.needCompress {
-			_, err = compressFileToTarGz(destPath)
-			if err != nil {
-				return err
-			}
-			// 删除原文件
-			err = remove(destPath)
-			if err != nil {
-				return err
+			if compressedFile, err := compressFileToTarGz(destPath); err != nil {
+				return fmt.Errorf("压缩失败: %w (原始文件: %s)", err, destPath)
+			} else {
+				// 删除原文件
+				if err := os.RemoveAll(destPath); err != nil {
+					// 压缩成功但删除失败时清理压缩文件
+					if cleanupErr := os.RemoveAll(compressedFile); cleanupErr != nil {
+						return fmt.Errorf("删除原始文件失败: %w (清理压缩文件失败: %v)", err, cleanupErr)
+					}
+					return fmt.Errorf("删除原始文件失败: %w (已清理压缩文件: %s)", err, compressedFile)
+				}
 			}
 		}
 
@@ -266,51 +272,71 @@ func createFile(path string) (*os.File, error) {
 	return file, nil
 }
 
-// remove 删除文件
-func remove(path string) error {
-	return os.RemoveAll(path)
-}
-
 // compressFileToTarGz 将文件压缩为tar.gz格式
 // src: 源文件路径
 // 返回：压缩成功后的文件路径，错误信息
-func compressFileToTarGz(src string) (string, error) {
+func compressFileToTarGz(src string) (dstPath string, err error) {
 	dir := filepath.Dir(src)
 	filePrefixName := strings.Split(filepath.Base(src), ".")[0]
 	dst := filepath.Join(dir, filePrefixName+".tar.gz")
+
+	// 创建目标文件时添加错误清理逻辑
+	defer func() {
+		if err != nil {
+			// 如果压缩失败，清理已创建的目标文件
+			if removeErr := os.RemoveAll(dst); removeErr != nil && !os.IsNotExist(removeErr) {
+				err = fmt.Errorf("%w | 清理临时文件失败: %v", err, removeErr)
+			}
+		}
+	}()
 
 	// 创建目标文件
 	destFile, err := os.Create(dst)
 	if err != nil {
 		return "", fmt.Errorf("创建压缩文件失败: %w", err)
 	}
-	defer destFile.Close()
+	defer func() {
+		// 捕获文件关闭错误，且不覆盖已有错误
+		if closeErr := destFile.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("关闭压缩文件失败: %w", closeErr)
+		}
+	}()
 
 	// 创建Gzip压缩写入器
 	gzw := gzip.NewWriter(destFile)
-	defer gzw.Close()
+	defer func() {
+		// 捕获gzip关闭错误，且不覆盖已有错误
+		if closeErr := gzw.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("关闭gzip写入器失败: %w", closeErr)
+		}
+	}()
 
 	// 创建Tar写入器
 	tw := tar.NewWriter(gzw)
-	defer tw.Close()
+	defer func() {
+		// 捕获tar关闭错误，且不覆盖已有错误
+		if closeErr := tw.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("关闭tar写入器失败: %w", closeErr)
+		}
+	}()
 
 	// 打开源文件
 	srcFile, err := os.Open(src)
 	if err != nil {
-		return "", fmt.Errorf("创建文件头失败: %w", err)
+		return "", fmt.Errorf("打开源文件失败: %w", err)
 	}
 	defer srcFile.Close()
 
 	// 获取源文件的信息
 	srcFileInfo, err := srcFile.Stat()
 	if err != nil {
-		return "", fmt.Errorf("创建文件头失败: %w", err)
+		return "", fmt.Errorf("获取源文件信息失败: %w", err)
 	}
 
 	// 构建文件头信息
 	header, err := tar.FileInfoHeader(srcFileInfo, "")
 	if err != nil {
-		return "", fmt.Errorf("构建文件头失败: %w", err)
+		return "", fmt.Errorf("构建tar文件头失败: %w", err)
 	}
 
 	// 更新文件头中的路径信息
@@ -318,7 +344,7 @@ func compressFileToTarGz(src string) (string, error) {
 
 	// 写入文件头
 	if err := tw.WriteHeader(header); err != nil {
-		return "", fmt.Errorf("写入文件头失败: %w", err)
+		return "", fmt.Errorf("写入tar文件头失败: %w", err)
 	}
 
 	// 将源文件内容复制到Tar包中
