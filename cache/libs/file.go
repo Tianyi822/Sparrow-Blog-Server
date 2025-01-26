@@ -164,7 +164,7 @@ func (fw *FileOp) Write(context []byte) error {
 
 		// 压缩文件
 		if fw.needCompress {
-			if err := compressFileToTarGz(destPath); err != nil {
+			if err := CompressFileToTarGz(destPath); err != nil {
 				return err
 			}
 
@@ -259,10 +259,10 @@ func createFile(path string) (*os.File, error) {
 	return file, nil
 }
 
-// compressFileToTarGz 将文件压缩为tar.gz格式
+// CompressFileToTarGz 将文件压缩为tar.gz格式
 // src: 源文件路径
 // 返回：压缩成功后的文件路径，错误信息
-func compressFileToTarGz(src string) error {
+func CompressFileToTarGz(src string) error {
 	dir := filepath.Dir(src)
 	filePrefixName := strings.Split(filepath.Base(src), ".")[0]
 	dst := filepath.Join(dir, filePrefixName+".tar.gz")
@@ -342,6 +342,74 @@ func compressFileToTarGz(src string) error {
 	// 将源文件内容复制到Tar包中
 	if _, err = io.Copy(tw, srcFile); err != nil {
 		return fmt.Errorf("写入压缩内容失败: %w", err)
+	}
+
+	return nil
+}
+
+// DecompressTarGz 解压tar.gz文件
+// src: 压缩包源路径
+// dst: 目标文件名(不含路径)
+func DecompressTarGz(src, dst string) error {
+	// 获取源文件所在目录
+	dir := filepath.Dir(src)
+	targetPath := filepath.Join(dir, dst)
+
+	// 如果目标文件存在则删除
+	if isExist(targetPath) {
+		if err := os.RemoveAll(targetPath); err != nil {
+			return fmt.Errorf("删除目标文件失败: %w", err)
+		}
+	}
+
+	// 打开源文件
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("打开源文件失败: %w", err)
+	}
+	defer func(srcFile *os.File) {
+		if err = srcFile.Close(); err != nil {
+			err = fmt.Errorf("关闭源文件失败: %w", err)
+		}
+	}(srcFile)
+
+	// 创建gzip reader
+	gzr, err := gzip.NewReader(srcFile)
+	if err != nil {
+		return fmt.Errorf("创建gzip reader失败: %w", err)
+	}
+	defer func(gzr *gzip.Reader) {
+		if err = gzr.Close(); err != nil {
+			err = fmt.Errorf("关闭gzip reader失败: %w", err)
+		}
+	}(gzr)
+
+	// 创建tar reader
+	tr := tar.NewReader(gzr)
+
+	// 处理压缩包中的第一个文件
+	header, err := tr.Next()
+	if err == io.EOF {
+		return fmt.Errorf("压缩包为空")
+	}
+	if err != nil {
+		return fmt.Errorf("读取tar文件失败: %w", err)
+	}
+
+	// 创建目标文件
+	file, err := os.OpenFile(targetPath, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+	if err != nil {
+		return fmt.Errorf("创建文件失败 %s: %w", targetPath, err)
+	}
+	defer func(file *os.File) {
+		if err = file.Close(); err != nil {
+			err = fmt.Errorf("关闭文件失败 %s: %w", targetPath, err)
+		}
+	}(file)
+
+	// 复制文件内容
+	if _, err := io.Copy(file, tr); err != nil {
+		return fmt.Errorf("写入文件失败 %s: %w", targetPath, err)
 	}
 
 	return nil
