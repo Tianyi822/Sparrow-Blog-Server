@@ -118,3 +118,11 @@ func TestUserConfig(t *testing.T) {
 	// 结构化输出
 	fmt.Println(UserConfig)
 }
+
+func TestCacheConfig(t *testing.T) {
+	LoadConfig("../../resources/config/test/cache-config.yaml")
+	if CacheConfig.Aof.MaxSize != 3 {
+		t.Errorf("CacheConfig.Aof.MaxSize should be 3, but got %d", CacheConfig.Aof.MaxSize)
+	}
+	fmt.Println(CacheConfig)
+}

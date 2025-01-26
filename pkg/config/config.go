@@ -14,6 +14,7 @@ type projectConfig struct {
 	Logger loggerConfigData `yaml:"logger"` // 日志配置
 	MySQL  mySQLConfigData  `yaml:"mysql"`  // MySQL数据库配置
 	OSS    ossConfig        `yaml:"oss"`    // OSS配置
+	Cache  cacheConfig      `yaml:"cache"`  // 缓存配置
 }
 
 // User 定义了用户的配置信息
@@ -78,6 +79,19 @@ type ossConfig struct {
 	Bucket          string `yaml:"bucket"`
 }
 
+// cacheConfig 缓存系统配置
+type cacheConfig struct {
+	Aof aofConfig `yaml:"aof"` // AOF 配置
+}
+
+// AOF 缓存本地持久化配置
+type aofConfig struct {
+	Enable   bool   `yaml:"enable"`   // 是否开启
+	Path     string `yaml:"path"`     // AOF 文件路径
+	MaxSize  int    `yaml:"max_size"` // AOF 文件最大大小（MB）
+	Compress bool   `yaml:"compress"` // 是否压缩 AOF 文件
+}
+
 // loadConfigLock 用于确保配置文件只被加载一次
 var loadConfigLock sync.Once
 
@@ -95,6 +109,9 @@ var MySQLConfig = new(mySQLConfigData)
 
 // OSSConfig 全局OSS配置变量
 var OSSConfig = new(ossConfig)
+
+// CacheConfig 全局缓存配置变量
+var CacheConfig = new(cacheConfig)
 
 // LoadConfig 加载配置文件
 func LoadConfig(configFilePath string) {
@@ -120,6 +137,7 @@ func LoadConfig(configFilePath string) {
 			LoggerConfig = &conf.Logger
 			MySQLConfig = &conf.MySQL
 			OSSConfig = &conf.OSS
+			CacheConfig = &conf.Cache
 		},
 	)
 }
