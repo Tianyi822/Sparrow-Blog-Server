@@ -11,7 +11,7 @@ func TestFileOp_Write(t *testing.T) {
 	testFile := filepath.Join("../../temp", "test.log")
 
 	// 初始化FileOp配置（1MB分割）
-	fo := CreateFileOp(FWConfig{
+	fo := CreateFileOp(FoConfig{
 		NeedCompress: true,
 		MaxSize:      3, // 1MB
 		Path:         testFile,

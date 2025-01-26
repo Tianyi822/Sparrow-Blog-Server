@@ -27,8 +27,8 @@ type FileOp struct {
 	fileSuffixName string        // 文件扩展名
 }
 
-// FWConfig 定义文件滚动切割和压缩的配置参数
-type FWConfig struct {
+// FoConfig 定义文件滚动切割和压缩的配置参数
+type FoConfig struct {
 	NeedCompress bool   // 是否启用分割后压缩
 	MaxSize      int    // 单个文件最大尺寸（单位MB）
 	Path         string // 文件完整路径
@@ -37,7 +37,7 @@ type FWConfig struct {
 // CreateFileOp 初始化文件写入器实例
 // 参数:
 //
-//	config *FWConfig - 文件配置参数，包含路径、大小限制和压缩设置
+//	config *FoConfig - 文件配置参数，包含路径、大小限制和压缩设置
 //
 // 返回值:
 //
@@ -47,7 +47,7 @@ type FWConfig struct {
 //  1. 实际文件操作会在第一次Write调用时延迟打开
 //  2. 文件路径需包含文件名和扩展名(如：app.log)
 //  3. 文件目录不存在时会自动创建
-func CreateFileOp(config FWConfig) *FileOp {
+func CreateFileOp(config FoConfig) *FileOp {
 	baseName := filepath.Base(config.Path)
 	ext := filepath.Ext(baseName)
 	prefix := strings.TrimSuffix(baseName, ext)
