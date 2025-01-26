@@ -166,16 +166,6 @@ func (c *Core) GetInt(ctx context.Context, key string) (int, error) {
 			return 0, ErrOutOfRange
 		}
 		return int(u), nil
-	case float32:
-		if v > math.MaxInt || v < math.MinInt {
-			return 0, ErrOutOfRange
-		}
-		return int(v), nil
-	case float64:
-		if v > math.MaxInt || v < math.MinInt {
-			return 0, ErrOutOfRange
-		}
-		return int(v), nil
 	default:
 		return 0, ErrTypeMismatch
 	}
@@ -216,17 +206,6 @@ func (c *Core) GetUint(ctx context.Context, key string) (uint, error) {
 			return 0, ErrOutOfRange
 		}
 		return uint(i), nil
-	case float32: // 32位浮点数需要双重检查
-		// 先转换为float64进行精确范围验证
-		if v < 0 || float64(v) > math.MaxUint64 {
-			return 0, ErrOutOfRange // 值超出无符号整型范围
-		}
-		return uint(v), nil // 安全转换为uint
-	case float64: // 64位浮点数直接检查
-		if v < 0 || v > math.MaxUint64 {
-			return 0, ErrOutOfRange // 值超出无符号整型范围
-		}
-		return uint(v), nil // 直接转换（可能丢失小数部分）
 	default:
 		return 0, ErrTypeMismatch
 	}
