@@ -47,12 +47,12 @@ type FoConfig struct {
 //  1. 实际文件操作会在第一次Write调用时延迟打开
 //  2. 文件路径需包含文件名和扩展名(如：app.log)
 //  3. 文件目录不存在时会自动创建
-func CreateFileOp(config FoConfig) *FileOp {
+func CreateFileOp(config FoConfig) FileOp {
 	baseName := filepath.Base(config.Path)
 	ext := filepath.Ext(baseName)
 	prefix := strings.TrimSuffix(baseName, ext)
 
-	return &FileOp{
+	return FileOp{
 		filePrefixName: prefix,
 		fileSuffixName: strings.TrimPrefix(ext, "."), // 移除扩展名前的点
 		path:           config.Path,
