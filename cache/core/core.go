@@ -286,6 +286,57 @@ func (c *Core) GetString(ctx context.Context, key string) (string, error) {
 	return "", ErrTypeMismatch
 }
 
+// Incr 对整型值进行原子递增/递减操作
+// ctx   上下文，用于取消操作
+// key   条目键
+// delta 变化量（支持正负值）
+//
+// 返回值:
+// - int  操作后的新值
+// - error 可能错误：
+//   - ErrNotFound key不存在
+//   - ErrTypeMismatch 值类型非整型
+//   - ErrOutOfRange 数值溢出
+//
+// 注意:
+// - 不存在的key直接返回ErrNotFound
+// - 操作成功后保持原有TTL时间不变
+func (c *Core) Incr(ctx context.Context, key string, delta int) (int, error) {
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+		c.mu.Lock()
+		defer c.mu.Unlock()
+
+		// 获取现有值
+		item, exists := c.items[key]
+		if !exists {
+			return 0, ErrNotFound
+		}
+
+		// 类型检查（复用GetInt逻辑）
+		val, err := c.GetInt(ctx, key)
+		if err != nil {
+			return 0, err
+		}
+
+		// 溢出检查
+		if (delta > 0 && val > math.MaxInt-delta) ||
+			(delta < 0 && val < math.MinInt-delta) {
+			return 0, ErrOutOfRange
+		}
+
+		newVal := val + delta
+		c.items[key] = cacheItem{
+			value:    newVal,
+			expireAt: item.expireAt, // 保持原有过期时间
+		}
+
+		return newVal, nil
+	}
+}
+
 // Delete 删除指定键的缓存条目，无论该条目是否过期
 //
 // 参数:
