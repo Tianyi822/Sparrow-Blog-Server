@@ -286,10 +286,9 @@ func (c *Core) GetString(ctx context.Context, key string) (string, error) {
 	return "", ErrTypeMismatch
 }
 
-// Incr 对整型值进行原子递增/递减操作
+// Incr 原子递增整型值
 // ctx   上下文，用于取消操作
 // key   条目键
-// delta 变化量（支持正负值）
 //
 // 返回值:
 // - int  操作后的新值
@@ -301,7 +300,7 @@ func (c *Core) GetString(ctx context.Context, key string) (string, error) {
 // 注意:
 // - 不存在的key直接返回ErrNotFound
 // - 操作成功后保持原有TTL时间不变
-func (c *Core) Incr(ctx context.Context, key string, delta int) (int, error) {
+func (c *Core) Incr(ctx context.Context, key string) (int, error) {
 	select {
 	case <-ctx.Done():
 		return 0, ctx.Err()
@@ -309,28 +308,76 @@ func (c *Core) Incr(ctx context.Context, key string, delta int) (int, error) {
 		c.mu.Lock()
 		defer c.mu.Unlock()
 
-		// 获取现有值
+		// 获取现有值,不存在则默认为0
 		item, exists := c.items[key]
-		if !exists {
-			return 0, ErrNotFound
-		}
-
-		// 类型检查（复用GetInt逻辑）
-		val, err := c.GetInt(ctx, key)
-		if err != nil {
-			return 0, err
+		var val int
+		if exists {
+			// 类型检查
+			v, err := c.GetInt(ctx, key)
+			if err != nil {
+				return 0, err
+			}
+			val = v
 		}
 
 		// 溢出检查
-		if (delta > 0 && val > math.MaxInt-delta) ||
-			(delta < 0 && val < math.MinInt-delta) {
+		if val == math.MaxInt {
 			return 0, ErrOutOfRange
 		}
 
-		newVal := val + delta
+		newVal := val + 1
 		c.items[key] = cacheItem{
 			value:    newVal,
-			expireAt: item.expireAt, // 保持原有过期时间
+			expireAt: item.expireAt, // 若key存在则保持原有过期时间,否则为0(永不过期)
+		}
+
+		return newVal, nil
+	}
+}
+
+// IncrUint 原子递增无符号整型值
+// ctx   上下文，用于取消操作
+// key   条目键
+//
+// 返回值:
+// - uint  操作后的新值
+// - error 可能错误：
+//   - ErrNotFound key不存在
+//   - ErrTypeMismatch 值类型非无符号整型
+//   - ErrOutOfRange 数值溢出
+//
+// 注意:
+// - 不存在的key直接返回ErrNotFound
+// - 操作成功后保持原有TTL时间不变
+func (c *Core) IncrUint(ctx context.Context, key string) (uint, error) {
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+		c.mu.Lock()
+		defer c.mu.Unlock()
+
+		// 获取现有值,不存在则默认为0
+		item, exists := c.items[key]
+		var val uint
+		if exists {
+			// 类型检查
+			v, err := c.GetUint(ctx, key)
+			if err != nil {
+				return 0, err
+			}
+			val = v
+		}
+
+		// 溢出检查
+		if val == math.MaxUint {
+			return 0, ErrOutOfRange
+		}
+
+		newVal := val + 1
+		c.items[key] = cacheItem{
+			value:    newVal,
+			expireAt: item.expireAt, // 若key存在则保持原有过期时间,否则为0(永不过期)
 		}
 
 		return newVal, nil
