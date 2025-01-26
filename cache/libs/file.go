@@ -325,7 +325,12 @@ func compressFileToTarGz(src string) (dstPath string, err error) {
 	if err != nil {
 		return "", fmt.Errorf("打开源文件失败: %w", err)
 	}
-	defer srcFile.Close()
+	defer func(srcFile *os.File) {
+		// 捕获tar关闭错误，且不覆盖已有错误
+		if closeErr := tw.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("关闭源文件失败: %w", closeErr)
+		}
+	}(srcFile)
 
 	// 获取源文件的信息
 	srcFileInfo, err := srcFile.Stat()
