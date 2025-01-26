@@ -34,7 +34,7 @@ type FWConfig struct {
 	Path         string // 文件完整路径
 }
 
-// CreateFileWriter 初始化文件写入器实例
+// CreateFileOp 初始化文件写入器实例
 // 参数:
 //
 //	config *FWConfig - 文件配置参数，包含路径、大小限制和压缩设置
@@ -47,7 +47,7 @@ type FWConfig struct {
 //  1. 实际文件操作会在第一次Write调用时延迟打开
 //  2. 文件路径需包含文件名和扩展名(如：app.log)
 //  3. 文件目录不存在时会自动创建
-func CreateFileWriter(config *FWConfig) *FileOp {
+func CreateFileOp(config FWConfig) *FileOp {
 	baseName := filepath.Base(config.Path)
 	ext := filepath.Ext(baseName)
 	prefix := strings.TrimSuffix(baseName, ext)
@@ -90,119 +90,106 @@ func (fw *FileOp) ready() (err error) {
 
 // Close 关闭文件
 func (fw *FileOp) Close() error {
+	if !fw.isOpen {
+		return nil
+	}
+
+	// 先处理 bufio.Writer
+	if fw.writer != nil {
+		if err := fw.writer.Flush(); err != nil {
+			return fmt.Errorf("刷新失败: %w", err)
+		}
+	}
+
+	// 同步文件到磁盘
+	if err := fw.file.Sync(); err != nil {
+		return fmt.Errorf("同步失败: %w", err)
+	}
+
+	// 关闭文件句柄
+	if err := fw.file.Close(); err != nil {
+		return fmt.Errorf("关闭失败: %w", err)
+	}
+
 	fw.isOpen = false
-
-	// 将缓存中的数据落盘
-	err := fw.writer.Flush()
-	if err != nil {
-		return err
-	}
-
-	err = fw.file.Close()
-	if err != nil {
-		return err
-	}
-
-	fw.file = nil
 	fw.writer = nil
-	return err
+	fw.file = nil
+
+	return nil
 }
 
 // needSplit 检查文件是否需要分割
-// 返回值：(需要分割, 错误)
-// 改进点：
-// 1. 增加文件状态获取错误的详细上下文
-// 2. 明确单位转换逻辑
-func (fw *FileOp) needSplit() (bool, error) {
+// 返回值：是否需要分割
+func (fw *FileOp) needSplit() bool {
 	// 判断是否需要进行分片
 	if fw.maxSize <= 0 {
-		return false, nil
+		return false
 	}
 
 	// 判断文件大小是否超过最大值
 	fileInfo, err := fw.file.Stat()
 	if err != nil {
-		return false, fmt.Errorf("获取文件状态失败: %w", err)
+		return false
 	}
 
-	// 计算最大字节数（MB转字节）
-	maxBytes := int64(fw.maxSize) * 1024 * 1024
-	return fileInfo.Size() > maxBytes, nil
+	return fileInfo.Size() > int64(fw.maxSize*1024*1024)
 }
 
 // Write 写入数据到文件
 // 实现自动文件分割和压缩逻辑
 // context: 要写入的字节数据
-func (fw *FileOp) Write(context []byte) (err error) {
+func (fw *FileOp) Write(context []byte) error {
 	fw.rwMu.Lock()
 	defer fw.rwMu.Unlock()
 
-	// 错误处理包装
-	defer func() {
-		if err != nil {
-			err = fmt.Errorf("文件写入失败: %w", err)
-		}
-	}()
 	if !fw.isOpen {
-		err := fw.ready()
-		if err != nil {
+		if err := fw.ready(); err != nil {
 			return err
 		}
 	}
 
-	// 检查是否需要分割
-	needSplit, err := fw.needSplit()
-	if err != nil {
-		return err
-	}
-	if needSplit {
+	// 判断是否需要进行分片
+	if fw.needSplit() {
 		// 关闭文件
-		err := fw.Close()
-		if err != nil {
+		if err := fw.Close(); err != nil {
 			return err
 		}
 
 		// 修改文件名
 		newFileName := fmt.Sprintf("%v_%v.%v", fw.filePrefixName, strconv.FormatInt(time.Now().Unix(), 10), fw.fileSuffixName)
 		destPath := filepath.Join(filepath.Dir(fw.path), newFileName)
-		err = os.Rename(fw.path, destPath)
-		if err != nil {
+		if err := os.Rename(fw.path, destPath); err != nil {
 			return err
 		}
 
 		// 压缩文件
 		if fw.needCompress {
-			if compressedFile, err := compressFileToTarGz(destPath); err != nil {
-				return fmt.Errorf("压缩失败: %w (原始文件: %s)", err, destPath)
-			} else {
-				// 删除原文件
-				if err := os.RemoveAll(destPath); err != nil {
-					// 压缩成功但删除失败时清理压缩文件
-					if cleanupErr := os.RemoveAll(compressedFile); cleanupErr != nil {
-						return fmt.Errorf("删除原始文件失败: %w (清理压缩文件失败: %v)", err, cleanupErr)
-					}
-					return fmt.Errorf("删除原始文件失败: %w (已清理压缩文件: %s)", err, compressedFile)
-				}
+			if err := compressFileToTarGz(destPath); err != nil {
+				return err
+			}
+
+			// 删除原文件
+			if err := os.RemoveAll(destPath); err != nil {
+				return err
 			}
 		}
 
 		// 重新打开文件
-		err = fw.ready()
-		if err != nil {
+		if err := fw.ready(); err != nil {
 			return err
 		}
 	}
 
 	// 写入数据
 	buf := append(context, '\n')
-	_, err = fw.writer.Write(buf)
+	_, err := fw.writer.Write(buf)
 	if err != nil {
 		return err
 	}
 	// 数据落盘
 	err = fw.writer.Flush()
 	if err != nil {
-		return fmt.Errorf("刷新缓冲区失败: %w", err)
+		return err
 	}
 	return err
 }
@@ -275,17 +262,17 @@ func createFile(path string) (*os.File, error) {
 // compressFileToTarGz 将文件压缩为tar.gz格式
 // src: 源文件路径
 // 返回：压缩成功后的文件路径，错误信息
-func compressFileToTarGz(src string) (dstPath string, err error) {
+func compressFileToTarGz(src string) error {
 	dir := filepath.Dir(src)
 	filePrefixName := strings.Split(filepath.Base(src), ".")[0]
 	dst := filepath.Join(dir, filePrefixName+".tar.gz")
 
 	// 创建目标文件时添加错误清理逻辑
 	defer func() {
-		if err != nil {
+		if err := recover(); err != nil {
 			// 如果压缩失败，清理已创建的目标文件
 			if removeErr := os.RemoveAll(dst); removeErr != nil && !os.IsNotExist(removeErr) {
-				err = fmt.Errorf("%w | 清理临时文件失败: %v", err, removeErr)
+				err = fmt.Errorf("%v | 清理临时文件失败: %v", err, removeErr)
 			}
 		}
 	}()
@@ -293,7 +280,7 @@ func compressFileToTarGz(src string) (dstPath string, err error) {
 	// 创建目标文件
 	destFile, err := os.Create(dst)
 	if err != nil {
-		return "", fmt.Errorf("创建压缩文件失败: %w", err)
+		return fmt.Errorf("创建压缩文件失败: %w", err)
 	}
 	defer func() {
 		// 捕获文件关闭错误，且不覆盖已有错误
@@ -323,25 +310,25 @@ func compressFileToTarGz(src string) (dstPath string, err error) {
 	// 打开源文件
 	srcFile, err := os.Open(src)
 	if err != nil {
-		return "", fmt.Errorf("打开源文件失败: %w", err)
+		return fmt.Errorf("打开源文件失败: %w", err)
 	}
-	defer func(srcFile *os.File) {
-		// 捕获tar关闭错误，且不覆盖已有错误
-		if closeErr := tw.Close(); closeErr != nil && err == nil {
+	defer func() {
+		// 修复: 正确关闭源文件而不是tar writer
+		if closeErr := srcFile.Close(); closeErr != nil && err == nil {
 			err = fmt.Errorf("关闭源文件失败: %w", closeErr)
 		}
-	}(srcFile)
+	}()
 
 	// 获取源文件的信息
 	srcFileInfo, err := srcFile.Stat()
 	if err != nil {
-		return "", fmt.Errorf("获取源文件信息失败: %w", err)
+		return fmt.Errorf("获取源文件信息失败: %w", err)
 	}
 
 	// 构建文件头信息
 	header, err := tar.FileInfoHeader(srcFileInfo, "")
 	if err != nil {
-		return "", fmt.Errorf("构建tar文件头失败: %w", err)
+		return fmt.Errorf("构建tar文件头失败: %w", err)
 	}
 
 	// 更新文件头中的路径信息
@@ -349,13 +336,13 @@ func compressFileToTarGz(src string) (dstPath string, err error) {
 
 	// 写入文件头
 	if err := tw.WriteHeader(header); err != nil {
-		return "", fmt.Errorf("写入tar文件头失败: %w", err)
+		return fmt.Errorf("写入tar文件头失败: %w", err)
 	}
 
 	// 将源文件内容复制到Tar包中
 	if _, err = io.Copy(tw, srcFile); err != nil {
-		return "", fmt.Errorf("写入压缩内容失败: %w", err)
+		return fmt.Errorf("写入压缩内容失败: %w", err)
 	}
 
-	return dst, nil
+	return nil
 }
