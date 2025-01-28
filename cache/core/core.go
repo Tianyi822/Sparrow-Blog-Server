@@ -10,7 +10,7 @@
 //
 //	c := NewCore()
 //	ctx := context.Background()
-//	err := c.Set(ctx, "user:1001", userData, 10*time.Minute)
+//	err := c.SetWithExpired(ctx, "user:1001", userData, 10*time.Minute)
 //	val, ok, err := c.GetInt(ctx, "counter")
 //
 // 注意事项：
@@ -23,6 +23,7 @@ import (
 	"errors"
 	"math"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 )
@@ -40,6 +41,9 @@ var (
 
 	// ErrNotFound 当条目不存在或已过期时返回
 	ErrNotFound = errors.New("entry not found")
+
+	// ErrEmptyKey key 值空
+	ErrEmptyKey = errors.New("key is empty")
 )
 
 // cacheItem 表示缓存中的单个条目
@@ -75,7 +79,7 @@ func NewCore() *Core {
 //
 // 示例:
 //
-//	err := cache.Set(ctx, "user:1001", userData, 10*time.Minute)
+//	err := cache.SetWithExpired(ctx, "user:1001", userData, 10*time.Minute)
 //	if err != nil {
 //	    log.Printf("缓存写入失败: %v", err)
 //	}
@@ -93,7 +97,11 @@ func NewCore() *Core {
 //	 - context.Canceled 上下文取消
 //	 - context.DeadlineExceeded 操作超时
 //	 - ErrMaxEntries 达到最大条目限制（需通过WithMaxEntries设置）
-func (c *Core) Set(ctx context.Context, key string, value any, ttl time.Duration) error {
+func (c *Core) SetWithExpired(ctx context.Context, key string, value any, ttl time.Duration) error {
+	if len(strings.TrimSpace(key)) == 0 {
+		return ErrEmptyKey
+	}
+
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
