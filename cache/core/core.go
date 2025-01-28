@@ -513,10 +513,24 @@ func (c *Core) Cleanup() {
 	now := time.Now() // 获取当前UTC时间
 	// 遍历所有缓存条目
 	for key, item := range c.items {
+		// 永久条目永远存在
+		if item.expireAt.IsZero() {
+			continue
+		}
 		// 检查过期时间（UTC时间比较）
 		if now.After(item.expireAt) {
 			// 同步删除过期条目
 			delete(c.items, key) // map删除操作
 		}
+	}
+}
+
+// CleanAll 清理所有缓存条目，无论是否过期
+func (c *Core) CleanAll() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for key, _ := range c.items {
+		delete(c.items, key) // map删除操作
 	}
 }
