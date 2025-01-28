@@ -20,6 +20,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"math"
 	"reflect"
@@ -46,11 +47,22 @@ var (
 	ErrEmptyKey = errors.New("key is empty")
 )
 
+type ValueType uint8
+
+const (
+	INT ValueType = iota
+	UINT
+	FLOAT
+	STRING
+	OBJ
+)
+
 // cacheItem 表示缓存中的单个条目
 // value    存储的实际值，支持任意类型。注意存储指针类型时需要自行管理生命周期
 // expireAt 条目过期的时间戳（UTC时间），零值表示永不过期
 type cacheItem struct {
 	value    any
+	vt       ValueType
 	expireAt time.Time
 }
 
@@ -139,10 +151,36 @@ func (c *Core) SetWithExpired(ctx context.Context, key string, value any, ttl ti
 			return ErrPointerNotAllowed
 		}
 
-		c.items[key] = cacheItem{
-			value:    value,
-			expireAt: time.Now().Add(ttl),
+		item := cacheItem{
+			value: value,
 		}
+		if ttl == 0 {
+			item.expireAt = time.Time{} // 零值表示永不过期
+		} else {
+			item.expireAt = time.Now().Add(ttl)
+		}
+
+		// 设置值类型
+		switch value.(type) {
+		case int, int8, int16, int32, int64:
+			item.vt = INT
+		case uint, uint8, uint16, uint32, uint64:
+			item.vt = UINT
+		case float32, float64:
+			item.vt = FLOAT
+		case string:
+			item.vt = STRING
+		default:
+			// 对于其他类型，序列化为JSON字符串存储
+			jsonStr, err := json.Marshal(item.value)
+			if err != nil {
+				return err
+			}
+			item.vt = OBJ
+			item.value = jsonStr
+		}
+
+		c.items[key] = item
 		return nil
 	}
 }
