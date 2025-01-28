@@ -75,7 +75,32 @@ func NewCore() *Core {
 	}
 }
 
-// Set 设置缓存条目。当存在同名key时会覆盖旧值并重置TTL
+// Set 设置缓存条目, 默认长期有效
+// 示例:
+//
+// err := cache.Set(ctx, "user:1001", userData)
+//
+//	if err != nil {
+//	   log.Printf("缓存写入失败: %v", err)
+//	}
+//
+// 参数:
+//
+// ctx   上下文，用于取消操作和超时控制
+// key   条目键（推荐使用冒号分隔的命名规范，如"type:id"）
+// value 要存储的值（仅支持非指针类型）
+//
+// 返回值:
+//
+//	error 可能返回的错误包括：
+//	 - context.Canceled 上下文取消
+//	 - context.DeadlineExceeded 操作超时
+//	 - ErrMaxEntries 达到最大条目限制（需通过WithMaxEntries设置）
+func (c *Core) Set(ctx context.Context, key string, value any) error {
+	return c.SetWithExpired(ctx, key, value, 0)
+}
+
+// SetWithExpired 设置缓存条目。当存在同名key时会覆盖旧值并重置TTL
 //
 // 示例:
 //
