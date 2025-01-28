@@ -185,6 +185,105 @@ func (c *Core) SetWithExpired(ctx context.Context, key string, value any, ttl ti
 	}
 }
 
+// Incr 原子递增整型值
+// ctx   上下文，用于取消操作
+// key   条目键
+//
+// 返回值:
+// - int  操作后的新值
+// - error 可能错误：
+//   - ErrNotFound key不存在
+//   - ErrTypeMismatch 值类型非整型
+//   - ErrOutOfRange 数值溢出
+//
+// 注意:
+// - 不存在的key直接返回ErrNotFound
+// - 操作成功后保持原有TTL时间不变
+func (c *Core) Incr(ctx context.Context, key string) (int, error) {
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+		// 获取现有值,不存在则默认为0
+		val, err := c.GetInt(ctx, key)
+		if err != nil {
+			if errors.Is(err, ErrNotFound) {
+				// 不存在的 key 新建一个
+				if err = c.Set(ctx, key, 1); err != nil {
+					return 0, err
+				}
+			} else {
+				return 0, err
+			}
+		}
+
+		// 溢出检查
+		if val == math.MaxInt {
+			return 0, ErrOutOfRange
+		}
+
+		c.mu.Lock()
+		c.items[key] = cacheItem{
+			value:    val + 1,
+			vt:       INT,
+			expireAt: c.items[key].expireAt, // 若key存在则保持原有过期时间,否则为0(永不过期)
+		}
+		c.mu.Unlock()
+
+		return val + 1, nil
+	}
+}
+
+// IncrUint 原子递增无符号整型值
+// ctx   上下文，用于取消操作
+// key   条目键
+//
+// 返回值:
+// - uint  操作后的新值
+// - error 可能错误：
+//   - ErrNotFound key不存在
+//   - ErrTypeMismatch 值类型非无符号整型
+//   - ErrOutOfRange 数值溢出
+//
+// 注意:
+// - 不存在的key直接返回ErrNotFound
+// - 操作成功后保持原有TTL时间不变
+func (c *Core) IncrUint(ctx context.Context, key string) (uint, error) {
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+		c.mu.Lock()
+		defer c.mu.Unlock()
+
+		// 获取现有值,不存在则默认为0
+		item, exists := c.items[key]
+		var val uint = 0
+		if exists {
+			// 类型检查
+			v, err := c.GetUint(ctx, key)
+			if err != nil {
+				return 0, err
+			}
+			val = v
+		}
+
+		// 溢出检查
+		if val == math.MaxUint {
+			return 0, ErrOutOfRange
+		}
+
+		newVal := val + 1
+		c.items[key] = cacheItem{
+			value:    newVal,
+			vt:       UINT,
+			expireAt: item.expireAt, // 若key存在则保持原有过期时间,否则为0(永不过期)
+		}
+
+		return newVal, nil
+	}
+}
+
 // Get 获取缓存条目原始值
 // ctx 上下文，用于取消操作
 // key 要获取的条目键
@@ -355,104 +454,6 @@ func (c *Core) GetString(ctx context.Context, key string) (string, error) {
 		return s, nil
 	}
 	return "", ErrTypeMismatch
-}
-
-// Incr 原子递增整型值
-// ctx   上下文，用于取消操作
-// key   条目键
-//
-// 返回值:
-// - int  操作后的新值
-// - error 可能错误：
-//   - ErrNotFound key不存在
-//   - ErrTypeMismatch 值类型非整型
-//   - ErrOutOfRange 数值溢出
-//
-// 注意:
-// - 不存在的key直接返回ErrNotFound
-// - 操作成功后保持原有TTL时间不变
-func (c *Core) Incr(ctx context.Context, key string) (int, error) {
-	select {
-	case <-ctx.Done():
-		return 0, ctx.Err()
-	default:
-		c.mu.Lock()
-		defer c.mu.Unlock()
-
-		// 获取现有值,不存在则默认为0
-		item, exists := c.items[key]
-		var val int
-		if exists {
-			// 类型检查
-			v, err := c.GetInt(ctx, key)
-			if err != nil {
-				return 0, err
-			}
-			val = v
-		}
-
-		// 溢出检查
-		if val == math.MaxInt {
-			return 0, ErrOutOfRange
-		}
-
-		newVal := val + 1
-		c.items[key] = cacheItem{
-			value:    newVal,
-			expireAt: item.expireAt, // 若key存在则保持原有过期时间,否则为0(永不过期)
-		}
-
-		return newVal, nil
-	}
-}
-
-// IncrUint 原子递增无符号整型值
-// ctx   上下文，用于取消操作
-// key   条目键
-//
-// 返回值:
-// - uint  操作后的新值
-// - error 可能错误：
-//   - ErrNotFound key不存在
-//   - ErrTypeMismatch 值类型非无符号整型
-//   - ErrOutOfRange 数值溢出
-//
-// 注意:
-// - 不存在的key直接返回ErrNotFound
-// - 操作成功后保持原有TTL时间不变
-func (c *Core) IncrUint(ctx context.Context, key string) (uint, error) {
-	select {
-	case <-ctx.Done():
-		return 0, ctx.Err()
-	default:
-		c.mu.Lock()
-		defer c.mu.Unlock()
-
-		// 获取现有值,不存在则默认为0
-		item, exists := c.items[key]
-		var val uint
-		if exists {
-			// 类型检查
-			v, err := c.GetUint(ctx, key)
-			if err != nil {
-				return 0, err
-			}
-			val = v
-		}
-
-		// 溢出检查
-		if val == math.MaxUint {
-			return 0, ErrOutOfRange
-		}
-
-		newVal := val + 1
-		c.items[key] = cacheItem{
-			value:    newVal,
-			expireAt: item.expireAt, // 若key存在则保持原有过期时间,否则为0(永不过期)
-		}
-
-		return newVal, nil
-	}
 }
 
 // Delete 删除指定键的缓存条目，无论该条目是否过期
