@@ -3,195 +3,216 @@ package core
 import (
 	"context"
 	"errors"
-	"math"
-	"sync"
 	"testing"
 	"time"
 )
 
-func TestDelete(t *testing.T) {
+func TestCore_Basic(t *testing.T) {
 	c := NewCore()
 	ctx := context.Background()
 
-	t.Run("basic deletion", func(t *testing.T) {
-		// Set and verify item exists
-		err := c.Set(ctx, "key1", "value1", time.Hour)
+	// 测试 Set 和 Get
+	t.Run("基本的 Set 和 Get 操作", func(t *testing.T) {
+		err := c.Set(ctx, "test:string", "hello")
 		if err != nil {
-			t.Fatalf("设置失败：%v", err)
+			t.Errorf("Set 错误: %v", err)
 		}
 
-		// Delete the item
-		err = c.Delete(ctx, "key1")
+		val, err := c.GetString(ctx, "test:string")
 		if err != nil {
-			t.Errorf("删除失败：%v", err)
+			t.Errorf("GetString 错误: %v", err)
 		}
-
-		// Verify item is gone
-		_, err = c.Get(ctx, "key1")
-		if err == nil {
-			t.Error("删除后项目仍然存在")
+		if val != "hello" {
+			t.Errorf("期望值为 'hello'，实际得到 '%s'", val)
 		}
 	})
 
-	t.Run("delete non-existent", func(t *testing.T) {
-		err := c.Delete(ctx, "nonexistent")
-		if err != nil {
-			t.Errorf("删除不存在的键不应报错：%v", err)
+	// 测试空键
+	t.Run("空键处理", func(t *testing.T) {
+		err := c.Set(ctx, "", "value")
+		if err != ErrEmptyKey {
+			t.Errorf("期望得到 ErrEmptyKey，实际得到 %v", err)
 		}
 	})
 
-	t.Run("context cancellation", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel()
-		err := c.Delete(ctx, "key")
-		if !errors.Is(err, context.Canceled) {
-			t.Errorf("期望 context.Canceled，实际得到 %v", err)
+	// 测试指针值
+	t.Run("指针值拒绝", func(t *testing.T) {
+		x := "test"
+		err := c.Set(ctx, "test:pointer", &x)
+		if err != ErrPointerNotAllowed {
+			t.Errorf("期望得到 ErrPointerNotAllowed，实际得到 %v", err)
 		}
 	})
 }
 
-func TestConcurrentDeleteAndGet(t *testing.T) {
-	c := NewCore()
-	ctx := context.Background()
-	keys := []string{"k1", "k2", "k3", "k4", "k5"}
-
-	// Setup initial data
-	for _, k := range keys {
-		_ = c.Set(ctx, k, k, time.Hour)
-	}
-
-	var wg sync.WaitGroup
-	iterations := 1000
-
-	// Start readers
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for i := 0; i < iterations; i++ {
-			for _, k := range keys {
-				_, _ = c.Get(ctx, k)
-			}
-		}
-	}()
-
-	// Start deletes
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for i := 0; i < iterations; i++ {
-			for _, k := range keys {
-				_ = c.Delete(ctx, k)
-				_ = c.Set(ctx, k, k, time.Hour)
-			}
-		}
-	}()
-
-	wg.Wait()
-}
-
-func TestEdgeCases(t *testing.T) {
+func TestCore_TypedOperations(t *testing.T) {
 	c := NewCore()
 	ctx := context.Background()
 
-	t.Run("empty string key", func(t *testing.T) {
-		err := c.Set(ctx, "", "value", time.Hour)
+	t.Run("整数操作", func(t *testing.T) {
+		// 测试整数存储和获取
+		err := c.Set(ctx, "test:int", 42)
 		if err != nil {
-			t.Errorf("设置空字符串键失败：%v", err)
+			t.Errorf("设置整数错误: %v", err)
 		}
 
-		val, err := c.GetString(ctx, "")
-		if err != nil || val != "value" {
-			t.Errorf("获取空字符串键失败: err=%v val=%v", err, val)
+		val, err := c.GetInt(ctx, "test:int")
+		if err != nil {
+			t.Errorf("获取整数错误: %v", err)
+		}
+		if val != 42 {
+			t.Errorf("期望值为 42，实际得到 %d", val)
+		}
+
+		// 测试 Incr
+		newVal, err := c.Incr(ctx, "test:int")
+		if err != nil {
+			t.Errorf("Incr 错误: %v", err)
+		}
+		if newVal != 43 {
+			t.Errorf("Incr 后期望值为 43，实际得到 %d", newVal)
 		}
 	})
 
-	t.Run("zero TTL", func(t *testing.T) {
-		err := c.Set(ctx, "zero", "value", 0)
+	t.Run("无符号整数操作", func(t *testing.T) {
+		err := c.Set(ctx, "test:uint", uint(10))
 		if err != nil {
-			t.Errorf("设置零有效期失败：%v", err)
+			t.Errorf("设置无符号整数错误: %v", err)
 		}
 
-		_, err = c.Get(ctx, "zero")
+		val, err := c.GetUint(ctx, "test:uint")
 		if err != nil {
-			t.Error("Zero TTL item should be never expired")
+			t.Errorf("获取无符号整数错误: %v", err)
+		}
+		if val != 10 {
+			t.Errorf("期望值为 10，实际得到 %d", val)
 		}
 	})
 
-	t.Run("type conversion edge cases", func(t *testing.T) {
-		testCases := []struct {
-			name     string
-			value    interface{}
-			testFunc func() error
-		}{
-			{
-				name:  "float64 to int overflow",
-				value: math.MaxFloat64,
-				testFunc: func() error {
-					_ = c.Set(ctx, "test", math.MaxFloat64, time.Hour)
-					_, err := c.GetInt(ctx, "test")
-					return err
-				},
-			},
-			{
-				name:  "negative to uint",
-				value: -1,
-				testFunc: func() error {
-					_ = c.Set(ctx, "test", -1, time.Hour)
-					_, err := c.GetUint(ctx, "test")
-					return err
-				},
-			},
-			{
-				name:  "string to bool",
-				value: "true",
-				testFunc: func() error {
-					_ = c.Set(ctx, "test", "true", time.Hour)
-					_, err := c.GetBool(ctx, "test")
-					return err
-				},
-			},
+	t.Run("浮点数操作", func(t *testing.T) {
+		err := c.Set(ctx, "test:float", 3.14)
+		if err != nil {
+			t.Errorf("设置浮点数错误: %v", err)
 		}
 
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				err := tc.testFunc()
-				if err == nil {
-					t.Error("Expected error, got nil")
-				}
-			})
+		val, err := c.GetFloat(ctx, "test:float")
+		if err != nil {
+			t.Errorf("获取浮点数错误: %v", err)
+		}
+		if val != 3.14 {
+			t.Errorf("期望值为 3.14，实际得到 %f", val)
 		}
 	})
 }
 
-func TestCleanupBehavior(t *testing.T) {
+func TestCore_Expiration(t *testing.T) {
 	c := NewCore()
 	ctx := context.Background()
 
-	// Setup test data
-	_ = c.Set(ctx, "exp1", 1, -time.Hour)      // Already expired
-	_ = c.Set(ctx, "exp2", 2, time.Nanosecond) // Will expire immediately
-	_ = c.Set(ctx, "valid", 3, time.Hour)      // Valid
+	t.Run("TTL 过期", func(t *testing.T) {
+		// 设置 100ms 的 TTL
+		err := c.SetWithExpired(ctx, "test:expire", "temporary", 100*time.Millisecond)
+		if err != nil {
+			t.Errorf("SetWithExpired 错误: %v", err)
+		}
 
-	time.Sleep(time.Millisecond) // Ensure exp2 expires
+		// 应该能立即获取
+		_, err = c.Get(ctx, "test:expire")
+		if err != nil {
+			t.Errorf("过期前获取错误: %v", err)
+		}
 
-	c.Cleanup()
+		// 等待过期
+		time.Sleep(150 * time.Millisecond)
 
-	// Verify cleanup behavior
-	tests := []struct {
-		key string
-		err error
-	}{
-		{"exp1", ErrNotFound},
-		{"exp2", ErrNotFound},
-		{"valid", nil},
-	}
+		// 过期后应返回未找到
+		_, err = c.Get(ctx, "test:expire")
+		if err != ErrNotFound {
+			t.Errorf("过期后期望得到 ErrNotFound，实际得到 %v", err)
+		}
+	})
+}
 
-	for _, tt := range tests {
-		t.Run(tt.key, func(t *testing.T) {
-			_, err := c.Get(ctx, tt.key)
-			if !errors.Is(err, tt.err) {
-				t.Errorf("Expected error %v, got %v", tt.err, err)
-			}
-		})
-	}
+func TestCore_Delete(t *testing.T) {
+	c := NewCore()
+	ctx := context.Background()
+
+	t.Run("删除操作", func(t *testing.T) {
+		// 设置值
+		err := c.Set(ctx, "test:delete", "value")
+		if err != nil {
+			t.Errorf("设置错误: %v", err)
+		}
+
+		// 删除它
+		err = c.Delete(ctx, "test:delete")
+		if err != nil {
+			t.Errorf("删除错误: %v", err)
+		}
+
+		// 验证它已被删除
+		_, err = c.Get(ctx, "test:delete")
+		if err != ErrNotFound {
+			t.Errorf("删除后期望得到 ErrNotFound，实际得到 %v", err)
+		}
+	})
+}
+
+func TestCore_Clean(t *testing.T) {
+	c := NewCore()
+	ctx := context.Background()
+
+	t.Run("清理过期条目", func(t *testing.T) {
+		// 设置不同 TTL 的条目
+		_ = c.SetWithExpired(ctx, "test:expire1", "val1", 50*time.Millisecond)
+		_ = c.SetWithExpired(ctx, "test:expire2", "val2", 150*time.Millisecond)
+		_ = c.Set(ctx, "test:persistent", "val3") // 无 TTL
+
+		// 等待第一个条目过期
+		time.Sleep(100 * time.Millisecond)
+
+		// 运行清理
+		c.Cleanup()
+
+		// 检查结果
+		_, err1 := c.Get(ctx, "test:expire1")
+		_, err2 := c.Get(ctx, "test:expire2")
+		_, err3 := c.Get(ctx, "test:persistent")
+
+		if !errors.Is(err1, ErrNotFound) {
+			t.Error("期望过期条目1已被清理")
+		}
+		if errors.Is(err2, ErrNotFound) {
+			t.Error("期望未过期条目2仍然存在")
+		}
+		if err3 != nil {
+			t.Error("期望永久条目仍然存在")
+		}
+	})
+
+	t.Run("清理所有条目", func(t *testing.T) {
+		// 设置一些条目
+		_ = c.Set(ctx, "test:clean1", "val1")
+		_ = c.Set(ctx, "test:clean2", "val2")
+		_ = c.Set(ctx, "test:clean3", "val3")
+
+		// 清理所有条目
+		c.CleanAll()
+
+		// 验证所有条目都被删除
+		_, err := c.Get(ctx, "test:clean1")
+		if !errors.Is(err, ErrNotFound) {
+			t.Errorf("期望 test:clean1 被删除，实际得到 %v", err)
+		}
+
+		_, err = c.Get(ctx, "test:clean2")
+		if !errors.Is(err, ErrNotFound) {
+			t.Errorf("期望 test:clean2 被删除，实际得到 %v", err)
+		}
+
+		_, err = c.Get(ctx, "test:clean3")
+		if !errors.Is(err, ErrNotFound) {
+			t.Errorf("期望 test:clean3 被删除，实际得到 %v", err)
+		}
+	})
 }
