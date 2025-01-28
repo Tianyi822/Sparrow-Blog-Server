@@ -296,20 +296,25 @@ func (c *Core) Get(ctx context.Context, key string) (any, error) {
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	default:
+		// 尽可能缩小加锁范围
 		c.mu.RLock()
-		defer c.mu.RUnlock()
-
 		item, exists := c.items[key]
+		c.mu.RUnlock()
+
 		if !exists {
 			return nil, ErrNotFound
 		}
 
-		if time.Now().After(item.expireAt) {
+		if item.expireAt.IsZero() {
+			return item.value, nil
+		} else if time.Now().After(item.expireAt) {
+			c.mu.Lock()
 			delete(c.items, key)
+			c.mu.Unlock()
 			return nil, ErrNotFound
+		} else {
+			return item.value, nil
 		}
-
-		return item.value, nil
 	}
 }
 
