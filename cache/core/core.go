@@ -146,8 +146,10 @@ func (c *Core) SetWithExpired(ctx context.Context, key string, value any, ttl ti
 		c.mu.Lock()
 		defer c.mu.Unlock()
 
-		// 类型安全检查：禁止存储指针类型
-		if reflect.TypeOf(value).Kind() == reflect.Ptr {
+		// 类型安全检查：禁止存储指针，数组和切片类型
+		if reflect.TypeOf(value).Kind() == reflect.Ptr ||
+			reflect.TypeOf(value).Kind() == reflect.Array ||
+			reflect.TypeOf(value).Kind() == reflect.Slice {
 			return ErrPointerNotAllowed
 		}
 
