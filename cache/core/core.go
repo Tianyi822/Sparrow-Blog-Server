@@ -57,6 +57,13 @@ const (
 	OBJ
 )
 
+const (
+	SET     = "SET"
+	DELETE  = "DELETE"
+	INCR    = "INCR"
+	CLEANUP = "CLEANUP"
+)
+
 // cacheItem 表示缓存中的单个条目
 // value    存储的实际值，支持任意类型。注意存储指针类型时需要自行管理生命周期
 // expireAt 条目过期的时间戳（UTC时间），零值表示永不过期
