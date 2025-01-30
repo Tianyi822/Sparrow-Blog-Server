@@ -16,7 +16,7 @@ type Aof struct {
 	mu   sync.RWMutex
 }
 
-func NewAof(filePath string) Aof {
+func NewAof() Aof {
 	foConfig := FoConfig{
 		NeedCompress: config.CacheConfig.Aof.Compress,
 		Path:         config.CacheConfig.Aof.Path,
@@ -50,6 +50,8 @@ func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 			return nil, err
 		}
 
+		aof.mu.Lock()
+		defer aof.mu.Unlock()
 		var commands [][]string
 		for scanner.Scan() {
 			command := strings.Split(scanner.Text(), ";;")
@@ -107,6 +109,9 @@ func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 // - INCR;;key;;uint
 // - CLEANUP
 func (aof *Aof) Store(ctx context.Context, cmd string, args ...string) error {
+	aof.mu.Lock()
+	defer aof.mu.Unlock()
+
 	select {
 	case <-ctx.Done():
 		return nil
