@@ -53,8 +53,9 @@ func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 			return nil, err
 		}
 
-		aof.mu.Lock()
-		defer aof.mu.Unlock()
+		// 使用读锁替代写锁，因为只是读取操作
+		aof.mu.RLock()
+		defer aof.mu.RUnlock()
 		var commands [][]string
 		for scanner.Scan() {
 			command := strings.Split(scanner.Text(), ";;")
@@ -112,46 +113,52 @@ func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 // - INCR;;key;;uint
 // - CLEANUP
 func (aof *Aof) Store(ctx context.Context, cmd string, args ...string) error {
-	aof.mu.Lock()
-	defer aof.mu.Unlock()
-
+	// 先检查 context
 	select {
 	case <-ctx.Done():
 		return nil
 	default:
-		switch cmd {
-		case core.SET:
-			if len(args) != 4 {
-				msg := fmt.Sprintf("SET 命令参数错误: %v", args)
-				logger.Error(msg)
-				return errors.New(msg)
-			}
-			return aof.file.Write([]byte(fmt.Sprintf("%s;;%s;;%s;;%s;;%s", cmd, args[0], args[1], args[2], args[3])))
-		case core.DELETE:
-			if len(args) != 1 {
-				msg := fmt.Sprintf("DELETE 命令参数错误: %v", args)
-				logger.Error(msg)
-				return errors.New(msg)
-			}
-			return aof.file.Write([]byte(fmt.Sprintf("%s;;%s", cmd, args[0])))
-		case core.INCR:
-			if len(args) != 2 {
-				msg := fmt.Sprintf("INCR 命令参数错误: %v", args)
-				logger.Error(msg)
-				return errors.New(msg)
-			}
-			return aof.file.Write([]byte(fmt.Sprintf("%s;;%s;;%s", cmd, args[0], args[1])))
-		case core.CLEANUP:
-			if len(args) != 0 {
-				msg := fmt.Sprintf("CLEANUP 命令参数错误: %v", args)
-				logger.Error(msg)
-				return errors.New(msg)
-			}
-			return aof.file.Write([]byte(cmd))
-		default:
-			msg := fmt.Sprintf("AOF 不支持该命令: %s", cmd)
+	}
+
+	// 参数检查和构造写入内容
+	var content []byte
+	switch cmd {
+	case core.SET:
+		if len(args) != 4 {
+			msg := fmt.Sprintf("SET 命令参数错误: %v", args)
 			logger.Error(msg)
 			return errors.New(msg)
 		}
+		content = []byte(fmt.Sprintf("%s;;%s;;%s;;%s;;%s", cmd, args[0], args[1], args[2], args[3]))
+	case core.DELETE:
+		if len(args) != 1 {
+			msg := fmt.Sprintf("DELETE 命令参数错误: %v", args)
+			logger.Error(msg)
+			return errors.New(msg)
+		}
+		content = []byte(fmt.Sprintf("%s;;%s", cmd, args[0]))
+	case core.INCR:
+		if len(args) != 2 {
+			msg := fmt.Sprintf("INCR 命令参数错误: %v", args)
+			logger.Error(msg)
+			return errors.New(msg)
+		}
+		content = []byte(fmt.Sprintf("%s;;%s;;%s", cmd, args[0], args[1]))
+	case core.CLEANUP:
+		if len(args) != 0 {
+			msg := fmt.Sprintf("CLEANUP 命令参数错误: %v", args)
+			logger.Error(msg)
+			return errors.New(msg)
+		}
+		content = []byte(cmd)
+	default:
+		msg := fmt.Sprintf("AOF 不支持该命令: %s", cmd)
+		logger.Error(msg)
+		return errors.New(msg)
 	}
+
+	// 只在实际写入时加锁
+	aof.mu.Lock()
+	defer aof.mu.Unlock()
+	return aof.file.Write(content)
 }
