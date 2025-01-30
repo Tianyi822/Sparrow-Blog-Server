@@ -539,7 +539,7 @@ func (c *Core) CleanAll() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	for key, _ := range c.items {
+	for key := range c.items {
 		delete(c.items, key) // map删除操作
 	}
 }
