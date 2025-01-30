@@ -61,13 +61,33 @@ func CreateFileOp(config FoConfig) FileOp {
 	}
 }
 
+// GetScanner 获取文件扫描器
+func (fop *FileOp) GetScanner() (*bufio.Scanner, error) {
+	fop.rwMu.RLock()
+	defer fop.rwMu.RUnlock()
+
+	// 打开一个新的文件句柄用于读取
+	file, err := os.OpenFile(fop.path, os.O_RDONLY, 0644)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// 文件不存在时返回空的scanner
+			return bufio.NewScanner(strings.NewReader("")), nil
+		}
+		return nil, fmt.Errorf("打开文件失败: %w", err)
+	}
+
+	// 创建新的scanner
+	scanner := bufio.NewScanner(file)
+
+	// 设置较大的缓冲区，以处理长行
+	const maxCapacity = 512 * 1024 // 512KB
+	buf := make([]byte, maxCapacity)
+	scanner.Buffer(buf, maxCapacity)
+
+	return scanner, nil
+}
+
 // ready 准备文件进行写入操作
-// 1. 检查文件是否已打开，未打开时根据路径是否存在决定打开或创建文件
-// 2. 初始化缓冲写入器
-// 返回错误包含：
-//   - 文件打开失败
-//   - 文件创建失败
-//   - 目录创建失败
 func (fop *FileOp) ready() (err error) {
 	if fop.file == nil {
 		if file.IsExist(fop.path) {
@@ -82,7 +102,6 @@ func (fop *FileOp) ready() (err error) {
 			}
 		}
 		fop.writer = bufio.NewWriter(fop.file)
-		fop.scanner = bufio.NewScanner(fop.file)
 	}
 	fop.isOpen = true
 	return nil
@@ -192,15 +211,4 @@ func (fop *FileOp) Write(context []byte) error {
 		return err
 	}
 	return err
-}
-
-// GetScanner 获取文件扫描器
-func (fop *FileOp) GetScanner() (*bufio.Scanner, error) {
-	if !fop.isOpen {
-		if err := fop.ready(); err != nil {
-			return nil, err
-		}
-	}
-
-	return fop.scanner, nil
 }
