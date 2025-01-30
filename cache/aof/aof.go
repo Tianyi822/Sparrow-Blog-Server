@@ -16,6 +16,7 @@ type Aof struct {
 	mu   sync.RWMutex
 }
 
+// NewAof 创建并返回一个新的 AOF 实例，使用给定的配置
 func NewAof() Aof {
 	foConfig := FoConfig{
 		NeedCompress: config.CacheConfig.Aof.Compress,
@@ -27,6 +28,8 @@ func NewAof() Aof {
 	}
 }
 
+// LoadFile 读取并解析 AOF 文件，返回命令字符串切片
+// 每个命令都被分割成多个组件（操作类型、键、值等）
 func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 	select {
 	case <-ctx.Done():
@@ -99,8 +102,8 @@ func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 	}
 }
 
-// Store 保存命令到 AOF 文件
-// 文件每行数据为: OPERATE;;KEY;;VALUE;;VALUETYPE;;EXPIRED
+// Store 将命令持久化到 AOF 文件中
+// 文件每行数据格式为: OPERATE;;KEY;;VALUE;;VALUETYPE;;EXPIRED
 // 例：
 // - SET;;key:int;;1;;int;;0
 // - SET;;key:string;;hello world;;string;;0
@@ -144,7 +147,7 @@ func (aof *Aof) Store(ctx context.Context, cmd string, args ...string) error {
 				logger.Error(msg)
 				return errors.New(msg)
 			}
-			return aof.file.Write([]byte(fmt.Sprintf("%s", args)))
+			return aof.file.Write([]byte(cmd))
 		default:
 			msg := fmt.Sprintf("AOF 不支持该命令: %s", cmd)
 			logger.Error(msg)
