@@ -31,19 +31,6 @@ func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	default:
-		foConfig := FoConfig{
-			NeedCompress: config.CacheConfig.Aof.Compress,
-			Path:         config.CacheConfig.Aof.Path,
-			MaxSize:      config.CacheConfig.Aof.MaxSize,
-		}
-
-		fileOp := CreateFileOp(foConfig)
-		if err := fileOp.ready(); err != nil {
-			msg := fmt.Sprintf("aof 文件准备失败: %s", err.Error())
-			logger.Error(msg)
-			return nil, err
-		}
-
 		// 开始扫描 AOF 文件
 		// 文件每行数据为: OPERATE;;KEY;;VALUE;;VALUETYPE;;EXPIRED
 		// 例：
@@ -57,7 +44,11 @@ func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 		// 注意:
 		// - CLEANALL 之所以没有是因为这个操作会清空所有缓存，直接清空所有 AOF 文件，不需要进行保存
 		// - CLEANUP 是清理过期数据，这个操作需要保存，因为可能存在过期数据没有及时清理的情况
-		scanner := fileOp.GetScanner()
+		scanner, err := aof.file.GetScanner()
+		if err != nil {
+			return nil, err
+		}
+
 		var commands [][]string
 		for scanner.Scan() {
 			command := strings.Split(scanner.Text(), ";;")
