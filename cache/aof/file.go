@@ -195,6 +195,12 @@ func (fop *FileOp) Write(context []byte) error {
 }
 
 // GetScanner 获取文件扫描器
-func (fop *FileOp) GetScanner() *bufio.Scanner {
-	return fop.scanner
+func (fop *FileOp) GetScanner() (*bufio.Scanner, error) {
+	if !fop.isOpen {
+		if err := fop.ready(); err != nil {
+			return nil, err
+		}
+	}
+
+	return fop.scanner, nil
 }
