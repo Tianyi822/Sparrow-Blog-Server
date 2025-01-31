@@ -209,11 +209,6 @@ func (fop *FileOp) Write(context []byte) error {
 }
 
 // checkAndRotate handles the file rotation logic when size limit is reached.
-// It will:
-// 1. Close the current file
-// 2. Rename it with a timestamp and aof sign
-// 3. Optionally compress the rotated file
-// 4. Create a new file for subsequent writes
 func (fop *FileOp) checkAndRotate() error {
 	if !fop.needSplit() {
 		return nil
@@ -224,10 +219,9 @@ func (fop *FileOp) checkAndRotate() error {
 		return err
 	}
 
-	// Generate new filename with timestamp and aof sign
-	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-	newFileName := fmt.Sprintf("%v_%v.aof.%v", fop.filePrefixName, timestamp, fop.fileSuffixName)
-	destPath := filepath.Join(filepath.Dir(fop.path), newFileName)
+	// Generate rotated filename
+	rotatedName := fmt.Sprintf("%v.aof", fop.filePrefixName)
+	destPath := filepath.Join(filepath.Dir(fop.path), rotatedName)
 
 	// Rename current file
 	if err := os.Rename(fop.path, destPath); err != nil {
@@ -236,6 +230,7 @@ func (fop *FileOp) checkAndRotate() error {
 
 	// Handle compression if enabled
 	if fop.needCompress {
+		timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 		compressedPath := fmt.Sprintf("%v_%v.aof.tar.gz", fop.filePrefixName, timestamp)
 		compressedPath = filepath.Join(filepath.Dir(fop.path), compressedPath)
 
@@ -243,7 +238,7 @@ func (fop *FileOp) checkAndRotate() error {
 			return fmt.Errorf("compression failed: %w", err)
 		}
 		if err := os.RemoveAll(destPath); err != nil {
-			return fmt.Errorf("failed to remove original file: %w", err)
+			return fmt.Errorf("failed to remove rotated file: %w", err)
 		}
 	}
 
