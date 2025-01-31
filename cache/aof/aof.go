@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"h2blog/cache/core"
-	"h2blog/pkg/config"
 	"h2blog/pkg/fileTool"
 	"h2blog/pkg/logger"
 	"os"
@@ -44,13 +43,7 @@ type Aof struct {
 // This is a startup-critical operation - if it fails, the application cannot
 // guarantee data persistence and should not continue.
 func NewAof() *Aof {
-	foConfig := FoConfig{
-		NeedCompress: config.CacheConfig.Aof.Compress,
-		Path:         config.CacheConfig.Aof.Path,
-		MaxSize:      config.CacheConfig.Aof.MaxSize,
-	}
-
-	fileOp, err := CreateFileOp(foConfig)
+	fileOp, err := CreateFileOp()
 	if err != nil {
 		panic(fmt.Sprintf("failed to create AOF file: %v", err))
 	}

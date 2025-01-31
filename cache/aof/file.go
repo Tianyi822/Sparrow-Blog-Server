@@ -3,6 +3,7 @@ package aof
 import (
 	"bufio"
 	"fmt"
+	"h2blog/pkg/config"
 	"h2blog/pkg/fileTool"
 	"os"
 	"path/filepath"
@@ -31,37 +32,29 @@ type FileOp struct {
 	fileSuffixName string        // File extension without dot
 }
 
-// FoConfig defines configuration parameters for file rotation and compression.
-// This struct is used when creating a new FileOp instance.
-type FoConfig struct {
-	NeedCompress bool   // Enable compression after splitting
-	MaxSize      int    // Maximum size for single file (in MB)
-	Path         string // Complete file path including filename
-}
-
 // CreateFileOp initializes a new FileOp instance with the given configuration.
 // It validates the configuration and sets up the file operation structure.
 // The actual file is not opened until the first write operation.
-func CreateFileOp(config FoConfig) (*FileOp, error) {
+func CreateFileOp() (*FileOp, error) {
 	// Validate required configuration
-	if config.Path == "" {
+	if config.CacheConfig.Aof.Path == "" {
 		return nil, fmt.Errorf("file path cannot be empty")
 	}
-	if config.MaxSize < 0 {
+	if config.CacheConfig.Aof.MaxSize < 0 {
 		return nil, fmt.Errorf("max size cannot be negative")
 	}
 
 	// Split the file path into components
-	baseName := filepath.Base(config.Path)
+	baseName := filepath.Base(config.CacheConfig.Aof.Path)
 	ext := filepath.Ext(baseName)
 	prefix := strings.TrimSuffix(baseName, ext)
 
 	return &FileOp{
 		filePrefixName: prefix,
 		fileSuffixName: strings.TrimPrefix(ext, "."),
-		path:           config.Path,
-		needCompress:   config.NeedCompress,
-		maxSize:        config.MaxSize,
+		path:           config.CacheConfig.Aof.Path,
+		needCompress:   config.CacheConfig.Aof.Compress,
+		maxSize:        config.CacheConfig.Aof.MaxSize,
 	}, nil
 }
 

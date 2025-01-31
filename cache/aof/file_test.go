@@ -2,20 +2,19 @@ package aof
 
 import (
 	"bytes"
-	"path/filepath"
+	"h2blog/pkg/config"
+	"h2blog/pkg/logger"
 	"testing"
 )
 
-func TestFileOp_Write(t *testing.T) {
-	// 创建临时目录
-	testFile := filepath.Join("../../temp", "test.log")
+func init() {
+	config.LoadConfig("../../resources/config/test/cache-config.yaml")
+	_ = logger.InitLogger()
+}
 
+func TestFileOp_Write(t *testing.T) {
 	// 初始化FileOp配置（1MB分割）
-	fo, _ := CreateFileOp(FoConfig{
-		NeedCompress: true,
-		MaxSize:      3, // 1MB
-		Path:         testFile,
-	})
+	fo, _ := CreateFileOp()
 
 	// 写法 1
 	for i := 0; i < 10; i++ {
