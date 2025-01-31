@@ -85,25 +85,41 @@ func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 
 		dir := filepath.Dir(aof.file.path)
 		prefix := aof.file.filePrefixName
+		var files []string
+		var err error
 
-		// Find all AOF files
-		files, err := filepath.Glob(filepath.Join(dir, prefix+"_*.aof.*"))
-		if err != nil {
-			return nil, fmt.Errorf("failed to list AOF files: %w", err)
+		if aof.file.needCompress {
+			// Handle compressed files
+			files, err = filepath.Glob(filepath.Join(dir, prefix+"_*.aof.tar.gz"))
+			if err != nil {
+				return nil, fmt.Errorf("failed to list compressed AOF files: %w", err)
+			}
+		} else {
+			// Handle uncompressed AOF files
+			files, err = filepath.Glob(filepath.Join(dir, prefix+"_*.aof"))
+			if err != nil {
+				return nil, fmt.Errorf("failed to list AOF files: %w", err)
+			}
 		}
 
-		// Sort files by timestamp for ordered processing
+		// Sort files by timestamp
 		sort.Slice(files, func(i, j int) bool {
 			tsI := extractTimestamp(files[i])
 			tsJ := extractTimestamp(files[j])
 			return tsI < tsJ
 		})
 
+		// Check for rotated file last
+		rotatedFile := filepath.Join(dir, prefix+".aof")
+		if fileTool.IsExist(rotatedFile) {
+			files = append(files, rotatedFile)
+		}
+
 		var allCommands [][]string
 		tempDir := filepath.Join(dir, "temp_aof")
 		defer os.RemoveAll(tempDir) // Ensure temp directory cleanup
 
-		// Process each file in order
+		// Process each file
 		for _, f := range files {
 			commands, err := processFile(f, tempDir)
 			if err != nil {
@@ -112,11 +128,16 @@ func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 			allCommands = append(allCommands, commands...)
 		}
 
-		// Clean up processed files
+		// Clean up all processed files
 		for _, f := range files {
 			if err := os.Remove(f); err != nil {
 				logger.Warn("failed to remove processed AOF file %s: %v", f, err)
 			}
+		}
+
+		// Create new AOF file
+		if err := aof.file.ready(); err != nil {
+			return nil, fmt.Errorf("failed to create new AOF file: %w", err)
 		}
 
 		logger.Info("AOF files loading completed: processed %d files, %d commands",
@@ -212,45 +233,26 @@ func (aof *Aof) storeCommand(cmd string, args ...string) error {
 	}
 }
 
-// processFile handles AOF files, supporting both regular and compressed formats.
-// For compressed files (.tar.gz):
-// 1. Creates temporary directory if needed
-// 2. Decompresses file to temporary directory
-// 3. Opens decompressed file for processing
-//
-// For regular files:
-// 1. Opens file directly for processing
-//
-// Parameters:
-// - path: Path to the AOF file
-// - tempDir: Directory for temporary decompressed files
-//
-// Returns:
-// - [][]string: Parsed commands from the file
-// - error: Any error encountered during processing
+// processFile handles AOF files based on compression setting
 func processFile(path string, tempDir string) ([][]string, error) {
 	var file *os.File
 	var err error
 
-	// Check if file is compressed (.tar.gz)
 	if strings.HasSuffix(path, ".tar.gz") {
-		// Create temporary directory for decompressed files
+		// Handle compressed file
 		if err := os.MkdirAll(tempDir, 0755); err != nil {
 			return nil, fmt.Errorf("failed to create temp directory: %w", err)
 		}
 
-		// Get decompressed filename (remove .tar.gz suffix)
 		decompressedName := strings.TrimSuffix(filepath.Base(path), ".tar.gz")
-		// Decompress file to temporary directory
 		if err := fileTool.DecompressTarGz(path, decompressedName); err != nil {
 			return nil, fmt.Errorf("failed to decompress %s: %w", path, err)
 		}
 
-		// Open the decompressed file
 		decompressedPath := filepath.Join(tempDir, decompressedName)
 		file, err = os.Open(decompressedPath)
 	} else {
-		// Open regular file directly
+		// Handle regular file
 		file, err = os.Open(path)
 	}
 
@@ -259,7 +261,6 @@ func processFile(path string, tempDir string) ([][]string, error) {
 	}
 	defer file.Close()
 
-	// Create scanner to read and parse file contents
 	scanner := bufio.NewScanner(file)
 	return processAOFFile(scanner)
 }
