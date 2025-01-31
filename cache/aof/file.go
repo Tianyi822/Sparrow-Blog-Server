@@ -3,7 +3,7 @@ package aof
 import (
 	"bufio"
 	"fmt"
-	"h2blog/pkg/file"
+	"h2blog/pkg/fileTool"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -111,10 +111,10 @@ func (fop *FileOp) ready() error {
 
 	// Open existing file or create new one
 	var err error
-	if file.IsExist(fop.path) {
-		fop.file, err = file.MustOpenFile(fop.path)
+	if fileTool.IsExist(fop.path) {
+		fop.file, err = fileTool.MustOpenFile(fop.path)
 	} else {
-		fop.file, err = file.CreateFile(fop.path)
+		fop.file, err = fileTool.CreateFile(fop.path)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to open/create file: %w", err)
@@ -246,7 +246,7 @@ func (fop *FileOp) checkAndRotate() error {
 		compressedPath := fmt.Sprintf("%v_%v.aof.tar.gz", fop.filePrefixName, timestamp)
 		compressedPath = filepath.Join(filepath.Dir(fop.path), compressedPath)
 
-		if err := file.CompressFileToTarGz(destPath, compressedPath); err != nil {
+		if err := fileTool.CompressFileToTarGz(destPath, compressedPath); err != nil {
 			return fmt.Errorf("compression failed: %w", err)
 		}
 		if err := os.RemoveAll(destPath); err != nil {
