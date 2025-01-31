@@ -16,16 +16,33 @@ import (
 	"sync"
 )
 
-// Aof represents an Append-Only File implementation for data persistence
-// It provides thread-safe operations for storing and loading cache commands
+// Package aof implements an Append-Only File (AOF) persistence mechanism for caching systems.
+// It provides thread-safe operations for storing and loading cache commands, with support
+// for file rotation, compression, and automatic cleanup.
+
+// Aof represents an Append-Only File implementation for data persistence.
+// It provides thread-safe operations for storing and loading cache commands.
+// Features:
+// - Thread-safe operations using mutex
+// - Automatic file rotation based on size
+// - Support for compressed file storage
+// - Chronological command processing
+// - Automatic cleanup of processed files
 type Aof struct {
-	file *FileOp      // File operations handler
-	mu   sync.RWMutex // Mutex for thread-safe operations
+	file *FileOp      // Handles low-level file operations including rotation and compression
+	mu   sync.RWMutex // Ensures thread-safe access to file operations
 }
 
 // NewAof creates and returns a new AOF instance.
 // It initializes the AOF file with configuration from cache-config.yaml.
+// Configuration includes:
+// - File path for AOF storage
+// - Maximum file size before rotation
+// - Compression settings for rotated files
+//
 // Panics if file creation fails as this is critical for data persistence.
+// This is a startup-critical operation - if it fails, the application cannot
+// guarantee data persistence and should not continue.
 func NewAof() *Aof {
 	foConfig := FoConfig{
 		NeedCompress: config.CacheConfig.Aof.Compress,
@@ -44,9 +61,26 @@ func NewAof() *Aof {
 }
 
 // LoadFile reads and processes all AOF files (including compressed ones).
-// It handles both regular .aof files and compressed .aof.tar.gz files.
-// Files are processed in chronological order based on their timestamps.
-// After successful loading, all processed files are cleaned up.
+// Process:
+// 1. Lists all AOF files in the directory (both .aof and .aof.tar.gz)
+// 2. Sorts files by timestamp to maintain operation order
+// 3. Creates temporary directory for decompression if needed
+// 4. Processes each file in chronological order
+// 5. Cleans up processed files after successful loading
+// 6. Removes temporary directory
+//
+// Thread-safety:
+// - Uses mutex to prevent concurrent access during loading
+// - Supports context cancellation for graceful shutdown
+//
+// Error handling:
+// - Returns error if file listing fails
+// - Returns error if any file processing fails
+// - Logs warnings for non-critical failures (e.g., file cleanup)
+//
+// Returns:
+// - [][]string: Slice of command arguments, each inner slice represents one command
+// - error: Any error encountered during the process
 func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 	select {
 	case <-ctx.Done():
@@ -99,8 +133,28 @@ func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 }
 
 // Store writes a command to the AOF file.
-// Commands are written in a specific format: OPERATE;;KEY;;VALUE;;VALUETYPE;;EXPIRED
-// The operation is thread-safe and handles file rotation automatically.
+// Format: OPERATE;;KEY;;VALUE;;VALUETYPE;;EXPIRED
+//
+// Supported commands:
+// - SET: requires 4 args (key, value, type, expiry)
+// - DELETE: requires 1 arg (key)
+// - INCR: requires 2 args (key, type)
+// - CLEANUP: requires no args
+//
+// Thread-safety:
+// - Uses mutex to prevent concurrent writes
+// - Supports context cancellation
+//
+// Parameters:
+// - ctx: Context for cancellation
+// - cmd: Command type (SET, DELETE, INCR, CLEANUP)
+// - args: Command arguments (varies by command type)
+//
+// Returns error if:
+// - Context is cancelled
+// - Invalid number of arguments
+// - Unsupported command type
+// - Write operation fails
 func (aof *Aof) Store(ctx context.Context, cmd string, args ...string) error {
 	aof.mu.Lock()
 	defer aof.mu.Unlock()
@@ -115,7 +169,22 @@ func (aof *Aof) Store(ctx context.Context, cmd string, args ...string) error {
 
 // Internal helper functions
 
-// storeCommand handles the actual command storage logic
+// storeCommand handles the actual command storage logic.
+// It validates command arguments and formats the command string.
+//
+// Command formats:
+// - SET: SET;;key;;value;;type;;expiry
+// - DELETE: DELETE;;key
+// - INCR: INCR;;key;;type
+// - CLEANUP: CLEANUP
+//
+// Validation:
+// - Checks argument count for each command type
+// - Ensures all required arguments are present
+//
+// Returns error if:
+// - Invalid number of arguments
+// - Write operation fails
 func (aof *Aof) storeCommand(cmd string, args ...string) error {
 	switch cmd {
 	case core.SET:
@@ -150,24 +219,45 @@ func (aof *Aof) storeCommand(cmd string, args ...string) error {
 	}
 }
 
-// processFile handles a single AOF file, supporting both regular and compressed files
+// processFile handles AOF files, supporting both regular and compressed formats.
+// For compressed files (.tar.gz):
+// 1. Creates temporary directory if needed
+// 2. Decompresses file to temporary directory
+// 3. Opens decompressed file for processing
+//
+// For regular files:
+// 1. Opens file directly for processing
+//
+// Parameters:
+// - path: Path to the AOF file
+// - tempDir: Directory for temporary decompressed files
+//
+// Returns:
+// - [][]string: Parsed commands from the file
+// - error: Any error encountered during processing
 func processFile(path string, tempDir string) ([][]string, error) {
 	var file *os.File
 	var err error
 
+	// Check if file is compressed (.tar.gz)
 	if strings.HasSuffix(path, ".tar.gz") {
+		// Create temporary directory for decompressed files
 		if err := os.MkdirAll(tempDir, 0755); err != nil {
 			return nil, fmt.Errorf("failed to create temp directory: %w", err)
 		}
 
+		// Get decompressed filename (remove .tar.gz suffix)
 		decompressedName := strings.TrimSuffix(filepath.Base(path), ".tar.gz")
+		// Decompress file to temporary directory
 		if err := fileTool.DecompressTarGz(path, decompressedName); err != nil {
 			return nil, fmt.Errorf("failed to decompress %s: %w", path, err)
 		}
 
+		// Open the decompressed file
 		decompressedPath := filepath.Join(tempDir, decompressedName)
 		file, err = os.Open(decompressedPath)
 	} else {
+		// Open regular file directly
 		file, err = os.Open(path)
 	}
 
@@ -176,11 +266,20 @@ func processFile(path string, tempDir string) ([][]string, error) {
 	}
 	defer file.Close()
 
+	// Create scanner to read and parse file contents
 	scanner := bufio.NewScanner(file)
 	return processAOFFile(scanner)
 }
 
-// extractTimestamp extracts the timestamp from an AOF filename
+// extractTimestamp extracts the timestamp from an AOF filename.
+// Expected filename format: prefix_timestamp.aof.* or prefix_timestamp.aof.tar.gz
+//
+// Parameters:
+// - filename: The AOF filename to parse
+//
+// Returns:
+// - int64: Unix timestamp extracted from filename
+// - Returns 0 if filename format is invalid
 func extractTimestamp(filename string) int64 {
 	parts := strings.Split(filepath.Base(filename), "_")
 	if len(parts) < 2 {
@@ -191,7 +290,21 @@ func extractTimestamp(filename string) int64 {
 	return timestamp
 }
 
-// processAOFFile processes the contents of an AOF file and returns the commands
+// processAOFFile processes the contents of an AOF file and returns the commands.
+// It reads the file line by line and parses each command according to its format.
+//
+// Command validation:
+// - Checks command format and argument count
+// - Trims whitespace from all fields
+// - Logs warnings for invalid commands but continues processing
+//
+// Error handling:
+// - Skips invalid commands with warning
+// - Returns error if scanner encounters read error
+//
+// Returns:
+// - [][]string: Slice of valid commands
+// - error: Any error encountered during processing
 func processAOFFile(scanner *bufio.Scanner) ([][]string, error) {
 	var commands [][]string
 	lineNum := 0
@@ -248,7 +361,16 @@ func processAOFFile(scanner *bufio.Scanner) ([][]string, error) {
 	return commands, nil
 }
 
-// safeGet safely retrieves an element from a slice
+// safeGet safely retrieves an element from a slice.
+// Prevents panic from index out of bounds by returning "<nil>"
+// for invalid indices.
+//
+// Parameters:
+// - slice: The string slice to access
+// - index: The index to retrieve
+//
+// Returns:
+// - string: The element at the index or "<nil>" if index is invalid
 func safeGet(slice []string, index int) string {
 	if index < 0 || index >= len(slice) {
 		return "<nil>"
