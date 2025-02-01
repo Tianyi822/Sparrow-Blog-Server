@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	config.LoadConfig("../../resources/config/test/cache-config.yaml")
+	config.LoadConfig("../../resources/config/test/aof-config.yaml")
 	_ = logger.InitLogger()
 }
 
