@@ -147,12 +147,9 @@ func CompressFileToTarGz(src, dst string) error {
 //
 // Returns error if decompression fails
 func DecompressTarGz(src, dst string) error {
-	dir := filepath.Dir(src)
-	targetPath := filepath.Join(dir, dst)
-
 	// Remove existing target file
-	if IsExist(targetPath) {
-		if err := os.RemoveAll(targetPath); err != nil {
+	if IsExist(dst) {
+		if err := os.RemoveAll(dst); err != nil {
 			return fmt.Errorf("failed to remove existing target file: %w", err)
 		}
 	}
@@ -183,15 +180,15 @@ func DecompressTarGz(src, dst string) error {
 	}
 
 	// Create target file
-	file, err := os.OpenFile(targetPath, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+	file, err := os.OpenFile(dst, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
 	if err != nil {
-		return fmt.Errorf("failed to create file %s: %w", targetPath, err)
+		return fmt.Errorf("failed to create file %s: %w", dst, err)
 	}
 	defer closeFile(file, &err)
 
 	// Copy content
 	if _, err := io.Copy(file, tr); err != nil {
-		return fmt.Errorf("failed to write file %s: %w", targetPath, err)
+		return fmt.Errorf("failed to write file %s: %w", dst, err)
 	}
 
 	return nil
