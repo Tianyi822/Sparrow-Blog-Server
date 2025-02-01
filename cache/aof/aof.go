@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"h2blog/cache/core"
+	"h2blog/cache"
 	"h2blog/pkg/fileTool"
 	"h2blog/pkg/logger"
 	"os"
@@ -203,28 +203,28 @@ func (aof *Aof) Store(ctx context.Context, cmd string, args ...string) error {
 // - Write operation fails
 func (aof *Aof) storeCommand(cmd string, args ...string) error {
 	switch cmd {
-	case core.SET:
+	case cache.SET:
 		if len(args) != 4 {
 			return fmt.Errorf("SET command requires 4 args (key=%s, value=%s, type=%s, expired=%s), got %d",
 				safeGet(args, 0), safeGet(args, 1), safeGet(args, 2), safeGet(args, 3), len(args))
 		}
 		return aof.file.Write([]byte(fmt.Sprintf("%s;;%s;;%s;;%s;;%s", cmd, args[0], args[1], args[2], args[3])))
 
-	case core.DELETE:
+	case cache.DELETE:
 		if len(args) != 1 {
 			return fmt.Errorf("DELETE command requires 1 arg (key=%s), got %d",
 				safeGet(args, 0), len(args))
 		}
 		return aof.file.Write([]byte(fmt.Sprintf("%s;;%s", cmd, args[0])))
 
-	case core.INCR:
+	case cache.INCR:
 		if len(args) != 2 {
 			return fmt.Errorf("INCR command requires 2 args (key=%s, type=%s), got %d",
 				safeGet(args, 0), safeGet(args, 1), len(args))
 		}
 		return aof.file.Write([]byte(fmt.Sprintf("%s;;%s;;%s", cmd, args[0], args[1])))
 
-	case core.CLEANUP:
+	case cache.CLEANUP:
 		if len(args) != 0 {
 			return fmt.Errorf("CLEANUP command requires no args, got %d", len(args))
 		}
@@ -309,7 +309,7 @@ func processAOFFile(scanner *bufio.Scanner) ([][]string, error) {
 		command := strings.Split(scanner.Text(), ";;")
 
 		switch strings.TrimSpace(command[0]) {
-		case core.SET:
+		case cache.SET:
 			if len(command) != 5 {
 				logger.Warn("line %d: invalid SET command format, skipping: %v", lineNum, command)
 				continue
@@ -321,7 +321,7 @@ func processAOFFile(scanner *bufio.Scanner) ([][]string, error) {
 				strings.TrimSpace(command[3]), // type
 				strings.TrimSpace(command[4]), // expiry
 			})
-		case core.DELETE:
+		case cache.DELETE:
 			if len(command) != 2 {
 				logger.Warn("line %d: invalid DELETE command format, skipping: %v", lineNum, command)
 				continue
@@ -330,7 +330,7 @@ func processAOFFile(scanner *bufio.Scanner) ([][]string, error) {
 				strings.TrimSpace(command[0]),
 				strings.TrimSpace(command[1]), // key
 			})
-		case core.INCR:
+		case cache.INCR:
 			if len(command) != 3 {
 				logger.Warn("line %d: invalid INCR command format, skipping: %v", lineNum, command)
 				continue
@@ -340,7 +340,7 @@ func processAOFFile(scanner *bufio.Scanner) ([][]string, error) {
 				strings.TrimSpace(command[1]), // key
 				strings.TrimSpace(command[2]), // type
 			})
-		case core.CLEANUP:
+		case cache.CLEANUP:
 			commands = append(commands, []string{
 				strings.TrimSpace(command[0]),
 			})

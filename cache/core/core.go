@@ -1,27 +1,10 @@
-// Package core 提供线程安全的内存缓存核心实现
-//
-// 特性：
-// - 支持TTL自动过期
-// - 类型安全的取值方法
-// - 分片锁提升并发性能
-// - 内存使用监控
-//
-// 使用示例：
-//
-//	c := NewCore()
-//	ctx := context.Background()
-//	err := c.SetWithExpired(ctx, "user:1001", userData, 10*time.Minute)
-//	val, ok, err := c.GetInt(ctx, "counter")
-//
-// 注意事项：
-// - 存储指针类型时需要自行管理生命周期
-// - 建议通过WithMaxEntries设置条目限制
 package core
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
+	"h2blog/cache"
 	"math"
 	"reflect"
 	"strings"
@@ -47,29 +30,12 @@ var (
 	ErrEmptyKey = errors.New("key is empty")
 )
 
-type ValueType uint8
-
-const (
-	INT ValueType = iota
-	UINT
-	FLOAT
-	STRING
-	OBJ
-)
-
-const (
-	SET     = "SET"
-	DELETE  = "DELETE"
-	INCR    = "INCR"
-	CLEANUP = "CLEANUP"
-)
-
 // cacheItem 表示缓存中的单个条目
 // value    存储的实际值，支持任意类型。注意存储指针类型时需要自行管理生命周期
 // expireAt 条目过期的时间戳（UTC时间），零值表示永不过期
 type cacheItem struct {
 	value    any
-	vt       ValueType
+	vt       cache.ValueType
 	expireAt time.Time
 }
 
@@ -172,20 +138,20 @@ func (c *Core) SetWithExpired(ctx context.Context, key string, value any, ttl ti
 		// 设置值类型
 		switch value.(type) {
 		case int, int8, int16, int32, int64:
-			item.vt = INT
+			item.vt = cache.INT
 		case uint, uint8, uint16, uint32, uint64:
-			item.vt = UINT
+			item.vt = cache.UINT
 		case float32, float64:
-			item.vt = FLOAT
+			item.vt = cache.FLOAT
 		case string:
-			item.vt = STRING
+			item.vt = cache.STRING
 		default:
 			// 对于其他类型，序列化为JSON字符串存储
 			jsonStr, err := json.Marshal(item.value)
 			if err != nil {
 				return err
 			}
-			item.vt = OBJ
+			item.vt = cache.OBJ
 			item.value = jsonStr
 		}
 
@@ -234,7 +200,7 @@ func (c *Core) Incr(ctx context.Context, key string) (int, error) {
 		c.mu.Lock()
 		c.items[key] = cacheItem{
 			value:    val + 1,
-			vt:       INT,
+			vt:       cache.INT,
 			expireAt: c.items[key].expireAt, // 若key存在则保持原有过期时间,否则为0(永不过期)
 		}
 		c.mu.Unlock()
@@ -285,7 +251,7 @@ func (c *Core) IncrUint(ctx context.Context, key string) (uint, error) {
 		newVal := val + 1
 		c.items[key] = cacheItem{
 			value:    newVal,
-			vt:       UINT,
+			vt:       cache.UINT,
 			expireAt: item.expireAt, // 若key存在则保持原有过期时间,否则为0(永不过期)
 		}
 

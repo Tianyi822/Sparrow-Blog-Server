@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"h2blog/cache/core"
+	"h2blog/cache"
 	"h2blog/pkg/config"
 	"h2blog/pkg/logger"
 	"math/big"
@@ -31,43 +31,43 @@ func TestAof_Store(t *testing.T) {
 	}{
 		{
 			name:    "store SET command",
-			cmd:     core.SET,
+			cmd:     cache.SET,
 			args:    []string{"test-key", "test-value", "string", "0"},
 			wantErr: false,
 		},
 		{
 			name:    "store DELETE command",
-			cmd:     core.DELETE,
+			cmd:     cache.DELETE,
 			args:    []string{"test-key"},
 			wantErr: false,
 		},
 		{
 			name:    "store INCR command",
-			cmd:     core.INCR,
+			cmd:     cache.INCR,
 			args:    []string{"test-key", "int"},
 			wantErr: false,
 		},
 		{
 			name:    "store CLEANUP command",
-			cmd:     core.CLEANUP,
+			cmd:     cache.CLEANUP,
 			args:    []string{},
 			wantErr: false,
 		},
 		{
 			name:    "invalid SET command args",
-			cmd:     core.SET,
+			cmd:     cache.SET,
 			args:    []string{"test-key"},
 			wantErr: true,
 		},
 		{
 			name:    "invalid DELETE command args",
-			cmd:     core.DELETE,
+			cmd:     cache.DELETE,
 			args:    []string{},
 			wantErr: true,
 		},
 		{
 			name:    "invalid INCR command args",
-			cmd:     core.INCR,
+			cmd:     cache.INCR,
 			args:    []string{"test-key"},
 			wantErr: true,
 		},
@@ -98,11 +98,11 @@ func TestAof_LoadFile(t *testing.T) {
 		cmd  string
 		args []string
 	}{
-		{core.SET, []string{"key1", "value1", "string", "0"}},
-		{core.SET, []string{"key2", "123", "int", "0"}},
-		{core.DELETE, []string{"key3"}},
-		{core.INCR, []string{"key4", "int"}},
-		{core.CLEANUP, []string{}},
+		{cache.SET, []string{"key1", "value1", "string", "0"}},
+		{cache.SET, []string{"key2", "123", "int", "0"}},
+		{cache.DELETE, []string{"key3"}},
+		{cache.INCR, []string{"key4", "int"}},
+		{cache.CLEANUP, []string{}},
 	}
 
 	for _, cmd := range testCommands {
@@ -127,7 +127,7 @@ func TestAof_LoadFile(t *testing.T) {
 	// 验证第一个 SET 命令的内容
 	if len(commands) > 0 {
 		firstCmd := commands[0]
-		if firstCmd[0] != core.SET || firstCmd[1] != "key1" || firstCmd[2] != "value1" ||
+		if firstCmd[0] != cache.SET || firstCmd[1] != "key1" || firstCmd[2] != "value1" ||
 			firstCmd[3] != "string" || firstCmd[4] != "0" {
 			t.Errorf("First command incorrect: got %v", firstCmd)
 		}
@@ -159,7 +159,7 @@ func TestAOFWriteAndLoad(t *testing.T) {
 		if i > 0 && i%5000 == 0 {
 			t.Logf("Written %d entries...", i)
 		}
-		err := aof.Store(ctx, core.SET, key, testData[key], "string", "0")
+		err := aof.Store(ctx, cache.SET, key, testData[key], "string", "0")
 		if err != nil {
 			t.Fatalf("Failed to store data at index %d: %v", i, err)
 		}
@@ -185,7 +185,7 @@ func TestAOFWriteAndLoad(t *testing.T) {
 	t.Log("Verifying loaded data...")
 	loadedData := make(map[string]string)
 	for _, cmd := range commands {
-		if cmd[0] == core.SET {
+		if cmd[0] == cache.SET {
 			loadedData[cmd[1]] = cmd[2]
 		}
 	}
