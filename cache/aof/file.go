@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"h2blog/pkg/config"
 	"h2blog/pkg/fileTool"
+	"h2blog/pkg/logger"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -177,7 +178,7 @@ func (fop *FileOp) Write(context []byte) error {
 		return fmt.Errorf("FileOp is nil")
 	}
 	if len(context) == 0 {
-		return nil // Skip empty writes
+		return nil
 	}
 
 	fop.rwMu.Lock()
@@ -190,9 +191,11 @@ func (fop *FileOp) Write(context []byte) error {
 		}
 	}
 
-	// Check and handle file rotation if needed
-	if err := fop.checkAndRotate(); err != nil {
-		return fmt.Errorf("file rotation failed: %w", err)
+	// Check if rotation is needed before writing
+	if fop.needSplit() {
+		if err := fop.checkAndRotate(); err != nil {
+			return fmt.Errorf("rotation failed: %w", err)
+		}
 	}
 
 	// Prepare data with newline
@@ -200,18 +203,33 @@ func (fop *FileOp) Write(context []byte) error {
 	copy(buf, context)
 	buf[len(context)] = '\n'
 
-	// Write and flush data
+	// Write data
 	if _, err := fop.writer.Write(buf); err != nil {
 		return fmt.Errorf("write failed: %w", err)
 	}
 
-	return fop.writer.Flush()
+	// Always flush after write to ensure data is written
+	if err := fop.writer.Flush(); err != nil {
+		return fmt.Errorf("flush failed: %w", err)
+	}
+
+	return nil
 }
 
 // checkAndRotate handles the file rotation logic when size limit is reached.
 func (fop *FileOp) checkAndRotate() error {
 	if !fop.needSplit() {
 		return nil
+	}
+
+	// Flush buffered data before closing
+	if err := fop.writer.Flush(); err != nil {
+		return fmt.Errorf("failed to flush buffer before rotation: %w", err)
+	}
+
+	// Sync to disk
+	if err := fop.file.Sync(); err != nil {
+		return fmt.Errorf("failed to sync file before rotation: %w", err)
 	}
 
 	// Close current file
@@ -234,11 +252,22 @@ func (fop *FileOp) checkAndRotate() error {
 		compressedPath := fmt.Sprintf("%v_%v.aof.tar.gz", fop.filePrefixName, timestamp)
 		compressedPath = filepath.Join(filepath.Dir(fop.path), compressedPath)
 
+		// Compress file
 		if err := fileTool.CompressFileToTarGz(destPath, compressedPath); err != nil {
+			// If compression fails, try to restore the original file
+			_ = os.Rename(destPath, fop.path)
 			return fmt.Errorf("compression failed: %w", err)
 		}
+
+		// Verify compressed file exists before removing original
+		if !fileTool.IsExist(compressedPath) {
+			_ = os.Rename(destPath, fop.path)
+			return fmt.Errorf("compressed file not found after compression")
+		}
+
+		// Remove original file only after successful compression
 		if err := os.RemoveAll(destPath); err != nil {
-			return fmt.Errorf("failed to remove rotated file: %w", err)
+			logger.Warn("failed to remove rotated file after compression: %v", err)
 		}
 	}
 
