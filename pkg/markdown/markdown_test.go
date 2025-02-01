@@ -18,7 +18,7 @@ func init() {
 		return
 	}
 	// 初始化数据库组件
-	storage.InitStorage()
+	storage.InitStorage(context.Background())
 	// 初始化 Markdown 渲染器
 	InitRenderer()
 }

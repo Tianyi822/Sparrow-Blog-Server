@@ -17,7 +17,7 @@ func init() {
 		return
 	}
 	// 初始化数据库组件
-	InitStorage()
+	InitStorage(context.Background())
 }
 
 func TestStorage_GetContentFromOss(t *testing.T) {

@@ -22,7 +22,7 @@ func init() {
 		return
 	}
 	// 初始化数据库组件
-	storage.InitStorage()
+	storage.InitStorage(context.Background())
 	// 初始化转换器
 	webp.InitConverter()
 }

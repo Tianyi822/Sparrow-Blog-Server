@@ -19,7 +19,7 @@ func init() {
 		return
 	}
 	// 初始化数据库组件
-	storage.InitStorage()
+	storage.InitStorage(context.Background())
 }
 
 func TestCreateBlogInfo(t *testing.T) {

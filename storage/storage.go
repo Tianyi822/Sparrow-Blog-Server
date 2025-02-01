@@ -25,7 +25,7 @@ type storage struct {
 }
 
 // InitStorage 初始化 storage 组件
-func InitStorage() {
+func InitStorage(ctx context.Context) {
 	storageOnce.Do(func() {
 		Storage = &storage{}
 		// TODO: 可以不止配置 MySql 一种数据库，现在先写死，后面根据数据库配置进行选择
