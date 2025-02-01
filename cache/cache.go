@@ -57,7 +57,13 @@ type Cache struct {
 
 // NewCache creates and initializes a new Cache instance with the given context
 // It enables AOF persistence if configured in Cache-config.yaml
-func NewCache(ctx context.Context) *Cache {
+func NewCache(ctx context.Context) (*Cache, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	c := &Cache{
 		items: make(map[string]cacheItem),
 	}
@@ -72,7 +78,7 @@ func NewCache(ctx context.Context) *Cache {
 		}
 	}
 
-	return c
+	return c, nil
 }
 
 // loadAof loads and replays commands from the AOF file to restore Cache state

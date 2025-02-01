@@ -2,6 +2,7 @@ package aof
 
 import (
 	"bytes"
+	"context"
 	"h2blog/pkg/config"
 	"h2blog/pkg/logger"
 	"testing"
@@ -9,7 +10,7 @@ import (
 
 func init() {
 	config.LoadConfig("../../resources/config/test/aof-config.yaml")
-	_ = logger.InitLogger()
+	_ = logger.InitLogger(context.Background())
 }
 
 func TestFileOp_Write(t *testing.T) {

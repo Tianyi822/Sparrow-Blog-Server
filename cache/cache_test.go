@@ -11,12 +11,15 @@ import (
 
 func init() {
 	config.LoadConfig("../resources/config/test/Cache-config.yaml")
-	_ = logger.InitLogger()
+	_ = logger.InitLogger(context.Background())
 }
 
 func TestCore_Basic(t *testing.T) {
 	ctx := context.Background()
-	c := NewCache(ctx)
+	c, err := NewCache(ctx)
+	if err != nil {
+		t.Fatalf("创建缓存失败: %v", err)
+	}
 
 	// 测试 Set 和 Get
 	t.Run("基本的 Set 和 Get 操作", func(t *testing.T) {
@@ -54,7 +57,7 @@ func TestCore_Basic(t *testing.T) {
 
 func TestCore_TypedOperations(t *testing.T) {
 	ctx := context.Background()
-	c := NewCache(ctx)
+	c, _ := NewCache(ctx)
 
 	t.Run("整数操作", func(t *testing.T) {
 		// 测试整数存储和获取
@@ -114,7 +117,7 @@ func TestCore_TypedOperations(t *testing.T) {
 
 func TestCore_Expiration(t *testing.T) {
 	ctx := context.Background()
-	c := NewCache(ctx)
+	c, _ := NewCache(ctx)
 
 	t.Run("TTL 过期", func(t *testing.T) {
 		// 设置 100ms 的 TTL
@@ -142,7 +145,7 @@ func TestCore_Expiration(t *testing.T) {
 
 func TestCore_Delete(t *testing.T) {
 	ctx := context.Background()
-	c := NewCache(ctx)
+	c, _ := NewCache(ctx)
 
 	t.Run("删除操作", func(t *testing.T) {
 		// 设置值
@@ -167,7 +170,7 @@ func TestCore_Delete(t *testing.T) {
 
 func TestCore_Clean(t *testing.T) {
 	ctx := context.Background()
-	c := NewCache(ctx)
+	c, _ := NewCache(ctx)
 
 	t.Run("清理过期条目", func(t *testing.T) {
 		// 设置不同 TTL 的条目

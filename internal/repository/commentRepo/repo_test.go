@@ -16,7 +16,7 @@ func init() {
 	// 加载配置文件
 	config.LoadConfig("../../../resources/config/test/repository-config.yaml")
 	// 初始化 Logger 组件
-	err := logger.InitLogger()
+	err := logger.InitLogger(context.Background())
 	if err != nil {
 		return
 	}

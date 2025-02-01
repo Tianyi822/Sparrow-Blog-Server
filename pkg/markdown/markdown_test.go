@@ -13,14 +13,14 @@ func init() {
 	// 加载配置文件
 	config.LoadConfig("../../resources/config/test/pkg-config.yaml")
 	// 初始化 Logger 组件
-	err := logger.InitLogger()
+	err := logger.InitLogger(context.Background())
 	if err != nil {
 		return
 	}
 	// 初始化数据库组件
 	storage.InitStorage(context.Background())
 	// 初始化 Markdown 渲染器
-	InitRenderer()
+	InitRenderer(context.Background())
 }
 
 func TestCustomRenderer(t *testing.T) {

@@ -16,14 +16,14 @@ func init() {
 	// 加载配置文件
 	config.LoadConfig("../../resources/config/test/pkg-config.yaml")
 	// 初始化 Logger 组件
-	err := logger.InitLogger()
+	err := logger.InitLogger(context.Background())
 	if err != nil {
 		return
 	}
 	// 初始化数据库组件
 	storage.InitStorage(context.Background())
 	// 初始化 WebP 转换器
-	InitConverter()
+	InitConverter(context.Background())
 }
 
 func TestConverter(t *testing.T) {

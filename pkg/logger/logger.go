@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"context"
 	"fmt"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -17,12 +18,17 @@ var (
 )
 
 // InitLogger 初始化日志系统
-func InitLogger() error {
-	var err error
-	loggerLock.Do(func() {
-		err = initLogger()
-	})
-	return err
+func InitLogger(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		var err error
+		loggerLock.Do(func() {
+			err = initLogger()
+		})
+		return err
+	}
 }
 
 func GetLogger() *zap.SugaredLogger {
@@ -112,37 +118,26 @@ func getLogLevel(level string) zapcore.Level {
 	}
 }
 
-// 简单的日志接口
-func logf(level func(template string, args ...any), format string, args ...any) {
-	if logger == nil {
-		if err := InitLogger(); err != nil {
-			fmt.Printf("Failed to initialize logger: %v\n", err)
-			return
-		}
-	}
-	level(format, args...)
-}
-
 func Debug(format string, args ...any) {
-	logf(logger.Debugf, format, args...)
+	logger.Debugf(format, args...)
 }
 
 func Info(format string, args ...any) {
-	logf(logger.Infof, format, args...)
+	logger.Infof(format, args...)
 }
 
 func Warn(format string, args ...any) {
-	logf(logger.Warnf, format, args...)
+	logger.Warnf(format, args...)
 }
 
 func Error(format string, args ...any) {
-	logf(logger.Errorf, format, args...)
+	logger.Errorf(format, args...)
 }
 
 func Panic(format string, args ...any) {
-	logf(logger.Panicf, format, args...)
+	logger.Fatalf(format, args...)
 }
 
 func Fatal(format string, args ...any) {
-	logf(logger.Fatalf, format, args...)
+	logger.Fatalf(format, args...)
 }

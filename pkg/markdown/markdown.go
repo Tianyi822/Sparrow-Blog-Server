@@ -2,6 +2,7 @@ package markdown
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sync"
 
@@ -23,29 +24,35 @@ var (
 )
 
 // InitRenderer 创建并返回Markdown渲染器实例
-func InitRenderer() {
-	// 使用sync.Once确保渲染器只初始化一次
-	renderOnce.Do(func() {
-		mr := &h2MdRenderer{}
-		render = goldmark.New(
-			goldmark.WithExtensions(
-				extension.GFM,           // 启用GitHub Flavored Markdown扩展
-				extension.Table,         // 添加表格支持
-				extension.Strikethrough, // 添加删除线支持
-			),
-			goldmark.WithRendererOptions(
-				html.WithHardWraps(), // 启用硬换行
-				html.WithXHTML(),     // 使用XHTML格式
-			),
-			goldmark.WithRenderer(
-				renderer.NewRenderer(
-					renderer.WithNodeRenderers(
-						util.Prioritized(mr, 1000), // 注册自定义渲染器，优先级为1000
+func InitRenderer(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		// 使用sync.Once确保渲染器只初始化一次
+		renderOnce.Do(func() {
+			mr := &h2MdRenderer{}
+			render = goldmark.New(
+				goldmark.WithExtensions(
+					extension.GFM,           // 启用GitHub Flavored Markdown扩展
+					extension.Table,         // 添加表格支持
+					extension.Strikethrough, // 添加删除线支持
+				),
+				goldmark.WithRendererOptions(
+					html.WithHardWraps(), // 启用硬换行
+					html.WithXHTML(),     // 使用XHTML格式
+				),
+				goldmark.WithRenderer(
+					renderer.NewRenderer(
+						renderer.WithNodeRenderers(
+							util.Prioritized(mr, 1000), // 注册自定义渲染器，优先级为1000
+						),
 					),
 				),
-			),
-		)
-	})
+			)
+		})
+		return nil
+	}
 }
 
 // Parse 解析Markdown文本为HTML

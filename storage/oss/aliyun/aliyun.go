@@ -9,7 +9,12 @@ import (
 )
 
 // ConnectOss 连接 OSS
-func ConnectOss() *oss.Client {
+func ConnectOss(ctx context.Context) (*oss.Client, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 	// 创建一个静态凭证提供者，使用配置文件中的 AccessKeyId 和 AccessKeySecret
 	provider := credentials.NewStaticCredentialsProvider(config.OSSConfig.AccessKeyId, config.OSSConfig.AccessKeySecret)
 	// 加载默认配置，并设置凭证提供者和区域
@@ -37,5 +42,5 @@ func ConnectOss() *oss.Client {
 	logger.Info("获取 bucket 信息: %v\n", result.StatusCode)
 
 	// 返回创建的 OSS 客户端
-	return ossClient
+	return ossClient, nil
 }

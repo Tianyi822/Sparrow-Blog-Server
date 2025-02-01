@@ -65,24 +65,31 @@ type converter struct {
 
 // InitConverter 初始化WebP转换器
 // 创建转换器实例并启动工作协程
-func InitConverter() {
-	converterOnce.Do(func() {
-		// 创建转换器实例
-		Converter = &converter{
-			inputCh:   make(chan task, 30),            // 输入任务通道，缓冲区大小为30
-			outputCh:  make(chan OutputData, 30),      // 输出结果通道，缓冲区大小为30
-			quality:   config.UserConfig.WebP.Quality, // WebP转换质量
-			done:      make(chan struct{}),            // 关闭信号通道
-			completed: make(chan CompletionStatus, 1), // 完成状态通道，缓冲区大小为1
-			workerNum: runtime.NumCPU() / 2,           // 工作协程数量，等于CPU核心数除以2
-			timeout:   5 * time.Minute,                // 任务处理超时时间
-		}
+func InitConverter(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		converterOnce.Do(func() {
+			// 创建转换器实例
+			Converter = &converter{
+				inputCh:   make(chan task, 30),            // 输入任务通道，缓冲区大小为30
+				outputCh:  make(chan OutputData, 30),      // 输出结果通道，缓冲区大小为30
+				quality:   config.UserConfig.WebP.Quality, // WebP转换质量
+				done:      make(chan struct{}),            // 关闭信号通道
+				completed: make(chan CompletionStatus, 1), // 完成状态通道，缓冲区大小为1
+				workerNum: runtime.NumCPU() / 2,           // 工作协程数量，等于CPU核心数除以2
+				timeout:   5 * time.Minute,                // 任务处理超时时间
+			}
 
-		// 启动工作协程
-		for i := 0; i < Converter.workerNum; i++ {
-			go Converter.startWorker()
-		}
-	})
+			// 启动工作协程
+			for i := 0; i < Converter.workerNum; i++ {
+				go Converter.startWorker()
+			}
+		})
+
+		return nil
+	}
 }
 
 // AddBatchTasks 批量添加转换任务

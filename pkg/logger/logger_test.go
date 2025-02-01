@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"context"
 	"h2blog/pkg/config"
 	"testing"
 )
@@ -9,7 +10,7 @@ func init() {
 	// 加载配置文件
 	config.LoadConfig("../../resources/config/test/logger-config.yaml")
 	// 初始化 Logger 组件
-	_ = InitLogger()
+	_ = InitLogger(context.Background())
 }
 
 func TestLogger(t *testing.T) {

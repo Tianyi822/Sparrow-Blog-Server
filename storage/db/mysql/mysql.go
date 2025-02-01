@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"gorm.io/driver/mysql"
@@ -39,7 +40,12 @@ func createDatabase(dbName string) error {
 }
 
 // ConnectMysql 函数用于连接 MySQL 数据库
-func ConnectMysql() *gorm.DB {
+func ConnectMysql(ctx context.Context) (*gorm.DB, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 
 	// 创建数据库
 	logger.Info("准备创建数据库")
@@ -115,7 +121,7 @@ func ConnectMysql() *gorm.DB {
 	// 记录日志，表示 MySQL 数据库连接成功
 	logger.Info("MySQL 数据库连接成功")
 
-	return db
+	return db, err
 }
 
 func tableExists(db *gorm.DB, tableName string) bool {

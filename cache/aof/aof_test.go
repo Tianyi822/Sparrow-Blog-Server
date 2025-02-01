@@ -16,7 +16,7 @@ import (
 
 func init() {
 	config.LoadConfig("../../resources/config/test/aof-config.yaml")
-	_ = logger.InitLogger()
+	_ = logger.InitLogger(context.Background())
 }
 
 func TestAof_Store(t *testing.T) {

@@ -20,20 +20,29 @@ import (
 )
 
 // loadComponent 加载基础组件
-func loadComponent() {
+func loadComponent(ctx context.Context) {
 	// 从指定路径加载配置信息
 	config.LoadConfig("resources/config/test/web-config.yaml")
 	// 初始化日志组件
-	err := logger.InitLogger()
+	err := logger.InitLogger(ctx)
 	if err != nil {
 		panic("日志模块初始化失败，请检查配置文件是否有误")
 	}
 	// 初始化数据层
-	storage.InitStorage()
+	err = storage.InitStorage(ctx)
+	if err != nil {
+		panic("数据层初始化失败，请检查配置文件是否有误")
+	}
 	// 初始化 Markdown 渲染器
-	markdown.InitRenderer()
+	err = markdown.InitRenderer(ctx)
+	if err != nil {
+		panic("Markdown 渲染器初始化失败，请检查配置文件是否有误")
+	}
 	// 初始化图片转换器
-	webp.InitConverter()
+	err = webp.InitConverter(ctx)
+	if err != nil {
+		panic("图片转换器初始化失败，请检查配置文件是否有误")
+	}
 }
 
 // runServer 启动服务
@@ -100,7 +109,9 @@ func listenSysSignal(srv *http.Server) {
 
 func main() {
 	// 加载基础组件
-	loadComponent()
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+	loadComponent(ctx)
 
 	// 启动服务
 	srv := runServer()
