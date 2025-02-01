@@ -85,50 +85,52 @@ func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 
 		dir := filepath.Dir(aof.file.path)
 		prefix := aof.file.filePrefixName
+
+		// Create temp directory first
+		tempDir := filepath.Join(dir, "temp_aof")
+		if err := os.MkdirAll(tempDir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create temp directory: %w", err)
+		}
+		defer os.RemoveAll(tempDir)
+
 		var files []string
 		var err error
 
+		// First, get all compressed files
 		if aof.file.needCompress {
-			// Handle compressed files
 			files, err = filepath.Glob(filepath.Join(dir, prefix+"_*.aof.tar.gz"))
 			if err != nil {
 				return nil, fmt.Errorf("failed to list compressed AOF files: %w", err)
 			}
-		} else {
-			// Handle uncompressed AOF files
-			files, err = filepath.Glob(filepath.Join(dir, prefix+"_*.aof"))
-			if err != nil {
-				return nil, fmt.Errorf("failed to list AOF files: %w", err)
-			}
+			// Sort compressed files by timestamp
+			sort.Slice(files, func(i, j int) bool {
+				tsI := extractTimestamp(files[i])
+				tsJ := extractTimestamp(files[j])
+				return tsI < tsJ
+			})
 		}
 
-		// Sort files by timestamp
-		sort.Slice(files, func(i, j int) bool {
-			tsI := extractTimestamp(files[i])
-			tsJ := extractTimestamp(files[j])
-			return tsI < tsJ
-		})
-
-		// Check for rotated file last
-		rotatedFile := filepath.Join(dir, prefix+".aof")
-		if fileTool.IsExist(rotatedFile) {
-			files = append(files, rotatedFile)
+		// Then check for current AOF file
+		currentFile := filepath.Join(dir, prefix+".aof")
+		if fileTool.IsExist(currentFile) {
+			files = append(files, currentFile)
 		}
 
 		var allCommands [][]string
-		tempDir := filepath.Join(dir, "temp_aof")
-		defer os.RemoveAll(tempDir) // Ensure temp directory cleanup
+		logger.Info("Processing %d files", len(files))
 
 		// Process each file
-		for _, f := range files {
+		for i, f := range files {
+			logger.Info("Processing file %d/%d: %s", i+1, len(files), f)
 			commands, err := processFile(f, tempDir)
 			if err != nil {
 				return nil, fmt.Errorf("failed to process file %s: %w", f, err)
 			}
+			logger.Info("File %s: loaded %d commands", f, len(commands))
 			allCommands = append(allCommands, commands...)
 		}
 
-		// Clean up all processed files
+		// Clean up processed files
 		for _, f := range files {
 			if err := os.Remove(f); err != nil {
 				logger.Warn("failed to remove processed AOF file %s: %v", f, err)
@@ -244,12 +246,11 @@ func processFile(path string, tempDir string) ([][]string, error) {
 			return nil, fmt.Errorf("failed to create temp directory: %w", err)
 		}
 
-		decompressedName := strings.TrimSuffix(filepath.Base(path), ".tar.gz")
-		if err := fileTool.DecompressTarGz(path, decompressedName); err != nil {
+		decompressedPath := filepath.Join(tempDir, strings.TrimSuffix(filepath.Base(path), ".tar.gz"))
+		if err := fileTool.DecompressTarGz(path, decompressedPath); err != nil {
 			return nil, fmt.Errorf("failed to decompress %s: %w", path, err)
 		}
 
-		decompressedPath := filepath.Join(tempDir, decompressedName)
 		file, err = os.Open(decompressedPath)
 	} else {
 		// Handle regular file
