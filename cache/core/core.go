@@ -4,109 +4,141 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"h2blog/cache"
+	"h2blog/cache/aof"
+	"h2blog/pkg/config"
+	"h2blog/pkg/logger"
 	"math"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
-// 缓存操作错误类型定义
+// Error types for cache operations
 var (
-	// ErrTypeMismatch 当类型转换不匹配时返回（例如尝试将字符串转换为整型）
+	// ErrTypeMismatch is returned when type conversion fails
 	ErrTypeMismatch = errors.New("type mismatch")
 
-	// ErrOutOfRange 当数值超出目标类型范围时返回（例如将float64(1e100)转换为int）
+	// ErrOutOfRange is returned when a numeric value exceeds the target type's range
 	ErrOutOfRange = errors.New("value out of range")
 
-	// ErrPointerNotAllowed 当尝试存储指针类型时返回
+	// ErrPointerNotAllowed is returned when attempting to store pointer values
 	ErrPointerNotAllowed = errors.New("pointer values are not allowed")
 
-	// ErrNotFound 当条目不存在或已过期时返回
+	// ErrNotFound is returned when an entry doesn't exist or has expired
 	ErrNotFound = errors.New("entry not found")
 
-	// ErrEmptyKey key 值空
+	// ErrEmptyKey is returned when the key is empty or contains only whitespace
 	ErrEmptyKey = errors.New("key is empty")
 )
 
-// cacheItem 表示缓存中的单个条目
-// value    存储的实际值，支持任意类型。注意存储指针类型时需要自行管理生命周期
-// expireAt 条目过期的时间戳（UTC时间），零值表示永不过期
+// cacheItem represents a single entry in the cache
 type cacheItem struct {
-	value    any
-	vt       cache.ValueType
-	expireAt time.Time
+	value    any             // The actual stored value
+	vt       cache.ValueType // Type information for the stored value
+	expireAt time.Time       // Expiration timestamp (zero means never expire)
 }
 
-// Core 线程安全的内存缓存核心系统，采用分片锁设计提升并发性能
+// Core implements a thread-safe in-memory cache system with sharded locks
+// for improved concurrent performance.
 //
-// 字段说明：
-// items       - 存储缓存条目的map，key为字符串类型，建议使用"type:id"格式
-// mu          - 分片读写锁，每个分片独立加锁减少竞争
-// maxEntries  - 最大条目限制（0表示无限制），达到限制时写入返回ErrMaxEntries
-// currentSize - 当前内存占用量估算（字节），用于防止内存溢出
+// Fields:
+// - items: Map storing cache entries with string keys (recommended format: "type:id")
+// - mu: RWMutex for thread-safe operations
+// - aof: Append-Only File for persistence support
 type Core struct {
 	items map[string]cacheItem
 	mu    sync.RWMutex
+	aof   *aof.Aof
 }
 
-// NewCore 创建并初始化新的缓存核心实例
-// 返回值:
-// - *Core 初始化完成的缓存指针
+// NewCore creates and initializes a new cache instance
+// It enables AOF persistence if configured in cache-config.yaml
 func NewCore() *Core {
-	return &Core{
+	c := &Core{
 		items: make(map[string]cacheItem),
 	}
+
+	// Enable AOF if configured
+	if config.CacheConfig.Aof.Enable {
+		c.aof = aof.NewAof()
+		// Load data from AOF file
+		if err := c.loadAof(); err != nil {
+			// AOF loading failure is critical
+			panic(fmt.Sprintf("failed to load AOF: %v", err))
+		}
+	}
+
+	return c
 }
 
-// Set 设置缓存条目, 默认长期有效
-// 示例:
-//
-// err := cache.Set(ctx, "user:1001", userData)
-//
-//	if err != nil {
-//	   log.Printf("缓存写入失败: %v", err)
-//	}
-//
-// 参数:
-//
-// ctx   上下文，用于取消操作和超时控制
-// key   条目键（推荐使用冒号分隔的命名规范，如"type:id"）
-// value 要存储的值（仅支持非指针类型）
-//
-// 返回值:
-//
-//	error 可能返回的错误包括：
-//	 - context.Canceled 上下文取消
-//	 - context.DeadlineExceeded 操作超时
-//	 - ErrMaxEntries 达到最大条目限制（需通过WithMaxEntries设置）
+// loadAof loads and replays commands from the AOF file to restore cache state
+// It processes SET, DELETE, and CLEANUP commands in chronological order
+func (c *Core) loadAof() error {
+	if c.aof == nil {
+		return nil
+	}
+
+	commands, err := c.aof.LoadFile(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to load AOF file: %w", err)
+	}
+
+	// Replay all commands
+	for _, cmd := range commands {
+		switch cmd[0] {
+		case cache.SET:
+			if len(cmd) != 5 {
+				continue
+			}
+			// Parse expiration time
+			var expireAt time.Time
+			if cmd[4] != "0" {
+				expireTs, err := strconv.ParseInt(cmd[4], 10, 64)
+				if err != nil {
+					continue
+				}
+				expireAt = time.Unix(expireTs, 0)
+			}
+
+			// Parse value type
+			vt, err := strconv.ParseUint(cmd[3], 10, 8)
+			if err != nil {
+				continue
+			}
+
+			// Create cache item
+			item := cacheItem{
+				value:    cmd[2],              // Value
+				vt:       cache.ValueType(vt), // Convert to ValueType
+				expireAt: expireAt,
+			}
+			c.items[cmd[1]] = item
+
+		case cache.DELETE:
+			if len(cmd) != 2 {
+				continue
+			}
+			delete(c.items, cmd[1])
+
+		case cache.CLEANUP:
+			c.Cleanup()
+		}
+	}
+
+	return nil
+}
+
+// Set stores a value in the cache with no expiration time
 func (c *Core) Set(ctx context.Context, key string, value any) error {
 	return c.SetWithExpired(ctx, key, value, 0)
 }
 
-// SetWithExpired 设置缓存条目。当存在同名key时会覆盖旧值并重置TTL
-//
-// 示例:
-//
-//	err := cache.SetWithExpired(ctx, "user:1001", userData, 10*time.Minute)
-//	if err != nil {
-//	    log.Printf("缓存写入失败: %v", err)
-//	}
-//
-// 参数:
-//
-//	ctx   上下文，用于取消操作和超时控制
-//	key   条目键（推荐使用冒号分隔的命名规范，如"type:id"）
-//	value 要存储的值（仅支持非指针类型）
-//	ttl   存活时间（小于等于0时条目会立即过期）
-//
-// 返回值:
-//
-//	error 可能返回的错误包括：
-//	 - context.Canceled 上下文取消
-//	 - context.DeadlineExceeded 操作超时
-//	 - ErrMaxEntries 达到最大条目限制（需通过WithMaxEntries设置）
+// SetWithExpired stores a value in the cache with an optional TTL
+// If the key exists, it will be overwritten and the TTL will be reset
 func (c *Core) SetWithExpired(ctx context.Context, key string, value any, ttl time.Duration) error {
 	if len(strings.TrimSpace(key)) == 0 {
 		return ErrEmptyKey
@@ -119,7 +151,7 @@ func (c *Core) SetWithExpired(ctx context.Context, key string, value any, ttl ti
 		c.mu.Lock()
 		defer c.mu.Unlock()
 
-		// 类型安全检查：禁止存储指针，数组和切片类型
+		// Type safety check: Disallow storage of pointer, array, or slice types
 		if reflect.TypeOf(value).Kind() == reflect.Ptr ||
 			reflect.TypeOf(value).Kind() == reflect.Array ||
 			reflect.TypeOf(value).Kind() == reflect.Slice {
@@ -129,13 +161,15 @@ func (c *Core) SetWithExpired(ctx context.Context, key string, value any, ttl ti
 		item := cacheItem{
 			value: value,
 		}
-		if ttl == 0 {
-			item.expireAt = time.Time{} // 零值表示永不过期
-		} else {
+
+		// Set expiration time
+		var expireTs int64
+		if ttl > 0 {
 			item.expireAt = time.Now().Add(ttl)
+			expireTs = item.expireAt.Unix()
 		}
 
-		// 设置值类型
+		// Set value type
 		switch value.(type) {
 		case int, int8, int16, int32, int64:
 			item.vt = cache.INT
@@ -146,7 +180,7 @@ func (c *Core) SetWithExpired(ctx context.Context, key string, value any, ttl ti
 		case string:
 			item.vt = cache.STRING
 		default:
-			// 对于其他类型，序列化为JSON字符串存储
+			// For other types, serialize as JSON string
 			jsonStr, err := json.Marshal(item.value)
 			if err != nil {
 				return err
@@ -156,34 +190,43 @@ func (c *Core) SetWithExpired(ctx context.Context, key string, value any, ttl ti
 		}
 
 		c.items[key] = item
+
+		// Record to AOF
+		if c.aof != nil {
+			if err := c.aof.Store(ctx, cache.SET, key, fmt.Sprint(item.value),
+				string(item.vt), fmt.Sprint(expireTs)); err != nil {
+				return fmt.Errorf("failed to store in AOF: %w", err)
+			}
+		}
+
 		return nil
 	}
 }
 
-// Incr 原子递增整型值
-// ctx   上下文，用于取消操作
-// key   条目键
+// Incr atomically increments an integer value
+// ctx    context for cancellation operations
+// key    entry key
 //
-// 返回值:
-// - int  操作后的新值
-// - error 可能错误：
-//   - ErrNotFound key不存在
-//   - ErrTypeMismatch 值类型非整型
-//   - ErrOutOfRange 数值溢出
+// Returns:
+// - int   new value after operation
+// - error possible errors:
+//   - ErrNotFound key does not exist
+//   - ErrTypeMismatch value type is not integer
+//   - ErrOutOfRange value overflow
 //
-// 注意:
-// - 不存在的key直接返回ErrNotFound
-// - 操作成功后保持原有TTL时间不变
+// Note:
+// - If the key does not exist, it returns ErrNotFound
+// - The operation keeps the original TTL time unchanged
 func (c *Core) Incr(ctx context.Context, key string) (int, error) {
 	select {
 	case <-ctx.Done():
 		return 0, ctx.Err()
 	default:
-		// 获取现有值,不存在则默认为0
+		// Get existing value, default to 0 if it doesn't exist
 		val, err := c.GetInt(ctx, key)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
-				// 不存在的 key 新建一个
+				// If the key does not exist, create a new one
 				if err = c.Set(ctx, key, 1); err != nil {
 					return 0, err
 				}
@@ -192,7 +235,7 @@ func (c *Core) Incr(ctx context.Context, key string) (int, error) {
 			}
 		}
 
-		// 溢出检查
+		// Overflow check
 		if val == math.MaxInt {
 			return 0, ErrOutOfRange
 		}
@@ -201,7 +244,7 @@ func (c *Core) Incr(ctx context.Context, key string) (int, error) {
 		c.items[key] = cacheItem{
 			value:    val + 1,
 			vt:       cache.INT,
-			expireAt: c.items[key].expireAt, // 若key存在则保持原有过期时间,否则为0(永不过期)
+			expireAt: c.items[key].expireAt, // If key exists, keep original TTL, otherwise 0 (never expire)
 		}
 		c.mu.Unlock()
 
@@ -209,20 +252,20 @@ func (c *Core) Incr(ctx context.Context, key string) (int, error) {
 	}
 }
 
-// IncrUint 原子递增无符号整型值
-// ctx   上下文，用于取消操作
-// key   条目键
+// IncrUint atomically increments an unsigned integer value
+// ctx    context for cancellation operations
+// key    entry key
 //
-// 返回值:
-// - uint  操作后的新值
-// - error 可能错误：
-//   - ErrNotFound key不存在
-//   - ErrTypeMismatch 值类型非无符号整型
-//   - ErrOutOfRange 数值溢出
+// Returns:
+// - uint   new value after operation
+// - error possible errors:
+//   - ErrNotFound key does not exist
+//   - ErrTypeMismatch value type is not unsigned integer
+//   - ErrOutOfRange value overflow
 //
-// 注意:
-// - 不存在的key直接返回ErrNotFound
-// - 操作成功后保持原有TTL时间不变
+// Note:
+// - If the key does not exist, it returns ErrNotFound
+// - The operation keeps the original TTL time unchanged
 func (c *Core) IncrUint(ctx context.Context, key string) (uint, error) {
 	select {
 	case <-ctx.Done():
@@ -231,11 +274,11 @@ func (c *Core) IncrUint(ctx context.Context, key string) (uint, error) {
 		c.mu.Lock()
 		defer c.mu.Unlock()
 
-		// 获取现有值,不存在则默认为0
+		// Get existing value, default to 0 if it doesn't exist
 		item, exists := c.items[key]
 		var val uint = 0
 		if exists {
-			// 类型检查
+			// Type check
 			v, err := c.GetUint(ctx, key)
 			if err != nil {
 				return 0, err
@@ -243,7 +286,7 @@ func (c *Core) IncrUint(ctx context.Context, key string) (uint, error) {
 			val = v
 		}
 
-		// 溢出检查
+		// Overflow check
 		if val == math.MaxUint {
 			return 0, ErrOutOfRange
 		}
@@ -252,26 +295,26 @@ func (c *Core) IncrUint(ctx context.Context, key string) (uint, error) {
 		c.items[key] = cacheItem{
 			value:    newVal,
 			vt:       cache.UINT,
-			expireAt: item.expireAt, // 若key存在则保持原有过期时间,否则为0(永不过期)
+			expireAt: item.expireAt, // If key exists, keep original TTL, otherwise 0 (never expire)
 		}
 
 		return newVal, nil
 	}
 }
 
-// Get 获取缓存条目原始值
-// ctx 上下文，用于取消操作
-// key 要获取的条目键
+// Get retrieves the original value of a cache entry
+// ctx  context for cancellation operations
+// key  entry key to retrieve
 //
-// 返回值:
-// - any 	存储的原始值
-// - error  操作过程中遇到的错误
+// Returns:
+// - any    original stored value
+// - error  encountered errors during the operation
 func (c *Core) Get(ctx context.Context, key string) (any, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	default:
-		// 尽可能缩小加锁范围
+		// Try to minimize lock range
 		c.mu.RLock()
 		item, exists := c.items[key]
 		c.mu.RUnlock()
@@ -293,7 +336,7 @@ func (c *Core) Get(ctx context.Context, key string) (any, error) {
 	}
 }
 
-// GetInt 获取int类型值 (自动处理类型转换)
+// GetInt retrieves an int value (automatically handles type conversion)
 func (c *Core) GetInt(ctx context.Context, key string) (int, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
@@ -301,13 +344,13 @@ func (c *Core) GetInt(ctx context.Context, key string) (int, error) {
 	}
 
 	switch v := val.(type) {
-	case int: // 原生int类型直接返回
+	case int: // Direct return for native int type
 		return v, nil
-	case int8, int16, int32: // 小整型安全转换
-		return int(v.(int32)), nil // 类型断言后转换
-	case int64: // 64位整型需要范围检查
+	case int8, int16, int32: // Safe conversion for small integers
+		return int(v.(int32)), nil // Type assertion and conversion
+	case int64: // 64-bit integers need range check
 		if v > math.MaxInt || v < math.MinInt {
-			return 0, ErrOutOfRange // 数值超出int范围
+			return 0, ErrOutOfRange // Value out of int range
 		}
 		return int(v), nil
 	case uint, uint8, uint16, uint32, uint64:
@@ -321,18 +364,18 @@ func (c *Core) GetInt(ctx context.Context, key string) (int, error) {
 	}
 }
 
-// GetUint 获取无符号整型值（自动类型转换）
-// ctx 上下文，用于取消操作
-// key 要获取的条目键
+// GetUint retrieves an unsigned integer value (automatically handles type conversion)
+// ctx  context for cancellation operations
+// key  entry key to retrieve
 //
-// 返回值:
-// - uint 转换后的无符号整数值
-// - error 转换错误（ErrTypeMismatch/ErrOutOfRange）或操作错误
+// Returns:
+// - uint  converted unsigned integer value
+// - error conversion error (ErrTypeMismatch/ErrOutOfRange) or operation error
 //
-// 支持的类型转换:
-// - 所有无符号整型（uint8/16/32/64）
-// - 有符号整型（int8/16/32/64）需为非负数
-// - 浮点型（float32/64）需在[0, math.MaxUint64]范围内
+// Supported type conversions:
+// - All unsigned integers (uint8/16/32/64)
+// - Signed integers (int8/16/32/64) must be non-negative
+// - Floating point (float32/64) must be in the [0, math.MaxUint64] range
 func (c *Core) GetUint(ctx context.Context, key string) (uint, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
@@ -361,17 +404,17 @@ func (c *Core) GetUint(ctx context.Context, key string) (uint, error) {
 	}
 }
 
-// GetFloat 获取浮点型值（自动类型转换到float64）
-// ctx 上下文，用于取消操作
-// key 要获取的条目键
+// GetFloat retrieves a floating point value (automatically converts to float64)
+// ctx  context for cancellation operations
+// key  entry key to retrieve
 //
-// 返回值:
-// - float64 转换后的浮点数值
-// - error   转换错误（ErrTypeMismatch）或操作错误
+// Returns:
+// - float64  converted floating point value
+// - error    conversion error (ErrTypeMismatch) or operation error
 //
-// 支持的类型转换:
-// - 所有整型（int/uint系列）和浮点型
-// - 其他类型返回ErrTypeMismatch
+// Supported type conversions:
+// - All integers (int/uint series) and floating point
+// - Other types return ErrTypeMismatch
 func (c *Core) GetFloat(ctx context.Context, key string) (float64, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
@@ -392,16 +435,16 @@ func (c *Core) GetFloat(ctx context.Context, key string) (float64, error) {
 	}
 }
 
-// GetBool 获取布尔类型值
-// ctx 上下文，用于取消操作
-// key 要获取的条目键
+// GetBool retrieves a boolean value
+// ctx  context for cancellation operations
+// key  entry key to retrieve
 //
-// 返回值:
-// - bool  转换后的布尔值
-// - error 转换错误（ErrTypeMismatch）或操作错误
+// Returns:
+// - bool   converted boolean value
+// - error  conversion error (ErrTypeMismatch) or operation error
 //
-// 注意:
-// - 仅支持原生bool类型，不支持字符串/数字到bool的转换
+// Note:
+// - Only supports native bool type, does not support string/number to bool conversion
 func (c *Core) GetBool(ctx context.Context, key string) (bool, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
@@ -414,16 +457,16 @@ func (c *Core) GetBool(ctx context.Context, key string) (bool, error) {
 	return false, ErrTypeMismatch
 }
 
-// GetString 获取字符串类型值
-// ctx 上下文，用于取消操作
-// key 要获取的条目键
+// GetString retrieves a string value
+// ctx  context for cancellation operations
+// key  entry key to retrieve
 //
-// 返回值:
-// - string 转换后的字符串值
-// - error  转换错误（ErrTypeMismatch）或操作错误
+// Returns:
+// - string  converted string value
+// - error   conversion error (ErrTypeMismatch) or operation error
 //
-// 注意:
-// - 仅支持原生string类型，不支持自动类型转换
+// Note:
+// - Only supports native string type, does not support automatic type conversion
 func (c *Core) GetString(ctx context.Context, key string) (string, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
@@ -436,23 +479,8 @@ func (c *Core) GetString(ctx context.Context, key string) (string, error) {
 	return "", ErrTypeMismatch
 }
 
-// Delete 删除指定键的缓存条目，无论该条目是否过期
-//
-// 参数:
-//
-//	ctx 上下文，用于取消操作和超时控制
-//	key 要删除的条目键
-//
-// 返回值:
-//
-//	error 可能返回的错误包括：
-//	 - context.Canceled 上下文取消
-//	 - context.DeadlineExceeded 操作超时
-//
-// 注意：
-// - 删除不存在的key不会返回错误
-// - 该操作会立即释放相关内存
-// - 高频删除操作建议使用批量删除接口
+// Delete removes an entry from the cache regardless of its expiration status
+// It returns no error if the key doesn't exist
 func (c *Core) Delete(ctx context.Context, key string) error {
 	select {
 	case <-ctx.Done():
@@ -461,51 +489,49 @@ func (c *Core) Delete(ctx context.Context, key string) error {
 		c.mu.Lock()
 		defer c.mu.Unlock()
 
-		delete(c.items, key) // 直接删除，即使key不存在也是安全的
+		delete(c.items, key)
+
+		// Record to AOF
+		if c.aof != nil {
+			if err := c.aof.Store(ctx, cache.DELETE, key); err != nil {
+				return fmt.Errorf("failed to store in AOF: %w", err)
+			}
+		}
+
 		return nil
 	}
 }
 
-// Cleanup 同步清理所有过期条目。该方法会获取写锁，建议在低峰期调用或通过StartCleaner后台定时执行
-//
-// 注意：
-// - 遍历整个缓存空间，时间复杂度为O(n)
-// - 执行期间会阻塞所有读写操作
-// - 建议清理间隔不小于5分钟以避免性能波动
-//
-// 注意：
-// - 遍历整个缓存空间，时间复杂度为O(n)
-// - 执行期间会阻塞所有读写操作
-// - 建议清理间隔不小于5分钟以避免性能波动
-//
-// 注意：
-// - 遍历整个缓存空间，时间复杂度为O(n)
-// - 执行期间会阻塞所有读写操作
+// Cleanup removes all expired entries from the cache
+// This operation blocks all read/write operations while running
+// It's recommended to run this during low-traffic periods
 func (c *Core) Cleanup() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	now := time.Now() // 获取当前UTC时间
-	// 遍历所有缓存条目
+	now := time.Now()
 	for key, item := range c.items {
-		// 永久条目永远存在
-		if item.expireAt.IsZero() {
-			continue
+		if !item.expireAt.IsZero() && now.After(item.expireAt) {
+			delete(c.items, key)
 		}
-		// 检查过期时间（UTC时间比较）
-		if now.After(item.expireAt) {
-			// 同步删除过期条目
-			delete(c.items, key) // map删除操作
+	}
+
+	// Record to AOF
+	if c.aof != nil {
+		// Use background context because this is internal call
+		if err := c.aof.Store(context.Background(), cache.CLEANUP); err != nil {
+			// Only log, does not affect cleanup operation
+			logger.Error("failed to store cleanup in AOF: %v", err)
 		}
 	}
 }
 
-// CleanAll 清理所有缓存条目，无论是否过期
+// CleanAll removes all entries from the cache regardless of expiration status
 func (c *Core) CleanAll() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	for key := range c.items {
-		delete(c.items, key) // map删除操作
+		delete(c.items, key) // map delete operation
 	}
 }
