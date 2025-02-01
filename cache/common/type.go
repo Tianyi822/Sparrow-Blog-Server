@@ -1,4 +1,4 @@
-package cache
+package common
 
 type ValueType uint8
 
