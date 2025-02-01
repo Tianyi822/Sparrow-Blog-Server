@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
 	"gorm.io/gorm"
+	"h2blog/cache"
 	"h2blog/pkg/config"
 	"h2blog/pkg/logger"
 	"h2blog/storage/db/mysql"
@@ -20,22 +21,51 @@ var storageOnce sync.Once
 
 // storage 结构体用于存储数据库和对象存储客户端的实例
 type storage struct {
-	Db        *gorm.DB    // 数据库连接
-	OssClient *oss.Client // 对象存储客户端
+	Db        *gorm.DB     // 数据库连接
+	OssClient *oss.Client  // 对象存储客户端
+	Cache     *cache.Cache // 缓存客户端
 }
 
 // InitStorage 初始化 storage 组件
-func InitStorage(ctx context.Context) {
-	storageOnce.Do(func() {
-		Storage = &storage{}
-		// TODO: 可以不止配置 MySql 一种数据库，现在先写死，后面根据数据库配置进行选择
-		logger.Info("配置数据库")
-		Storage.Db = mysql.ConnectMysql()
+func InitStorage(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		storageOnce.Do(func() {
+			Storage = &storage{}
+			// TODO: 可以不止配置 MySql 一种数据库，现在先写死，后面根据数据库配置进行选择
+			logger.Info("配置数据库")
+			db, err := mysql.ConnectMysql(ctx)
+			if err != nil {
+				msg := fmt.Sprintf("连接数据库失败 %v", err)
+				logger.Panic(msg)
+				return
+			}
+			Storage.Db = db
 
-		// TODO: 同样，对象存储桶也可以用其他的，现在先写死用阿里云 OSS
-		logger.Info("配置对象存储")
-		Storage.OssClient = aliyun.ConnectOss()
-	})
+			// TODO: 同样，对象存储桶也可以用其他的，现在先写死用阿里云 OSS
+			logger.Info("配置对象存储")
+			client, err := aliyun.ConnectOss(ctx)
+			if err != nil {
+				msg := fmt.Sprintf("连接对象存储失败 %v", err)
+				logger.Panic(msg)
+				return
+			}
+			Storage.OssClient = client
+
+			logger.Info("配置缓存")
+			c, err := cache.NewCache(ctx)
+			if err != nil {
+				msg := fmt.Sprintf("连接缓存失败 %v", err)
+				logger.Panic(msg)
+				return
+			}
+			Storage.Cache = c
+		})
+
+		return nil
+	}
 }
 
 // DeleteObject 删除对象
