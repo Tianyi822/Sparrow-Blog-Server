@@ -1,12 +1,12 @@
-package core
+package cache
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"h2blog/cache"
 	"h2blog/cache/aof"
+	"h2blog/cache/common"
 	"h2blog/pkg/config"
 	"h2blog/pkg/logger"
 	"math"
@@ -37,95 +37,107 @@ var (
 
 // cacheItem represents a single entry in the cache
 type cacheItem struct {
-	value    any             // The actual stored value
-	vt       cache.ValueType // Type information for the stored value
-	expireAt time.Time       // Expiration timestamp (zero means never expire)
+	value    any              // The actual stored value
+	vt       common.ValueType // Type information for the stored value
+	expireAt time.Time        // Expiration timestamp (zero means never expire)
 }
 
-// Core implements a thread-safe in-memory cache system with sharded locks
+// cache implements a thread-safe in-memory cache system with sharded locks
 // for improved concurrent performance.
 //
 // Fields:
 // - items: Map storing cache entries with string keys (recommended format: "type:id")
 // - mu: RWMutex for thread-safe operations
 // - aof: Append-Only File for persistence support
-type Core struct {
+type cache struct {
 	items map[string]cacheItem
 	mu    sync.RWMutex
 	aof   *aof.Aof
 }
 
-// NewCore creates and initializes a new cache instance
+var Cache *cache
+
+// InitCache creates and initializes a new cache instance with the given context
 // It enables AOF persistence if configured in cache-config.yaml
-func NewCore() *Core {
-	c := &Core{
+func InitCache(ctx context.Context) {
+	Cache = &cache{
 		items: make(map[string]cacheItem),
 	}
 
 	// Enable AOF if configured
 	if config.CacheConfig.Aof.Enable {
-		c.aof = aof.NewAof()
+		Cache.aof = aof.NewAof()
 		// Load data from AOF file
-		if err := c.loadAof(); err != nil {
+		if err := Cache.loadAof(ctx); err != nil {
 			// AOF loading failure is critical
 			panic(fmt.Sprintf("failed to load AOF: %v", err))
 		}
 	}
-
-	return c
 }
 
 // loadAof loads and replays commands from the AOF file to restore cache state
 // It processes SET, DELETE, and CLEANUP commands in chronological order
-func (c *Core) loadAof() error {
+func (c *cache) loadAof(ctx context.Context) error {
 	if c.aof == nil {
 		return nil
 	}
 
-	commands, err := c.aof.LoadFile(context.Background())
+	commands, err := c.aof.LoadFile(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to load AOF file: %w", err)
 	}
 
-	// Replay all commands
-	for _, cmd := range commands {
-		switch cmd[0] {
-		case cache.SET:
-			if len(cmd) != 5 {
-				continue
-			}
-			// Parse expiration time
-			var expireAt time.Time
-			if cmd[4] != "0" {
-				expireTs, err := strconv.ParseInt(cmd[4], 10, 64)
-				if err != nil {
-					continue
+	// Check context before processing commands
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		// Replay all commands
+		for _, cmd := range commands {
+			// Periodically check context
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+				switch cmd[0] {
+				case common.SET:
+					if len(cmd) != 5 {
+						continue
+					}
+					// Parse expiration time
+					var expireAt time.Time
+					if cmd[4] != "0" {
+						expireTs, err := strconv.ParseInt(cmd[4], 10, 64)
+						if err != nil {
+							continue
+						}
+						expireAt = time.Unix(expireTs, 0)
+					}
+
+					// Parse value type
+					vt, err := strconv.ParseUint(cmd[3], 10, 8)
+					if err != nil {
+						continue
+					}
+
+					// Create cache item
+					item := cacheItem{
+						value:    cmd[2],               // Value
+						vt:       common.ValueType(vt), // Convert to ValueType
+						expireAt: expireAt,
+					}
+					c.items[cmd[1]] = item
+
+				case common.DELETE:
+					if len(cmd) != 2 {
+						continue
+					}
+					delete(c.items, cmd[1])
+
+				case common.CLEANUP:
+					c.Cleanup()
 				}
-				expireAt = time.Unix(expireTs, 0)
 			}
-
-			// Parse value type
-			vt, err := strconv.ParseUint(cmd[3], 10, 8)
-			if err != nil {
-				continue
-			}
-
-			// Create cache item
-			item := cacheItem{
-				value:    cmd[2],              // Value
-				vt:       cache.ValueType(vt), // Convert to ValueType
-				expireAt: expireAt,
-			}
-			c.items[cmd[1]] = item
-
-		case cache.DELETE:
-			if len(cmd) != 2 {
-				continue
-			}
-			delete(c.items, cmd[1])
-
-		case cache.CLEANUP:
-			c.Cleanup()
 		}
 	}
 
@@ -133,13 +145,13 @@ func (c *Core) loadAof() error {
 }
 
 // Set stores a value in the cache with no expiration time
-func (c *Core) Set(ctx context.Context, key string, value any) error {
+func (c *cache) Set(ctx context.Context, key string, value any) error {
 	return c.SetWithExpired(ctx, key, value, 0)
 }
 
 // SetWithExpired stores a value in the cache with an optional TTL
 // If the key exists, it will be overwritten and the TTL will be reset
-func (c *Core) SetWithExpired(ctx context.Context, key string, value any, ttl time.Duration) error {
+func (c *cache) SetWithExpired(ctx context.Context, key string, value any, ttl time.Duration) error {
 	if len(strings.TrimSpace(key)) == 0 {
 		return ErrEmptyKey
 	}
@@ -172,20 +184,20 @@ func (c *Core) SetWithExpired(ctx context.Context, key string, value any, ttl ti
 		// Set value type
 		switch value.(type) {
 		case int, int8, int16, int32, int64:
-			item.vt = cache.INT
+			item.vt = common.INT
 		case uint, uint8, uint16, uint32, uint64:
-			item.vt = cache.UINT
+			item.vt = common.UINT
 		case float32, float64:
-			item.vt = cache.FLOAT
+			item.vt = common.FLOAT
 		case string:
-			item.vt = cache.STRING
+			item.vt = common.STRING
 		default:
 			// For other types, serialize as JSON string
 			jsonStr, err := json.Marshal(item.value)
 			if err != nil {
 				return err
 			}
-			item.vt = cache.OBJ
+			item.vt = common.OBJ
 			item.value = jsonStr
 		}
 
@@ -193,7 +205,7 @@ func (c *Core) SetWithExpired(ctx context.Context, key string, value any, ttl ti
 
 		// Record to AOF
 		if c.aof != nil {
-			if err := c.aof.Store(ctx, cache.SET, key, fmt.Sprint(item.value),
+			if err := c.aof.Store(ctx, common.SET, key, fmt.Sprint(item.value),
 				string(item.vt), fmt.Sprint(expireTs)); err != nil {
 				return fmt.Errorf("failed to store in AOF: %w", err)
 			}
@@ -217,7 +229,7 @@ func (c *Core) SetWithExpired(ctx context.Context, key string, value any, ttl ti
 // Note:
 // - If the key does not exist, it returns ErrNotFound
 // - The operation keeps the original TTL time unchanged
-func (c *Core) Incr(ctx context.Context, key string) (int, error) {
+func (c *cache) Incr(ctx context.Context, key string) (int, error) {
 	select {
 	case <-ctx.Done():
 		return 0, ctx.Err()
@@ -243,7 +255,7 @@ func (c *Core) Incr(ctx context.Context, key string) (int, error) {
 		c.mu.Lock()
 		c.items[key] = cacheItem{
 			value:    val + 1,
-			vt:       cache.INT,
+			vt:       common.INT,
 			expireAt: c.items[key].expireAt, // If key exists, keep original TTL, otherwise 0 (never expire)
 		}
 		c.mu.Unlock()
@@ -266,7 +278,7 @@ func (c *Core) Incr(ctx context.Context, key string) (int, error) {
 // Note:
 // - If the key does not exist, it returns ErrNotFound
 // - The operation keeps the original TTL time unchanged
-func (c *Core) IncrUint(ctx context.Context, key string) (uint, error) {
+func (c *cache) IncrUint(ctx context.Context, key string) (uint, error) {
 	select {
 	case <-ctx.Done():
 		return 0, ctx.Err()
@@ -294,7 +306,7 @@ func (c *Core) IncrUint(ctx context.Context, key string) (uint, error) {
 		newVal := val + 1
 		c.items[key] = cacheItem{
 			value:    newVal,
-			vt:       cache.UINT,
+			vt:       common.UINT,
 			expireAt: item.expireAt, // If key exists, keep original TTL, otherwise 0 (never expire)
 		}
 
@@ -309,7 +321,7 @@ func (c *Core) IncrUint(ctx context.Context, key string) (uint, error) {
 // Returns:
 // - any    original stored value
 // - error  encountered errors during the operation
-func (c *Core) Get(ctx context.Context, key string) (any, error) {
+func (c *cache) Get(ctx context.Context, key string) (any, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -337,7 +349,7 @@ func (c *Core) Get(ctx context.Context, key string) (any, error) {
 }
 
 // GetInt retrieves an int value (automatically handles type conversion)
-func (c *Core) GetInt(ctx context.Context, key string) (int, error) {
+func (c *cache) GetInt(ctx context.Context, key string) (int, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
 		return 0, err
@@ -376,7 +388,7 @@ func (c *Core) GetInt(ctx context.Context, key string) (int, error) {
 // - All unsigned integers (uint8/16/32/64)
 // - Signed integers (int8/16/32/64) must be non-negative
 // - Floating point (float32/64) must be in the [0, math.MaxUint64] range
-func (c *Core) GetUint(ctx context.Context, key string) (uint, error) {
+func (c *cache) GetUint(ctx context.Context, key string) (uint, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
 		return 0, err
@@ -415,7 +427,7 @@ func (c *Core) GetUint(ctx context.Context, key string) (uint, error) {
 // Supported type conversions:
 // - All integers (int/uint series) and floating point
 // - Other types return ErrTypeMismatch
-func (c *Core) GetFloat(ctx context.Context, key string) (float64, error) {
+func (c *cache) GetFloat(ctx context.Context, key string) (float64, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
 		return 0, err
@@ -445,7 +457,7 @@ func (c *Core) GetFloat(ctx context.Context, key string) (float64, error) {
 //
 // Note:
 // - Only supports native bool type, does not support string/number to bool conversion
-func (c *Core) GetBool(ctx context.Context, key string) (bool, error) {
+func (c *cache) GetBool(ctx context.Context, key string) (bool, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
 		return false, err
@@ -467,7 +479,7 @@ func (c *Core) GetBool(ctx context.Context, key string) (bool, error) {
 //
 // Note:
 // - Only supports native string type, does not support automatic type conversion
-func (c *Core) GetString(ctx context.Context, key string) (string, error) {
+func (c *cache) GetString(ctx context.Context, key string) (string, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
 		return "", err
@@ -481,7 +493,7 @@ func (c *Core) GetString(ctx context.Context, key string) (string, error) {
 
 // Delete removes an entry from the cache regardless of its expiration status
 // It returns no error if the key doesn't exist
-func (c *Core) Delete(ctx context.Context, key string) error {
+func (c *cache) Delete(ctx context.Context, key string) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -493,7 +505,7 @@ func (c *Core) Delete(ctx context.Context, key string) error {
 
 		// Record to AOF
 		if c.aof != nil {
-			if err := c.aof.Store(ctx, cache.DELETE, key); err != nil {
+			if err := c.aof.Store(ctx, common.DELETE, key); err != nil {
 				return fmt.Errorf("failed to store in AOF: %w", err)
 			}
 		}
@@ -505,7 +517,7 @@ func (c *Core) Delete(ctx context.Context, key string) error {
 // Cleanup removes all expired entries from the cache
 // This operation blocks all read/write operations while running
 // It's recommended to run this during low-traffic periods
-func (c *Core) Cleanup() {
+func (c *cache) Cleanup() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -519,7 +531,7 @@ func (c *Core) Cleanup() {
 	// Record to AOF
 	if c.aof != nil {
 		// Use background context because this is internal call
-		if err := c.aof.Store(context.Background(), cache.CLEANUP); err != nil {
+		if err := c.aof.Store(context.Background(), common.CLEANUP); err != nil {
 			// Only log, does not affect cleanup operation
 			logger.Error("failed to store cleanup in AOF: %v", err)
 		}
@@ -527,7 +539,7 @@ func (c *Core) Cleanup() {
 }
 
 // CleanAll removes all entries from the cache regardless of expiration status
-func (c *Core) CleanAll() {
+func (c *cache) CleanAll() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
