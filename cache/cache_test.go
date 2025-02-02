@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	config.LoadConfig("../resources/config/test/Cache-config.yaml")
+	config.LoadConfig()
 	_ = logger.InitLogger(context.Background())
 }
 

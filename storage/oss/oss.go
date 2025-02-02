@@ -19,17 +19,17 @@ const (
 func GenOssSavePath(name string, fileType string) string {
 	switch fileType {
 	case MarkDown:
-		return fmt.Sprintf("%s%s.md", config.UserConfig.BlogOssPath, name)
+		return fmt.Sprintf("%s%s.md", config.User.BlogOssPath, name)
 	case HTML:
-		return fmt.Sprintf("%s%s.html", config.UserConfig.BlogOssPath, name)
+		return fmt.Sprintf("%s%s.html", config.User.BlogOssPath, name)
 	case Webp:
-		return fmt.Sprintf("%s%s.webp", config.UserConfig.ImageOssPath, name)
+		return fmt.Sprintf("%s%s.webp", config.User.ImageOssPath, name)
 	case JPG:
-		return fmt.Sprintf("%s%s.jpg", config.UserConfig.ImageOssPath, name)
+		return fmt.Sprintf("%s%s.jpg", config.User.ImageOssPath, name)
 	case JPEG:
-		return fmt.Sprintf("%s%s.jpeg", config.UserConfig.ImageOssPath, name)
+		return fmt.Sprintf("%s%s.jpeg", config.User.ImageOssPath, name)
 	case PNG:
-		return fmt.Sprintf("%s%s.png", config.UserConfig.ImageOssPath, name)
+		return fmt.Sprintf("%s%s.png", config.User.ImageOssPath, name)
 	default:
 		logger.Error("不存在该文件类型")
 		return ""

@@ -128,7 +128,7 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (*vo.ImgInfosVo
 					// 转换失败则需要根据不同的 Err Code 进行操作
 					switch webpErr.Code {
 					case webp.ConvertError | webp.UploadError:
-						// 转换失败和上传失败，数据还是存在于 OSS 中，数据库则保存原来格式
+						// 转换失败和上传失败，数据还是存在于 Oss 中，数据库则保存原来格式
 						imgPo.ImgType = data.ImgDto.ImgType
 						imgPos = append(imgPos, imgPo)
 						// 但还是要把转换失败的放入失败列表
@@ -139,7 +139,7 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (*vo.ImgInfosVo
 						})
 					default:
 						// 其他错误，包括下载失败和删除失败，直接返回
-						// TODO: 这里有个问题，删除失败的话，OSS 中会同时存在原格式以及 webp 格式的图片，以后再添加功能自动扫描
+						// TODO: 这里有个问题，删除失败的话，Oss 中会同时存在原格式以及 webp 格式的图片，以后再添加功能自动扫描
 						failImgsVo = append(failImgsVo, vo.ImgInfoVo{
 							ImgName: data.ImgDto.ImgName,
 							Err:     data.Err.Error(),
@@ -184,7 +184,7 @@ func DeleteImgs(ctx context.Context, imgIds []string) (*vo.ImgInfosVo, error) {
 	// 等待批量删除的 id
 	var deleteIds []string
 
-	// 遍历 imgIds，获取到图片名称，将 OSS 中的图片删除掉
+	// 遍历 imgIds，获取到图片名称，将 Oss 中的图片删除掉
 	for _, imgId := range imgIds {
 		// 根据 id 查询图片信息
 		imgPo, err := imgInfoRepo.FindImgById(ctx, imgId)
@@ -199,15 +199,15 @@ func DeleteImgs(ctx context.Context, imgIds []string) (*vo.ImgInfosVo, error) {
 
 		// 找到了，则执行删除操作
 		if imgPo != nil {
-			// 从 OSS 中删除该图片
+			// 从 Oss 中删除该图片
 			ossPath := oss.GenOssSavePath(imgPo.ImgName, imgPo.ImgType)
 			err = storage.Storage.DeleteObject(ctx, ossPath)
 
-			if err != nil { // OSS 删除失败
+			if err != nil { // Oss 删除失败
 				failImgsVo = append(failImgsVo, vo.ImgInfoVo{
 					ImgId: imgId,
 				})
-			} else { // OSS 删除成功，则将 id 添加到待删除的数组中
+			} else { // Oss 删除成功，则将 id 添加到待删除的数组中
 				successImgsVo = append(successImgsVo, vo.ImgInfoVo{
 					ImgId:   imgId,
 					ImgName: imgPo.ImgName,
@@ -248,19 +248,19 @@ func RenameImgs(ctx context.Context, imgId string, newName string) (*vo.ImgInfoV
 		return nil, err
 	}
 
-	// 更新 OSS 中的图片名称
+	// 更新 Oss 中的图片名称
 	if imgPo != nil {
-		// 生成新的 OSS 路径
+		// 生成新的 Oss 路径
 		newOssPath := oss.GenOssSavePath(newName, imgPo.ImgType)
-		// 生成旧的 OSS 路径
+		// 生成旧的 Oss 路径
 		oldOssPath := oss.GenOssSavePath(imgPo.ImgName, imgPo.ImgType)
-		// 重命名 OSS 中的图片
+		// 重命名 Oss 中的图片
 		err = storage.Storage.RenameObject(ctx, oldOssPath, newOssPath)
 	} else {
 		return nil, errors.New("图片不存在")
 	}
 
-	// OSS 重命名失败
+	// Oss 重命名失败
 	if err != nil {
 		return nil, err
 	}

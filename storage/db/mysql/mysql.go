@@ -18,10 +18,10 @@ func createDatabase(dbName string) error {
 		"mysql",
 		fmt.Sprintf(
 			"%s:%s@tcp(%s:%d)/?charset=utf8mb4&parseTime=true&loc=Asia%%2FShanghai",
-			config.MySQLConfig.User,     // MySQL 用户名
-			config.MySQLConfig.Password, // MySQL 密码
-			config.MySQLConfig.Host,     // MySQL 服务器地址
-			config.MySQLConfig.Port,     // MySQL 服务器端口
+			config.MySQL.User,     // MySQL 用户名
+			config.MySQL.Password, // MySQL 密码
+			config.MySQL.Host,     // MySQL 服务器地址
+			config.MySQL.Port,     // MySQL 服务器端口
 		),
 	)
 	if err != nil {
@@ -49,7 +49,7 @@ func ConnectMysql(ctx context.Context) (*gorm.DB, error) {
 
 	// 创建数据库
 	logger.Info("准备创建数据库")
-	err := createDatabase(config.MySQLConfig.DB)
+	err := createDatabase(config.MySQL.DB)
 	if err != nil {
 		logger.Panic("数据库创建失败: %v", err)
 	}
@@ -59,11 +59,11 @@ func ConnectMysql(ctx context.Context) (*gorm.DB, error) {
 	// 构建 DSN (Data Source Name) 字符串，用于连接 MySQL 数据库
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=true&loc=Asia%%2FShanghai",
-		config.MySQLConfig.User,     // MySQL 用户名
-		config.MySQLConfig.Password, // MySQL 密码
-		config.MySQLConfig.Host,     // MySQL 服务器地址
-		config.MySQLConfig.Port,     // MySQL 服务器端口
-		config.MySQLConfig.DB,       // 数据库名称
+		config.MySQL.User,     // MySQL 用户名
+		config.MySQL.Password, // MySQL 密码
+		config.MySQL.Host,     // MySQL 服务器地址
+		config.MySQL.Port,     // MySQL 服务器端口
+		config.MySQL.DB,       // 数据库名称
 	)
 
 	// 使用 GORM 打开 MySQL 数据库连接

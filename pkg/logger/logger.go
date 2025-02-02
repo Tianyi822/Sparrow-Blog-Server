@@ -37,7 +37,7 @@ func GetLogger() *zap.SugaredLogger {
 
 // initLogger 实际的初始化逻辑
 func initLogger() error {
-	loggerConf := config.LoggerConfig
+	loggerConf := config.Logger
 	if loggerConf == nil {
 		return fmt.Errorf("logger config is nil")
 	}

@@ -14,7 +14,7 @@ import (
 
 func init() {
 	// 加载配置文件
-	config.LoadConfig("../../resources/config/test/pkg-config.yaml")
+	config.LoadConfig()
 	// 初始化 Logger 组件
 	err := logger.InitLogger(context.Background())
 	if err != nil {
@@ -30,7 +30,7 @@ func TestConverter(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	files, err := storage.Storage.ListOssDirFiles(ctx, config.UserConfig.ImageOssPath)
+	files, err := storage.Storage.ListOssDirFiles(ctx, config.User.ImageOssPath)
 	if err != nil {
 		t.Fatal(err)
 	}

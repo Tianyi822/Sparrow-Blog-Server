@@ -69,7 +69,7 @@ func NewCache(ctx context.Context) (*Cache, error) {
 	}
 
 	// Enable AOF if configured
-	if config.CacheConfig.Aof.Enable {
+	if config.Cache.Aof.Enable {
 		c.aof = aof.NewAof()
 		// Load data from AOF file
 		if err := c.loadAof(ctx); err != nil {

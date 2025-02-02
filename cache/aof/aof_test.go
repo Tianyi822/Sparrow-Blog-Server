@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	config.LoadConfig("../../resources/config/test/aof-config.yaml")
+	config.LoadConfig()
 	_ = logger.InitLogger(context.Background())
 }
 
@@ -144,7 +144,7 @@ func TestAof_LoadFile(t *testing.T) {
 
 func TestAOFWriteAndLoad(t *testing.T) {
 	// Initialize AOF with test configuration
-	config.CacheConfig.Aof.MaxSize = 10 // Set to 10MB for testing
+	config.Cache.Aof.MaxSize = 10 // Set to 10MB for testing
 	aof := NewAof()
 	ctx := context.Background()
 

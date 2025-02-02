@@ -15,7 +15,7 @@ import (
 
 func init() {
 	// 加载配置文件
-	config.LoadConfig("../../../resources/config/test/service-config.yaml")
+	config.LoadConfig()
 	// 初始化 Logger 组件
 	err := logger.InitLogger(context.Background())
 	if err != nil {
@@ -31,7 +31,7 @@ func TestConvertAndAddImg(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	files, err := storage.Storage.ListOssDirFiles(ctx, config.UserConfig.ImageOssPath)
+	files, err := storage.Storage.ListOssDirFiles(ctx, config.User.ImageOssPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestDeleteImgs(t *testing.T) {
 	defer cancel()
 
 	// First add some test images to have something to delete
-	files, err := storage.Storage.ListOssDirFiles(ctx, config.UserConfig.ImageOssPath)
+	files, err := storage.Storage.ListOssDirFiles(ctx, config.User.ImageOssPath)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -11,7 +11,7 @@ import (
 
 func init() {
 	// 加载配置文件
-	config.LoadConfig("../../resources/config/test/pkg-config.yaml")
+	config.LoadConfig()
 	// 初始化 Logger 组件
 	err := logger.InitLogger(context.Background())
 	if err != nil {

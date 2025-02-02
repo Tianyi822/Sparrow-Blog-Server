@@ -44,7 +44,7 @@ func InitStorage(ctx context.Context) error {
 			}
 			Storage.Db = db
 
-			// TODO: 同样，对象存储桶也可以用其他的，现在先写死用阿里云 OSS
+			// TODO: 同样，对象存储桶也可以用其他的，现在先写死用阿里云 Oss
 			logger.Info("配置对象存储")
 			client, err := aliyun.ConnectOss(ctx)
 			if err != nil {
@@ -74,8 +74,8 @@ func InitStorage(ctx context.Context) error {
 func (s *storage) DeleteObject(ctx context.Context, oldName string) error {
 	// 构建删除对象的请求
 	deleteRequest := &oss.DeleteObjectRequest{
-		Bucket: oss.Ptr(config.OSSConfig.Bucket), // 存储空间名称
-		Key:    oss.Ptr(oldName),                 // 要删除的对象名称
+		Bucket: oss.Ptr(config.Oss.Bucket), // 存储空间名称
+		Key:    oss.Ptr(oldName),           // 要删除的对象名称
 	}
 	// 执行删除对象的操作
 	deleteResult, err := s.OssClient.DeleteObject(ctx, deleteRequest)
@@ -99,11 +99,11 @@ func (s *storage) RenameObject(ctx context.Context, oldPath, newPath string) err
 
 	// 构建拷贝对象的请求
 	copyRequest := &oss.CopyObjectRequest{
-		Bucket:       oss.Ptr(config.OSSConfig.Bucket), // 目标存储空间名称
-		Key:          oss.Ptr(newPath),                 // 目标对象名称
-		SourceBucket: oss.Ptr(config.OSSConfig.Bucket), // 源存储空间名称
-		SourceKey:    oss.Ptr(oldPath),                 // 源对象名称
-		StorageClass: oss.StorageClassStandard,         // 指定存储类型为归档类型
+		Bucket:       oss.Ptr(config.Oss.Bucket), // 目标存储空间名称
+		Key:          oss.Ptr(newPath),           // 目标对象名称
+		SourceBucket: oss.Ptr(config.Oss.Bucket), // 源存储空间名称
+		SourceKey:    oss.Ptr(oldPath),           // 源对象名称
+		StorageClass: oss.StorageClassStandard,   // 指定存储类型为归档类型
 	}
 	// 执行拷贝对象的操作
 	result, err := c.Copy(ctx, copyRequest)
@@ -117,8 +117,8 @@ func (s *storage) RenameObject(ctx context.Context, oldPath, newPath string) err
 
 	// 构建删除对象的请求
 	deleteRequest := &oss.DeleteObjectRequest{
-		Bucket: oss.Ptr(config.OSSConfig.Bucket), // 存储空间名称
-		Key:    oss.Ptr(oldPath),                 // 要删除的对象名称
+		Bucket: oss.Ptr(config.Oss.Bucket), // 存储空间名称
+		Key:    oss.Ptr(oldPath),           // 要删除的对象名称
 	}
 	// 执行删除对象的操作
 	deleteResult, err := s.OssClient.DeleteObject(ctx, deleteRequest)
@@ -141,9 +141,9 @@ func (s *storage) PutContentToOss(ctx context.Context, content []byte, objectNam
 
 	// 创建上传器
 	request := &oss.PutObjectRequest{
-		Bucket: oss.Ptr(config.OSSConfig.Bucket), // 指定上传的 Bucket 名称，使用 config 中的配置
-		Key:    oss.Ptr(objectName),              // 指定上传的对象名称
-		Body:   bytes.NewReader(content),         // 将内容转换为 Reader，作为上传的内容
+		Bucket: oss.Ptr(config.Oss.Bucket), // 指定上传的 Bucket 名称，使用 config 中的配置
+		Key:    oss.Ptr(objectName),        // 指定上传的对象名称
+		Body:   bytes.NewReader(content),   // 将内容转换为 Reader，作为上传的内容
 	}
 
 	// 使用上下文 ctx 开启上传请求
@@ -169,8 +169,8 @@ func (s *storage) PutContentToOss(ctx context.Context, content []byte, objectNam
 func (s *storage) GetContentFromOss(ctx context.Context, objectName string) ([]byte, error) {
 	// 使用上下文 ctx 开启上传请求
 	result, err := s.OssClient.GetObject(ctx, &oss.GetObjectRequest{
-		Bucket: oss.Ptr(config.OSSConfig.Bucket), // 指定下载的 Bucket 名称，使用 config 中的配置
-		Key:    oss.Ptr(objectName),              // 指定下载的对象名称
+		Bucket: oss.Ptr(config.Oss.Bucket), // 指定下载的 Bucket 名称，使用 config 中的配置
+		Key:    oss.Ptr(objectName),        // 指定下载的对象名称
 	})
 	if err != nil {
 		msg := fmt.Sprintf("获取 (%v) 文件失败 %v", objectName, err)
@@ -198,7 +198,7 @@ func (s *storage) GetContentFromOss(ctx context.Context, objectName string) ([]b
 func (s *storage) ListOssDirFiles(ctx context.Context, dir string) ([]string, error) {
 	// 创建列出对象的请求
 	request := &oss.ListObjectsV2Request{
-		Bucket: oss.Ptr(config.OSSConfig.Bucket),
+		Bucket: oss.Ptr(config.Oss.Bucket),
 		Prefix: oss.Ptr(dir), // 列举指定目录下的所有对象
 	}
 

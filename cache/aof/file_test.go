@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	config.LoadConfig("../../resources/config/test/aof-config.yaml")
+	config.LoadConfig()
 	_ = logger.InitLogger(context.Background())
 }
 

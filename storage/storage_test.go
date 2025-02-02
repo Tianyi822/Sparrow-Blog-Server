@@ -10,7 +10,7 @@ import (
 
 func init() {
 	// 加载配置文件
-	config.LoadConfig("../resources/config/test/storage-config.yaml")
+	config.LoadConfig()
 	// 初始化 Logger 组件
 	err := logger.InitLogger(context.Background())
 	if err != nil {
@@ -31,7 +31,7 @@ func TestStorage_GetContentFromOss(t *testing.T) {
 
 func TestStorage_ListOssDirFiles(t *testing.T) {
 	ctx := context.Background()
-	files, err := Storage.ListOssDirFiles(ctx, config.UserConfig.ImageOssPath)
+	files, err := Storage.ListOssDirFiles(ctx, config.User.ImageOssPath)
 	if err != nil {
 		fmt.Printf("获取文件列表失败: %v", err)
 	}

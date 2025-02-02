@@ -21,8 +21,6 @@ import (
 
 // loadComponent 加载基础组件
 func loadComponent(ctx context.Context) {
-	// 从指定路径加载配置信息
-	config.LoadConfig("resources/config/test/web-config.yaml")
 	// 初始化日志组件
 	err := logger.InitLogger(ctx)
 	if err != nil {
@@ -57,7 +55,7 @@ func runServer() *http.Server {
 	logger.Info("路由配置完成")
 
 	logger.Info("启动服务中")
-	port := fmt.Sprintf(":%v", config.ServerConfig.Port)
+	port := fmt.Sprintf(":%v", config.Server.Port)
 	srv := &http.Server{
 		Addr:    port,
 		Handler: r,
@@ -108,6 +106,10 @@ func listenSysSignal(srv *http.Server) {
 }
 
 func main() {
+	// Load config data from file or terminal, and set it to global variable
+	// Consider it may take a long time, so I put it here without control by context
+	config.LoadConfig()
+
 	// 加载基础组件
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()

@@ -38,24 +38,24 @@ type FileOp struct {
 // The actual file is not opened until the first write operation.
 func CreateFileOp() (*FileOp, error) {
 	// Validate required configuration
-	if config.CacheConfig.Aof.Path == "" {
+	if config.Cache.Aof.Path == "" {
 		return nil, fmt.Errorf("file path cannot be empty")
 	}
-	if config.CacheConfig.Aof.MaxSize < 0 {
+	if config.Cache.Aof.MaxSize < 0 {
 		return nil, fmt.Errorf("max size cannot be negative")
 	}
 
 	// Split the file path into components
-	baseName := filepath.Base(config.CacheConfig.Aof.Path)
+	baseName := filepath.Base(config.Cache.Aof.Path)
 	ext := filepath.Ext(baseName)
 	prefix := strings.TrimSuffix(baseName, ext)
 
 	return &FileOp{
 		filePrefixName: prefix,
 		fileSuffixName: strings.TrimPrefix(ext, "."),
-		path:           config.CacheConfig.Aof.Path,
-		needCompress:   config.CacheConfig.Aof.Compress,
-		maxSize:        config.CacheConfig.Aof.MaxSize,
+		path:           config.Cache.Aof.Path,
+		needCompress:   config.Cache.Aof.Compress,
+		maxSize:        config.Cache.Aof.MaxSize,
 	}, nil
 }
 

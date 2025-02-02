@@ -83,46 +83,46 @@ func testInstance(t *testing.T, testData struct {
 		}()
 	}
 
-	LoadConfig(testData.configFile)
+	LoadConfig()
 }
 
 func TestMySQLConfig(t *testing.T) {
-	LoadConfig("../../resources/config/test/storage-config.yaml")
-	if MySQLConfig.User != "root" {
-		t.Errorf("MySQLConfig.User should be 'root', but got %s", MySQLConfig.User)
+	LoadConfig()
+	if MySQL.User != "root" {
+		t.Errorf("MySQL.User should be 'root', but got %s", MySQL.User)
 	}
-	fmt.Println(MySQLConfig)
+	fmt.Println(MySQL)
 }
 
 func TestServerConfig(t *testing.T) {
-	LoadConfig("../../resources/config/test/web-config.yaml")
-	if ServerConfig.Port != 2233 {
-		t.Errorf("ServerConfig.Port should be 8080, but got %d", ServerConfig.Port)
+	LoadConfig()
+	if Server.Port != 2233 {
+		t.Errorf("Server.Port should be 8080, but got %d", Server.Port)
 	}
-	fmt.Println(ServerConfig)
+	fmt.Println(Server)
 }
 
 func TestOssConfig(t *testing.T) {
-	LoadConfig("../../resources/config/test/storage-config.yaml")
-	if OSSConfig.Region != "cn-guangzhou" {
-		t.Errorf("OSSConfig.Region should be 'cn-guangzhou', but got %s", OSSConfig.Region)
+	LoadConfig()
+	if Oss.Region != "cn-guangzhou" {
+		t.Errorf("Oss.Region should be 'cn-guangzhou', but got %s", Oss.Region)
 	}
-	fmt.Println(OSSConfig)
+	fmt.Println(Oss)
 }
 
 func TestUserConfig(t *testing.T) {
-	LoadConfig("../../resources/config/test/web-config.yaml")
-	if UserConfig.Username != "chentyit" {
-		t.Errorf("UserConfig.Username should be 'chentyit', but got %s", UserConfig.Username)
+	LoadConfig()
+	if User.Username != "chentyit" {
+		t.Errorf("User.Username should be 'chentyit', but got %s", User.Username)
 	}
 	// 结构化输出
-	fmt.Println(UserConfig)
+	fmt.Println(User)
 }
 
 func TestCacheConfig(t *testing.T) {
-	LoadConfig("../../resources/config/test/cache-config.yaml")
-	if CacheConfig.Aof.MaxSize != 3 {
-		t.Errorf("CacheConfig.Aof.MaxSize should be 3, but got %d", CacheConfig.Aof.MaxSize)
+	LoadConfig()
+	if Cache.Aof.MaxSize != 3 {
+		t.Errorf("Cache.Aof.MaxSize should be 3, but got %d", Cache.Aof.MaxSize)
 	}
-	fmt.Println(CacheConfig)
+	fmt.Println(Cache)
 }
