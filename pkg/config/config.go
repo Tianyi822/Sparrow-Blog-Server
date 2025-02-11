@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"h2blog/pkg/fileTool"
+	"h2blog/pkg/utils"
 	"net"
 	"os"
 	"os/user"
@@ -46,9 +47,8 @@ type WebPConfig struct {
 type ServerConfigData struct {
 	Port                uint16         `yaml:"port"`                  // Server port number
 	TokenKey            string         `yaml:"token_key"`             // JWT signing and verification key
-	TokenExpireDuration int            `yaml:"token_expire_duration"` // Token expiration in days
+	TokenExpireDuration uint16         `yaml:"token_expire_duration"` // Token expiration in days
 	Cors                CorsConfigData `yaml:"cors"`                  // CORS configuration
-	ResourcesPath       string         `yaml:"resources_path"`        // Resources file path
 }
 
 // CorsConfigData defines Cross-Origin Resource Sharing configuration
@@ -62,9 +62,9 @@ type CorsConfigData struct {
 type LoggerConfigData struct {
 	Level      string `yaml:"level"`       // Logging level
 	Path       string `yaml:"path"`        // Log file path
-	MaxAge     int    `yaml:"max_age"`     // Maximum days to retain log files
-	MaxSize    int    `yaml:"max_size"`    // Maximum size of log files in MB
-	MaxBackups int    `yaml:"max_backups"` // Maximum number of log backups
+	MaxAge     uint16 `yaml:"max_age"`     // Maximum days to retain log files
+	MaxSize    uint16 `yaml:"max_size"`    // Maximum size of log files in MB
+	MaxBackups uint16 `yaml:"max_backups"` // Maximum number of log backups
 	Compress   bool   `yaml:"compress"`    // Whether to compress log files
 }
 
@@ -75,8 +75,8 @@ type MySQLConfigData struct {
 	Host     string `yaml:"host"`     // Database host address
 	Port     uint16 `yaml:"port"`     // Database port number
 	DB       string `yaml:"database"` // Database name
-	MaxOpen  int    `yaml:"max_open"` // Maximum open connections
-	MaxIdle  int    `yaml:"max_idle"` // Maximum idle connections
+	MaxOpen  uint16 `yaml:"max_open"` // Maximum open connections
+	MaxIdle  uint16 `yaml:"max_idle"` // Maximum idle connections
 }
 
 // OssConfig defines Object Storage Service configuration
@@ -97,7 +97,7 @@ type CacheConfig struct {
 type AofConfig struct {
 	Enable   bool   `yaml:"enable"`   // Whether to enable AOF persistence
 	Path     string `yaml:"path"`     // AOF file path
-	MaxSize  int    `yaml:"max_size"` // Maximum AOF file size in MB
+	MaxSize  uint16 `yaml:"max_size"` // Maximum AOF file size in MB
 	Compress bool   `yaml:"compress"` // Whether to compress AOF files
 }
 
@@ -247,73 +247,58 @@ func loadConfigFromTerminal() error {
 			AvatarOssPath: "avatars/",
 			BlogOssPath:   "blogs/",
 			WebP: WebPConfig{
-				Enable:  getBoolInput("Enable WebP conversion? (y/n): "),
-				Quality: getFloatInput("WebP quality (1-100): ", 1, 100),
-				Size:    getFloatInput("Maximum WebP size in MB: ", 0.1, 10),
+				Enable:  getBoolInput("Enable WebP conversion? (y/n) (press Enter for default yes): ", true),
+				Quality: getFloatInput("WebP quality (1-100) (press Enter for default 75): ", 1, 100, "75"),
+				Size:    getFloatInput("Maximum WebP size in MB (press Enter for default 1): ", 0.1, 10, "1"),
 			},
 		},
 
 		Server: ServerConfigData{
 			Port: func() uint16 {
 				for {
-					port := getInput("Server port (press Enter to use default '2233'): ")
-					if port == "" {
-						// Check if default port is available
-						if err := checkPortAvailable(2233); err != nil {
-							fmt.Printf("Default port 2233 is not available. Please specify a different port.\n")
-							continue
-						}
-						return 2233
-					}
-
-					val, err := strconv.ParseUint(port, 10, 16)
-					if err != nil || val < 1 || val > 65535 {
-						fmt.Println("Invalid port number. Please enter a number between 1 and 65535")
-						continue
-					}
+					port := getUint16Input("Server port (press Enter to use default '2233'): ", 0, 65535, "2233")
 
 					// Check if the specified port is available
-					if err := checkPortAvailable(uint16(val)); err != nil {
-						fmt.Printf("Port %d is not available. Please choose a different port.\n", val)
+					if err := checkPortAvailable(port); err != nil {
+						fmt.Printf("Port %d is not available. Please choose a different port.\n", port)
 						continue
 					}
 
-					return uint16(val)
+					return port
 				}
 			}(),
-			TokenKey:            getInput("JWT token key: "),
-			TokenExpireDuration: getIntInput("Token expiration in days: ", 1, 365),
+			TokenKey:            getInput("JWT token key (press Enter for generating random string as token key): ", utils.GenRandomString(32)),
+			TokenExpireDuration: getUint16Input("Token expiration in days (press Enter for default 1 day): ", 1, 365, "1"),
 			Cors: CorsConfigData{
 				Origins: []string{"*"}, // Default values
 				Headers: []string{"Content-Type", "Authorization"},
 				Methods: []string{"GET", "POST", "PUT", "DELETE"},
 			},
-			ResourcesPath: "resources/", // Default value
 		},
 
 		Logger: LoggerConfigData{
 			Level: "info",
 			Path: func() string {
-				path := getInput(fmt.Sprintf("Log file path (press Enter to use default '%s'): ", defaultLogPath))
-				if path == "" {
+				p := getInput(fmt.Sprintf("Log file path (press Enter to use default '%s'): ", defaultLogPath))
+				if p == "" {
 					return defaultLogPath
 				}
-				return path
+				return p
 			}(),
-			MaxAge:     getIntInput("Log max age in days: ", 1, 365),
-			MaxSize:    getIntInputWithDefault("Log max size in MB (press Enter for default 100): ", 100, 1, 1000),
-			MaxBackups: getIntInput("Max log backups: ", 1, 100),
-			Compress:   getBoolInput("Compress logs? (y/n): "),
+			MaxAge:     getUint16Input("Log max age in days (press Enter for default 1 day): ", 1, 365, "1"),
+			MaxSize:    getUint16Input("Log max size in MB (press Enter for default 1): ", 1, 100, "1"),
+			MaxBackups: getUint16Input("Max log backups (press Enter for default 10): ", 1, 100, "10"),
+			Compress:   getBoolInput("Compress logs? (y/n) (press Enter for default yes): ", true),
 		},
 
 		MySQL: MySQLConfigData{
 			User:     getInput("MySQL username: "),
 			Password: getInput("MySQL password: "),
 			Host:     getInput("MySQL host: "),
-			Port:     getUint16Input("MySQL port: ", 1, 65535),
+			Port:     getUint16Input("MySQL port (1-65535): ", 1, 65535),
 			DB:       getInput("MySQL database name: "),
-			MaxOpen:  getIntInput("Max open connections: ", 1, 1000),
-			MaxIdle:  getIntInput("Max idle connections: ", 1, 100),
+			MaxOpen:  getUint16Input("Max open connections (1-1000) (press Enter for default 10): ", 1, 1000, "10"),
+			MaxIdle:  getUint16Input("Max idle connections (1-100) (press Enter for default 10): ", 1, 100, "10"),
 		},
 
 		Oss: OssConfig{
@@ -344,8 +329,8 @@ func loadConfigFromTerminal() error {
 				return AofConfig{
 					Enable:   true,
 					Path:     aofPath,
-					MaxSize:  getIntInputWithDefault("AOF max size in MB (press Enter for default 100): ", 100, 1, 1000),
-					Compress: getBoolInput("Compress AOF files? (y/n): "),
+					MaxSize:  getUint16Input("AOF max size in MB (press Enter for default 1): ", 1, 10, "1"),
+					Compress: getBoolInput("Compress AOF files? (y/n) (press Enter for default yes): ", true),
 				}
 			}(),
 		},
@@ -383,7 +368,7 @@ func loadConfigFromTerminal() error {
 // Helper functions for getting user input
 
 // getInput prompts for user input and ensures non-empty response
-func getInput(prompt string) string {
+func getInput(prompt string, defaultValue ...string) string {
 	for {
 		fmt.Print(prompt)
 		var input string
@@ -403,12 +388,18 @@ func getInput(prompt string) string {
 		if input != "" {
 			return input
 		}
+
+		// If no input is provided and a default value is provided, use the default value
+		if input == "" && len(defaultValue) > 0 {
+			return defaultValue[0]
+		}
+
 		fmt.Println("Input cannot be empty. Please try again.")
 	}
 }
 
 // getBoolInput prompts for a yes/no response and returns true for yes
-func getBoolInput(prompt string) bool {
+func getBoolInput(prompt string, defaultValue ...bool) bool {
 	for {
 		input := strings.ToLower(getInput(prompt))
 		if input == "y" || input == "yes" {
@@ -417,26 +408,18 @@ func getBoolInput(prompt string) bool {
 		if input == "n" || input == "no" {
 			return false
 		}
+
+		if len(defaultValue) > 0 {
+			return defaultValue[0]
+		}
 		fmt.Println("Please enter 'y' or 'n'")
 	}
 }
 
-// getIntInput prompts for an integer within the specified range
-func getIntInput(prompt string, min, max int) int {
-	for {
-		input := getInput(prompt)
-		val, err := strconv.Atoi(input)
-		if err == nil && val >= min && val <= max {
-			return val
-		}
-		fmt.Printf("Please enter a number between %d and %d\n", min, max)
-	}
-}
-
 // getUint16Input prompts for a uint16 within the specified range
-func getUint16Input(prompt string, min, max uint16) uint16 {
+func getUint16Input(prompt string, min, max uint16, defaultValue ...string) uint16 {
 	for {
-		input := getInput(prompt)
+		input := getInput(prompt, defaultValue...)
 		val, err := strconv.ParseUint(input, 10, 16)
 		if err == nil && val >= uint64(min) && val <= uint64(max) {
 			return uint16(val)
@@ -446,30 +429,14 @@ func getUint16Input(prompt string, min, max uint16) uint16 {
 }
 
 // getFloatInput prompts for a float32 within the specified range
-func getFloatInput(prompt string, min, max float32) float32 {
+func getFloatInput(prompt string, min, max float32, defaultValue ...string) float32 {
 	for {
-		input := getInput(prompt)
+		input := getInput(prompt, defaultValue...)
+
 		val, err := strconv.ParseFloat(input, 32)
 		if err == nil && float32(val) >= min && float32(val) <= max {
 			return float32(val)
 		}
 		fmt.Printf("Please enter a number between %.1f and %.1f\n", min, max)
-	}
-}
-
-// getIntInputWithDefault prompts for an integer with a default value
-// If user presses Enter, returns the default value
-func getIntInputWithDefault(prompt string, defaultVal, min, max int) int {
-	for {
-		input := getInput(prompt)
-		if input == "" {
-			return defaultVal
-		}
-		val, err := strconv.Atoi(input)
-		if err == nil && val >= min && val <= max {
-			return val
-		}
-		fmt.Printf("Please enter a number between %d and %d or press Enter for default (%d)\n",
-			min, max, defaultVal)
 	}
 }
