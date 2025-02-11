@@ -68,7 +68,11 @@ func AddH2BlogInfo(ctx *gin.Context, blogInfoDto *dto.BlogInfoDto) (int64, error
 	// 将博客信息保存到数据库中
 	logger.Info("准备保存博客信息")
 	// 先查询是否有该数据
-	blogId := utils.GenId(blogInfoDto.Title)
+	blogId, err := utils.GenId(blogInfoDto.Title)
+	if err != nil {
+		return 0, err
+	}
+
 	blogInfoPo, err := blogInfoRepo.FindBlogById(ctx, blogId)
 	// 根据错误情况决定是添加一条新的博客信息还是更新已有的博客信息
 	if err != nil {

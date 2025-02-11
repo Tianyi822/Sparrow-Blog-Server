@@ -105,7 +105,11 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (*vo.ImgInfosVo
 			if ok { // 通道未关闭
 
 				// 生成 ID
-				imgId := utils.GenId(data.ImgDto.ImgName)
+				imgId, err := utils.GenId(data.ImgDto.ImgName)
+				if err != nil {
+					continue
+				}
+
 				imgPo := po.ImgInfo{
 					ImgId:   imgId,
 					ImgName: data.ImgDto.ImgName,
