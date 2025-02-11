@@ -252,6 +252,7 @@ func loadConfigFromTerminal() error {
 				Size:    getFloatInput("Maximum WebP size in MB: ", 0.1, 10),
 			},
 		},
+
 		Server: ServerConfigData{
 			Port: func() uint16 {
 				for {
@@ -289,6 +290,7 @@ func loadConfigFromTerminal() error {
 			},
 			ResourcesPath: "resources/", // Default value
 		},
+
 		Logger: LoggerConfigData{
 			Level: "info",
 			Path: func() string {
@@ -299,10 +301,11 @@ func loadConfigFromTerminal() error {
 				return path
 			}(),
 			MaxAge:     getIntInput("Log max age in days: ", 1, 365),
-			MaxSize:    getIntInput("Log max size in MB: ", 1, 1000),
+			MaxSize:    getIntInputWithDefault("Log max size in MB (press Enter for default 100): ", 100, 1, 1000),
 			MaxBackups: getIntInput("Max log backups: ", 1, 100),
 			Compress:   getBoolInput("Compress logs? (y/n): "),
 		},
+
 		MySQL: MySQLConfigData{
 			User:     getInput("MySQL username: "),
 			Password: getInput("MySQL password: "),
@@ -312,6 +315,7 @@ func loadConfigFromTerminal() error {
 			MaxOpen:  getIntInput("Max open connections: ", 1, 1000),
 			MaxIdle:  getIntInput("Max idle connections: ", 1, 100),
 		},
+
 		Oss: OssConfig{
 			Endpoint:        getInput("OSS endpoint: "),
 			Region:          getInput("OSS region: "),
@@ -319,19 +323,31 @@ func loadConfigFromTerminal() error {
 			AccessKeySecret: getInput("OSS access key secret: "),
 			Bucket:          getInput("OSS bucket name: "),
 		},
+
 		Cache: CacheConfig{
-			Aof: AofConfig{
-				Enable: getBoolInput("Enable AOF persistence? (y/n): "),
-				Path: func() string {
-					path := getInput(fmt.Sprintf("AOF file path (press Enter to use default '%s'): ", defaultAofPath))
-					if path == "" {
-						return defaultAofPath
+			Aof: func() AofConfig {
+				// Default to enabled
+				fmt.Print("AOF persistence is enabled by default. Press Enter to keep enabled, or 'n' to disable: ")
+				input := strings.ToLower(getInput(""))
+				if input == "n" || input == "no" {
+					return AofConfig{
+						Enable: false,
 					}
-					return path
-				}(),
-				MaxSize:  getIntInput("AOF max size in MB: ", 1, 1000),
-				Compress: getBoolInput("Compress AOF files? (y/n): "),
-			},
+				}
+
+				// If AOF is enabled, configure other settings
+				aofPath := getInput(fmt.Sprintf("AOF file path (press Enter to use default '%s'): ", defaultAofPath))
+				if aofPath == "" {
+					aofPath = defaultAofPath
+				}
+
+				return AofConfig{
+					Enable:   true,
+					Path:     aofPath,
+					MaxSize:  getIntInputWithDefault("AOF max size in MB (press Enter for default 100): ", 100, 1, 1000),
+					Compress: getBoolInput("Compress AOF files? (y/n): "),
+				}
+			}(),
 		},
 	}
 
@@ -366,6 +382,7 @@ func loadConfigFromTerminal() error {
 
 // Helper functions for getting user input
 
+// getInput prompts for user input and ensures non-empty response
 func getInput(prompt string) string {
 	for {
 		fmt.Print(prompt)
@@ -390,6 +407,7 @@ func getInput(prompt string) string {
 	}
 }
 
+// getBoolInput prompts for a yes/no response and returns true for yes
 func getBoolInput(prompt string) bool {
 	for {
 		input := strings.ToLower(getInput(prompt))
@@ -403,6 +421,7 @@ func getBoolInput(prompt string) bool {
 	}
 }
 
+// getIntInput prompts for an integer within the specified range
 func getIntInput(prompt string, min, max int) int {
 	for {
 		input := getInput(prompt)
@@ -414,6 +433,7 @@ func getIntInput(prompt string, min, max int) int {
 	}
 }
 
+// getUint16Input prompts for a uint16 within the specified range
 func getUint16Input(prompt string, min, max uint16) uint16 {
 	for {
 		input := getInput(prompt)
@@ -425,6 +445,7 @@ func getUint16Input(prompt string, min, max uint16) uint16 {
 	}
 }
 
+// getFloatInput prompts for a float32 within the specified range
 func getFloatInput(prompt string, min, max float32) float32 {
 	for {
 		input := getInput(prompt)
@@ -433,5 +454,22 @@ func getFloatInput(prompt string, min, max float32) float32 {
 			return float32(val)
 		}
 		fmt.Printf("Please enter a number between %.1f and %.1f\n", min, max)
+	}
+}
+
+// getIntInputWithDefault prompts for an integer with a default value
+// If user presses Enter, returns the default value
+func getIntInputWithDefault(prompt string, defaultVal, min, max int) int {
+	for {
+		input := getInput(prompt)
+		if input == "" {
+			return defaultVal
+		}
+		val, err := strconv.Atoi(input)
+		if err == nil && val >= min && val <= max {
+			return val
+		}
+		fmt.Printf("Please enter a number between %d and %d or press Enter for default (%d)\n",
+			min, max, defaultVal)
 	}
 }
