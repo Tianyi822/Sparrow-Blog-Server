@@ -27,7 +27,7 @@ type FileOp struct {
 	writer         *bufio.Writer // Buffered writer (32KB buffer)
 	isOpen         bool          // File writable status flag
 	needCompress   bool          // Whether to compress files after rotation
-	maxSize        int           // Maximum file size before rotation (in MB)
+	maxSize        uint16        // Maximum file size before rotation (in MB)
 	path           string        // Current active file absolute path
 	filePrefixName string        // Base filename without extension
 	fileSuffixName string        // File extension without dot
