@@ -4,9 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"math/rand"
+
 	"github.com/google/uuid"
 	"golang.org/x/crypto/blake2b"
-	"h2blog/pkg/logger"
 )
 
 func GenHash(str string) string {
@@ -46,13 +47,11 @@ func IsValidUUID(u string) bool {
 //
 // 返回值
 //   - string 表示生成的博客ID
-func GenId(title string) string {
+func GenId(title string) (string, error) {
 	// 使用envs包的HashWithLength函数生成一个长度为16的哈希字符串作为博客ID
 	str, err := HashWithLength(title, 16)
 	// 检查是否生成成功，如果失败则记录错误并尝试重新生成
 	if err != nil {
-		// 使用logger包记录错误信息，包括错误详情
-		logger.Error("生成 ID 失败: %v，准备重新生成", err)
 		// 初始化计数器，用于限制重试次数
 		count := 0
 		title = fmt.Sprintf("%v%d", title, count)
@@ -63,9 +62,14 @@ func GenId(title string) string {
 			title = fmt.Sprintf("%v%d", title, count)
 		}
 	}
-	logger.Info("生成 ID 成功: %s", str)
+
+	// 如果仍然失败，则记录错误并返回空字符串
+	if err != nil {
+		return "", fmt.Errorf("failed to generate ID: %v", err)
+	}
+
 	// 返回生成的ID
-	return str
+	return str, nil
 }
 
 // HashWithLength 对输入字符串进行 BLAKE2b-512 哈希，并返回指定长度的十六进制字符串。
@@ -97,4 +101,20 @@ func HashWithLength(input string, length int) (string, error) {
 		length = 128
 	}
 	return fullHex[:length], nil
+}
+
+// GenRandomString generates a random string of specified length
+// The string contains random ASCII characters (32-126, printable characters)
+func GenRandomString(length int) string {
+	// Create byte slice to store random characters
+	result := make([]byte, length)
+
+	// Get random bytes
+	for i := 0; i < length; i++ {
+		// Generate random number between 32 and 126 (printable ASCII characters)
+		// rand.Int63() generates a non-negative 63-bit integer
+		result[i] = byte(32 + rand.Int63n(95)) // 95 = 126 - 32 + 1
+	}
+
+	return string(result)
 }
