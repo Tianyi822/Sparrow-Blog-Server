@@ -220,7 +220,10 @@ func checkPortAvailable(port uint16) error {
 		return fmt.Errorf("port %d is not available", port)
 	}
 	// Close the listener immediately to free the port
-	listener.Close()
+	err = listener.Close()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
