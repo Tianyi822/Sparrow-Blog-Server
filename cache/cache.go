@@ -74,7 +74,7 @@ func NewCache(ctx context.Context) (*Cache, error) {
 		// Load data from AOF file
 		if err := c.loadAof(ctx); err != nil {
 			// AOF loading failure is critical
-			panic(fmt.Sprintf("failed to load AOF: %v", err))
+			panic(err)
 		}
 	}
 
@@ -90,7 +90,7 @@ func (c *Cache) loadAof(ctx context.Context) error {
 
 	commands, err := c.aof.LoadFile(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to load AOF file: %w", err)
+		return err
 	}
 
 	// Check context before processing commands
