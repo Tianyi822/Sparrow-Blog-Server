@@ -2,11 +2,11 @@ package webp
 
 import (
 	"context"
-	"h2blog/internal/model/dto"
-	"h2blog/pkg/config"
-	"h2blog/pkg/logger"
-	"h2blog/storage"
-	"h2blog/storage/oss"
+	"h2blog_server/internal/model/dto"
+	"h2blog_server/pkg/config"
+	"h2blog_server/pkg/logger"
+	"h2blog_server/storage"
+	"h2blog_server/storage/oss"
 	"strings"
 	"testing"
 	"time"

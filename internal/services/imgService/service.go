@@ -4,14 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"h2blog/internal/model/dto"
-	"h2blog/internal/model/po"
-	"h2blog/internal/model/vo"
-	"h2blog/internal/repository/imgInfoRepo"
-	"h2blog/pkg/utils"
-	"h2blog/pkg/webp"
-	"h2blog/storage"
-	"h2blog/storage/oss"
+	"h2blog_server/internal/model/dto"
+	"h2blog_server/internal/model/po"
+	"h2blog_server/internal/model/vo"
+	"h2blog_server/internal/repository/imgInfoRepo"
+	"h2blog_server/pkg/utils"
+	"h2blog_server/pkg/webp"
+	"h2blog_server/storage"
+	"h2blog_server/storage/oss"
 )
 
 // FindImgById 根据图片ID查询单条图片信息

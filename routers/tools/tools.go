@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"h2blog/internal/model/dto"
-	"h2blog/pkg/logger"
-	"h2blog/pkg/resp"
+	"h2blog_server/internal/model/dto"
+	"h2blog_server/pkg/logger"
+	"h2blog_server/pkg/resp"
 
 	"github.com/gin-gonic/gin"
 )

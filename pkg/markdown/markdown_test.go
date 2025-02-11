@@ -2,9 +2,9 @@ package markdown
 
 import (
 	"context"
-	"h2blog/pkg/config"
-	"h2blog/pkg/logger"
-	"h2blog/storage"
+	"h2blog_server/pkg/config"
+	"h2blog_server/pkg/logger"
+	"h2blog_server/storage"
 	"os"
 	"testing"
 )

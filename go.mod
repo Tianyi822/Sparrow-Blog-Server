@@ -1,4 +1,4 @@
-module h2blog
+module h2blog_server
 
 go 1.23
 

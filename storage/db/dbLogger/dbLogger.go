@@ -3,7 +3,7 @@ package dbLogger
 import (
 	"context"
 	"errors"
-	"h2blog/pkg/logger"
+	"h2blog_server/pkg/logger"
 	"time"
 
 	"go.uber.org/zap"

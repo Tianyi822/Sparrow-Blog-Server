@@ -2,10 +2,10 @@ package blogRouters
 
 import (
 	"github.com/gin-gonic/gin"
-	"h2blog/internal/model/dto"
-	"h2blog/internal/services/blogService"
-	"h2blog/pkg/resp"
-	"h2blog/routers/tools"
+	"h2blog_server/internal/model/dto"
+	"h2blog_server/internal/services/blogService"
+	"h2blog_server/pkg/resp"
+	"h2blog_server/routers/tools"
 )
 
 // 获取指定博客的详细信息

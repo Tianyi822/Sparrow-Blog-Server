@@ -3,7 +3,7 @@ package middleware
 import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
-	"h2blog/pkg/logger"
+	"h2blog_server/pkg/logger"
 	"net/http"
 )
 

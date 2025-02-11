@@ -2,9 +2,9 @@ package imgRouters
 
 import (
 	"github.com/gin-gonic/gin"
-	"h2blog/internal/services/imgService"
-	"h2blog/pkg/resp"
-	"h2blog/routers/tools"
+	"h2blog_server/internal/services/imgService"
+	"h2blog_server/pkg/resp"
+	"h2blog_server/routers/tools"
 )
 
 // uploadImages 上传图片

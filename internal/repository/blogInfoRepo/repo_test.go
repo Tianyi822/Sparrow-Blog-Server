@@ -2,10 +2,10 @@ package blogInfoRepo
 
 import (
 	"context"
-	"h2blog/internal/model/po"
-	"h2blog/pkg/config"
-	"h2blog/pkg/logger"
-	"h2blog/storage"
+	"h2blog_server/internal/model/po"
+	"h2blog_server/pkg/config"
+	"h2blog_server/pkg/logger"
+	"h2blog_server/storage"
 	"testing"
 	"time"
 )

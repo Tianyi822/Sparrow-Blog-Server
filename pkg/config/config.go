@@ -3,8 +3,8 @@ package config
 import (
 	"bufio"
 	"fmt"
-	"h2blog/pkg/fileTool"
-	"h2blog/pkg/utils"
+	"h2blog_server/pkg/fileTool"
+	"h2blog_server/pkg/utils"
 	"net"
 	"os"
 	"os/user"

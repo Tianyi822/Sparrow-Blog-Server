@@ -6,7 +6,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"h2blog/pkg/config"
+	"h2blog_server/pkg/config"
 	"os"
 	"strings"
 	"sync"

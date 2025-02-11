@@ -2,8 +2,8 @@ package commentService
 
 import (
 	"context"
-	"h2blog/internal/model/vo"
-	"h2blog/internal/repository/commentRepo"
+	"h2blog_server/internal/model/vo"
+	"h2blog_server/internal/repository/commentRepo"
 )
 
 // GetCommentsByBlogId 根据博客ID获取评论

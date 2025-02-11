@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"h2blog/pkg/config"
-	"h2blog/pkg/logger"
-	"h2blog/storage/db/dbLogger"
+	"h2blog_server/pkg/config"
+	"h2blog_server/pkg/logger"
+	"h2blog_server/storage/db/dbLogger"
 )
 
 // createLoginRecordTableSQL 是用于创建库

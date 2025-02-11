@@ -25,11 +25,11 @@ func TestKey2(t *testing.T) {
 
 	provider, err := credentials.NewCredential(config)
 	if err != nil {
-		return
+		t.Fatal(err)
 	}
 	credential, err := provider.GetCredential()
 	if err != nil {
-		return
+		t.Fatal(err)
 	}
 
 	fmt.Printf("%#v", credential)

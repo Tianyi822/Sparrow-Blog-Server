@@ -2,7 +2,7 @@ package logger
 
 import (
 	"context"
-	"h2blog/pkg/config"
+	"h2blog_server/pkg/config"
 	"testing"
 )
 

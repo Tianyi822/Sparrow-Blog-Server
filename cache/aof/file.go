@@ -3,9 +3,9 @@ package aof
 import (
 	"bufio"
 	"fmt"
-	"h2blog/pkg/config"
-	"h2blog/pkg/fileTool"
-	"h2blog/pkg/logger"
+	"h2blog_server/pkg/config"
+	"h2blog_server/pkg/fileTool"
+	"h2blog_server/pkg/logger"
 	"os"
 	"path/filepath"
 	"strconv"

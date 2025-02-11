@@ -2,7 +2,7 @@ package routers
 
 import (
 	"github.com/gin-gonic/gin"
-	"h2blog/pkg/middleware"
+	"h2blog_server/pkg/middleware"
 )
 
 // Option 接受一个 *gin.Engine 类型的参数
