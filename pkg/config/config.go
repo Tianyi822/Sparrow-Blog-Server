@@ -236,8 +236,8 @@ func loadConfigFromTerminal() error {
 	}
 
 	// Update default paths for logs and aof
-	defaultLogPath := path.Join(h2blogDir, "logs")
-	defaultAofPath := path.Join(h2blogDir, "aof")
+	defaultLogPath := path.Join(h2blogDir, "logs", "h2blog.log")
+	defaultAofPath := path.Join(h2blogDir, "aof", "h2blog.aof")
 
 	conf := &ProjectConfig{
 		User: UserConfig{
@@ -247,7 +247,7 @@ func loadConfigFromTerminal() error {
 			AvatarOssPath: "avatars/",
 			BlogOssPath:   "blogs/",
 			WebP: WebPConfig{
-				Enable:  getBoolInput("Enable WebP conversion? (y/n) (press Enter for default yes): ", true),
+				Enable:  getBoolInput("Enable WebP conversion? (y/n) (press Enter for default yes): ", "y"),
 				Quality: getFloatInput("WebP quality (1-100) (press Enter for default 75): ", 1, 100, "75"),
 				Size:    getFloatInput("Maximum WebP size in MB (press Enter for default 1): ", 0.1, 10, "1"),
 			},
@@ -271,24 +271,18 @@ func loadConfigFromTerminal() error {
 			TokenExpireDuration: getUint16Input("Token expiration in days (press Enter for default 1 day): ", 1, 365, "1"),
 			Cors: CorsConfigData{
 				Origins: []string{"*"}, // Default values
-				Headers: []string{"Content-Type", "Authorization"},
+				Headers: []string{"Content-Type", "Authorization", "Token"},
 				Methods: []string{"GET", "POST", "PUT", "DELETE"},
 			},
 		},
 
 		Logger: LoggerConfigData{
-			Level: "info",
-			Path: func() string {
-				p := getInput(fmt.Sprintf("Log file path (press Enter to use default '%s'): ", defaultLogPath))
-				if p == "" {
-					return defaultLogPath
-				}
-				return p
-			}(),
+			Level:      "info",
+			Path:       getInput(fmt.Sprintf("Log file path (press Enter to use default '%s'): ", defaultLogPath), defaultLogPath),
 			MaxAge:     getUint16Input("Log max age in days (press Enter for default 1 day): ", 1, 365, "1"),
 			MaxSize:    getUint16Input("Log max size in MB (press Enter for default 1): ", 1, 100, "1"),
 			MaxBackups: getUint16Input("Max log backups (press Enter for default 10): ", 1, 100, "10"),
-			Compress:   getBoolInput("Compress logs? (y/n) (press Enter for default yes): ", true),
+			Compress:   getBoolInput("Compress logs? (y/n) (press Enter for default yes): ", "y"),
 		},
 
 		MySQL: MySQLConfigData{
@@ -310,29 +304,12 @@ func loadConfigFromTerminal() error {
 		},
 
 		Cache: CacheConfig{
-			Aof: func() AofConfig {
-				// Default to enabled
-				fmt.Print("AOF persistence is enabled by default. Press Enter to keep enabled, or 'n' to disable: ")
-				input := strings.ToLower(getInput(""))
-				if input == "n" || input == "no" {
-					return AofConfig{
-						Enable: false,
-					}
-				}
-
-				// If AOF is enabled, configure other settings
-				aofPath := getInput(fmt.Sprintf("AOF file path (press Enter to use default '%s'): ", defaultAofPath))
-				if aofPath == "" {
-					aofPath = defaultAofPath
-				}
-
-				return AofConfig{
-					Enable:   true,
-					Path:     aofPath,
-					MaxSize:  getUint16Input("AOF max size in MB (press Enter for default 1): ", 1, 10, "1"),
-					Compress: getBoolInput("Compress AOF files? (y/n) (press Enter for default yes): ", true),
-				}
-			}(),
+			Aof: AofConfig{
+				Enable:   getBoolInput("Enable AOF persistence? (y/n) (press Enter for default yes): ", "y"),
+				Path:     getInput(fmt.Sprintf("AOF file path (press Enter to use default '%s'): ", defaultAofPath), defaultAofPath),
+				MaxSize:  getUint16Input("AOF max size in MB (press Enter for default 1): ", 1, 10, "1"),
+				Compress: getBoolInput("Compress AOF files? (y/n) (press Enter for default yes): ", "y"),
+			},
 		},
 	}
 
@@ -399,18 +376,14 @@ func getInput(prompt string, defaultValue ...string) string {
 }
 
 // getBoolInput prompts for a yes/no response and returns true for yes
-func getBoolInput(prompt string, defaultValue ...bool) bool {
+func getBoolInput(prompt string, defaultValue ...string) bool {
 	for {
-		input := strings.ToLower(getInput(prompt))
+		input := strings.ToLower(getInput(prompt, defaultValue...))
 		if input == "y" || input == "yes" {
 			return true
 		}
 		if input == "n" || input == "no" {
 			return false
-		}
-
-		if len(defaultValue) > 0 {
-			return defaultValue[0]
 		}
 		fmt.Println("Please enter 'y' or 'n'")
 	}
