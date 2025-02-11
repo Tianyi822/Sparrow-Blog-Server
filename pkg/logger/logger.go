@@ -50,9 +50,9 @@ func initLogger() error {
 	if loggerConf.Path != "" {
 		fileWriter := zapcore.AddSync(&lumberjack.Logger{
 			Filename:   loggerConf.Path,
-			MaxSize:    loggerConf.MaxSize,
-			MaxBackups: loggerConf.MaxBackups,
-			MaxAge:     loggerConf.MaxAge,
+			MaxSize:    int(loggerConf.MaxSize),
+			MaxBackups: int(loggerConf.MaxBackups),
+			MaxAge:     int(loggerConf.MaxAge),
 			Compress:   loggerConf.Compress,
 		})
 		writers = append(writers, fileWriter)
