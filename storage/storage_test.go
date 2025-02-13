@@ -40,3 +40,13 @@ func TestStorage_ListOssDirFiles(t *testing.T) {
 		fmt.Println(file)
 	}
 }
+
+func TestStorage_PreSignUrl(t *testing.T) {
+	ctx := context.Background()
+	url, err := Storage.PreSignUrl(ctx, "images/1714135012409.webp")
+	if err != nil {
+		fmt.Printf("获取预签名URL失败: %v", err)
+	}
+
+	fmt.Println(url)
+}

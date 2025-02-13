@@ -14,6 +14,7 @@ import (
 	"h2blog_server/storage/oss/aliyun"
 	"io"
 	"sync"
+	"time"
 )
 
 var Storage *storage
@@ -230,6 +231,22 @@ func (s *storage) ListOssDirFiles(ctx context.Context, dir string) ([]string, er
 
 	// 从第一个截取是因为第一个是目录名称
 	return results[1:], nil
+}
+
+// PreSignUrl 生成预签名 URL
+func (s *storage) PreSignUrl(ctx context.Context, objectName string) (string, error) {
+	result, err := s.OssClient.Presign(ctx, &oss.GetObjectRequest{
+		Bucket: oss.Ptr(config.Oss.Bucket),
+		Key:    oss.Ptr(objectName),
+	}, oss.PresignExpires(10*time.Minute))
+
+	if err != nil {
+		msg := fmt.Sprintf("生成预签名 URL 失败: %v", err)
+		logger.Error(msg)
+		return "", errors.New(msg)
+	}
+
+	return result.URL, nil
 }
 
 // CloseDbConnect 关闭数据库连接
