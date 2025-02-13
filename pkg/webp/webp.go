@@ -19,6 +19,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"runtime/debug"
+
 	"github.com/kolesa-team/go-webp/encoder"
 	"github.com/kolesa-team/go-webp/webp"
 )
@@ -61,6 +63,7 @@ type converter struct {
 	workerNum int                   // 工作协程数量
 	timeout   time.Duration         // 任务超时时间
 	taskCount atomic.Int32          // 添加任务计数器
+	isClosed  atomic.Bool           // 添加关闭状态标志
 }
 
 // InitConverter 初始化WebP转换器
@@ -101,11 +104,21 @@ func InitConverter(ctx context.Context) error {
 // 返回：
 //   - error: 添加失败时返回错误
 func (c *converter) AddBatchTasks(ctx context.Context, dtos []dto.ImgDto) error {
+	if c.isClosed.Load() {
+		return errors.New("converter has been shut down")
+	}
+
+	if len(dtos) == 0 {
+		return errors.New("empty task list")
+	}
+
 	// 设置总任务数
 	c.taskCount.Store(int32(len(dtos)))
 
 	for _, imgDto := range dtos {
 		select {
+		case <-ctx.Done():
+			return ctx.Err()
 		case c.inputCh <- task{
 			ctx:    ctx,
 			imgDto: imgDto,
@@ -126,10 +139,19 @@ func (c *converter) GetOutputCh() chan OutputData {
 // startWorker 启动工作协程
 // 每个工作协程从任务队列中获取任务并处理
 func (c *converter) startWorker() {
-	// 增加等待组计数
 	c.wg.Add(1)
-	// 确保工作结束时减少计数
 	defer c.wg.Done()
+
+	// 添加 panic 恢复
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("worker panic: %v\n%s", r, debug.Stack())
+			// 如果还有其他任务且转换器未关闭，启动新的 worker
+			if !c.isClosed.Load() && !c.IsEmpty() {
+				go c.startWorker()
+			}
+		}
+	}()
 
 	// 持续处理任务
 	for {
@@ -258,9 +280,14 @@ func convertToWebP(src []byte, quality float32) ([]byte, error) {
 // Shutdown 优雅关闭转换器
 // 关闭任务通道并等待所有工作协程退出
 func (c *converter) Shutdown() {
+	if !c.isClosed.CompareAndSwap(false, true) {
+		return // 已经关闭了，直接返回
+	}
+
 	close(c.inputCh)
 	close(c.outputCh)
 	close(c.done)
+	close(c.completed)
 	c.wg.Wait()
 }
 
