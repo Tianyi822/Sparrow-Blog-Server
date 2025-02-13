@@ -126,3 +126,8 @@ func TestCacheConfig(t *testing.T) {
 	}
 	fmt.Println(Cache)
 }
+
+func TestGetBackgroundImgName(t *testing.T) {
+	LoadConfig()
+	fmt.Println(User.BackgroundImage)
+}

@@ -28,11 +28,12 @@ type ProjectConfig struct {
 
 // UserConfig defines user-specific configuration
 type UserConfig struct {
-	Username     string     `yaml:"username"`       // User's username
-	Email        string     `yaml:"email"`          // User's email address
-	ImageOssPath string     `yaml:"image_oss_path"` // Path for storing images
-	BlogOssPath  string     `yaml:"blog_oss_path"`  // Path for storing blog content
-	WebP         WebPConfig `yaml:"webp"`           // WebP image configuration
+	Username        string     `yaml:"username"`         // User's username
+	Email           string     `yaml:"email"`            // User's email address
+	ImageOssPath    string     `yaml:"image_oss_path"`   // Path for storing images
+	BlogOssPath     string     `yaml:"blog_oss_path"`    // Path for storing blog content
+	BackgroundImage string     `yaml:"background_image"` // Background image name
+	WebP            WebPConfig `yaml:"webp"`             // WebP image configuration
 }
 
 // WebPConfig defines WebP image conversion settings
