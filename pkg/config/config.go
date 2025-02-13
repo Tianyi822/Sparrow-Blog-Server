@@ -28,12 +28,11 @@ type ProjectConfig struct {
 
 // UserConfig defines user-specific configuration
 type UserConfig struct {
-	Username      string     `yaml:"username"`        // User's username
-	Email         string     `yaml:"email"`           // User's email address
-	ImageOssPath  string     `yaml:"image_oss_path"`  // Path for storing images
-	AvatarOssPath string     `yaml:"avatar_oss_path"` // Path for storing avatars
-	BlogOssPath   string     `yaml:"blog_oss_path"`   // Path for storing blog content
-	WebP          WebPConfig `yaml:"webp"`            // WebP image configuration
+	Username     string     `yaml:"username"`       // User's username
+	Email        string     `yaml:"email"`          // User's email address
+	ImageOssPath string     `yaml:"image_oss_path"` // Path for storing images
+	BlogOssPath  string     `yaml:"blog_oss_path"`  // Path for storing blog content
+	WebP         WebPConfig `yaml:"webp"`           // WebP image configuration
 }
 
 // WebPConfig defines WebP image conversion settings
@@ -244,11 +243,10 @@ func loadConfigFromTerminal() error {
 
 	conf := &ProjectConfig{
 		User: UserConfig{
-			Username:      getInput("Username: "),
-			Email:         getInput("Email: "),
-			ImageOssPath:  "images/", // Default values
-			AvatarOssPath: "avatars/",
-			BlogOssPath:   "blogs/",
+			Username:     getInput("Username: "),
+			Email:        getInput("Email: "),
+			ImageOssPath: "images/", // Default values
+			BlogOssPath:  "blogs/",
 			WebP: WebPConfig{
 				Enable:  getBoolInput("Enable WebP conversion? (y/n) (press Enter for default yes): ", "y"),
 				Quality: getFloatInput("WebP quality (1-100) (press Enter for default 75): ", 1, 100, "75"),
