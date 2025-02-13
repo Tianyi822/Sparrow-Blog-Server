@@ -2,6 +2,7 @@ package imgInfoRepo
 
 import (
 	"context"
+	"fmt"
 	"h2blog_server/internal/model/po"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
@@ -23,6 +24,17 @@ func init() {
 	}
 	// 初始化数据库组件
 	storage.InitStorage(context.Background())
+}
+
+func TestGetBackgroundImg(t *testing.T) {
+	ctx := context.Background()
+
+	img, err := GetBackgroundImg(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	fmt.Printf("image name: %v, image type: %v\n", img.ImgName, img.ImgType)
 }
 
 func TestImgInfo_AddOne(t *testing.T) {

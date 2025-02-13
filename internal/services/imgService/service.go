@@ -8,11 +8,41 @@ import (
 	"h2blog_server/internal/model/po"
 	"h2blog_server/internal/model/vo"
 	"h2blog_server/internal/repository/imgInfoRepo"
+	"h2blog_server/pkg/config"
+	"h2blog_server/pkg/logger"
 	"h2blog_server/pkg/utils"
 	"h2blog_server/pkg/webp"
 	"h2blog_server/storage"
 	"h2blog_server/storage/oss"
+	"time"
 )
+
+// GetPreSignUrlOfImg 获取图片预签名 URL
+func GetPreSignUrlOfImg(ctx context.Context) (string, error) {
+	// 查看缓存中是否存在
+	if url, err := storage.Storage.Cache.GetString(ctx, config.User.BackgroundImage); err == nil {
+		return url, nil
+	}
+
+	imgPo, err := imgInfoRepo.GetBackgroundImg(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	result, err := storage.Storage.PreSignUrl(ctx, oss.GenOssSavePath(imgPo.ImgName, imgPo.ImgType))
+	if err != nil {
+		return "", err
+	}
+
+	err = storage.Storage.Cache.SetWithExpired(ctx, config.User.BackgroundImage, result.URL, result.Expiration.Sub(time.Now()))
+	if err != nil {
+		msg := fmt.Sprintf("缓存图片预签名 URL 失败: %v", err)
+		logger.Warn(msg)
+		return "", errors.New(msg)
+	}
+
+	return result.URL, nil
+}
 
 // FindImgById 根据图片ID查询单条图片信息
 // - ctx: 上下文对象

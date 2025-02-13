@@ -5,9 +5,25 @@ import (
 	"errors"
 	"fmt"
 	"h2blog_server/internal/model/po"
+	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
 	"h2blog_server/storage"
 )
+
+// GetBackgroundImg 获取背景图片信息
+// - ctx: 上下文对象
+// 返回值: 图片信息实体指针和错误信息
+func GetBackgroundImg(ctx context.Context) (*po.ImgInfo, error) {
+	var img po.ImgInfo
+	result := storage.Storage.Db.Model(img).WithContext(ctx).Where("img_name = ?", config.User.BackgroundImage).First(&img)
+	if result.Error != nil {
+		msg := fmt.Sprintf("查询背景图片数据失败: %v", result.Error)
+		logger.Warn(msg)
+		return nil, errors.New(msg)
+	}
+
+	return &img, nil
+}
 
 // FindImgById 根据图片ID查询单条图片信息
 // - ctx: 上下文对象

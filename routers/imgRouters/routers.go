@@ -16,4 +16,6 @@ func Routers(e *gin.Engine) {
 	imgGroup.GET("/get_list/:name", getImgsByNameLike)
 	// 根据 ID 获取图片
 	imgGroup.GET("/get/:id", getImgByID)
+	// Get home page background img
+	imgGroup.GET("/home_background", getHomeBackgroundImg)
 }

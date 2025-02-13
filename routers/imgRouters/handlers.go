@@ -7,6 +7,15 @@ import (
 	"h2blog_server/routers/tools"
 )
 
+// getHomeBackgroundImg 获取主页背景图
+func getHomeBackgroundImg(ctx *gin.Context) {
+	urlStr, err := imgService.GetPreSignUrlOfImg(ctx)
+	if err != nil {
+		resp.Err(ctx, err.Error(), nil)
+	}
+	resp.RedirectUrl(ctx, urlStr)
+}
+
 // uploadImages 上传图片
 func uploadImages(ctx *gin.Context) {
 	// 从 RawData 中获取到图片信息

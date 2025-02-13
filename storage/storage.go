@@ -234,7 +234,7 @@ func (s *storage) ListOssDirFiles(ctx context.Context, dir string) ([]string, er
 }
 
 // PreSignUrl 生成预签名 URL
-func (s *storage) PreSignUrl(ctx context.Context, objectName string) (string, error) {
+func (s *storage) PreSignUrl(ctx context.Context, objectName string) (*oss.PresignResult, error) {
 	result, err := s.OssClient.Presign(ctx, &oss.GetObjectRequest{
 		Bucket: oss.Ptr(config.Oss.Bucket),
 		Key:    oss.Ptr(objectName),
@@ -243,10 +243,10 @@ func (s *storage) PreSignUrl(ctx context.Context, objectName string) (string, er
 	if err != nil {
 		msg := fmt.Sprintf("生成预签名 URL 失败: %v", err)
 		logger.Error(msg)
-		return "", errors.New(msg)
+		return nil, errors.New(msg)
 	}
 
-	return result.URL, nil
+	return result, nil
 }
 
 // CloseDbConnect 关闭数据库连接
