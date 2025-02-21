@@ -2,6 +2,7 @@ package routers
 
 import (
 	"github.com/gin-gonic/gin"
+	"h2blog_server/env"
 	"h2blog_server/pkg/middleware"
 )
 
@@ -16,11 +17,17 @@ func IncludeOpts(opts ...Option) {
 	options = append(options, opts...)
 }
 
-func InitRouter() *gin.Engine {
+func InitRouter(curEnv string) *gin.Engine {
 	// 创建一个没有任何中间件的路由
 	r := gin.New()
+
 	// 添加自定义的中间件
-	r.Use(middleware.LoggerToFile())
+	switch curEnv {
+	case env.RuntimeEnv:
+		r.Use(middleware.LoggerToFile())
+	case env.ConfigServerEnv:
+	}
+
 	//r.Use(middleware.LoggerToFile(), middleware.Cors(), gin.Recovery())
 	for _, opt := range options {
 		opt(r)

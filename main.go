@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"h2blog_server/env"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
 	"h2blog_server/pkg/markdown"
@@ -50,7 +51,7 @@ func runServer() *http.Server {
 	logger.Info("路由信息加载完成")
 
 	logger.Info("配置路由")
-	r := routers.InitRouter()
+	r := routers.InitRouter(env.RuntimeEnv)
 	logger.Info("路由配置完成")
 
 	logger.Info("启动服务中")
