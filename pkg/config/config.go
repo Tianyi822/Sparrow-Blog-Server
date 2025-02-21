@@ -126,10 +126,19 @@ var (
 )
 
 // LoadConfig 加载配置文件
-func LoadConfig() {
+func LoadConfig() error {
+	userHomePath, err := getH2BlogDir()
+	if err != nil {
+		panic(err)
+	}
+
+	if !fileTool.IsExist(path.Join(userHomePath, "config", "h2blog_config.yaml")) {
+		return NewNoConfigFileErr("配置文件不存在")
+	}
+
 	loadConfigLock.Do(
 		func() {
-			err := loadConfigFromFile()
+			err = loadConfigFromFile()
 			if err != nil {
 				err = loadConfigFromTerminal()
 			}
@@ -140,6 +149,8 @@ func LoadConfig() {
 			}
 		},
 	)
+
+	return nil
 }
 
 // getH2BlogDir returns the base directory for h2blog configuration and data

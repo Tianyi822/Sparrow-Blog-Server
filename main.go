@@ -10,8 +10,9 @@ import (
 	"h2blog_server/pkg/markdown"
 	"h2blog_server/pkg/webp"
 	"h2blog_server/routers"
-	blogrouters "h2blog_server/routers/blogRouters"
-	imgrouters "h2blog_server/routers/imgRouters"
+	"h2blog_server/routers/configServer/configRouters"
+	blogrouters "h2blog_server/routers/webServer/blogRouters"
+	imgrouters "h2blog_server/routers/webServer/imgRouters"
 	"h2blog_server/storage"
 	"net/http"
 	"os"
@@ -71,8 +72,8 @@ func runServer() *http.Server {
 	return srv
 }
 
-// listenSysSignal 监听系统信号，优雅关闭服务
-func listenSysSignal(srv *http.Server) {
+// closeWebServer 监听系统信号，优雅关闭服务
+func closeWebServer(srv *http.Server) {
 	// 创建一个接收信号的通道
 	quit := make(chan os.Signal, 1)
 
@@ -105,19 +106,69 @@ func listenSysSignal(srv *http.Server) {
 	logger.Info("服务已退出")
 }
 
+func startConfigServer() *http.Server {
+	// 加载配置接口
+	routers.IncludeOpts(configRouters.Routers)
+
+	// 初始化路由
+	r := routers.InitRouter(env.ConfigServerEnv)
+
+	// 配置 HTTP 服务
+	srv := &http.Server{
+		Addr:    ":2234",
+		Handler: r,
+	}
+
+	// 开启一个 goroutine 启动服务
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			panic(fmt.Sprintf("配置服务报错: %v", err.Error()))
+		}
+	}()
+
+	env.CompletedConfigSign = make(chan bool)
+
+	return srv
+}
+
+func closeConfigServer(srv *http.Server) {
+	// 等待配置完成
+	sign := <-env.CompletedConfigSign
+
+	if !sign {
+		panic("配置服务关闭出错")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+
+	// 定时优雅关闭服务（将未处理完的请求处理完再关闭服务），超时就退出
+	if err := srv.Shutdown(ctx); err != nil {
+		panic(fmt.Sprintf("配置服务关闭超时, 哥们已强制关闭: %v", err.Error()))
+	}
+
+	cancel()
+}
+
 func main() {
-	// Load config data from file or terminal, and set it to global variable
-	// Consider it may take a long time, so I put it here without control by context
-	config.LoadConfig()
+	// 优先去本地默认路径加载配置文件
+	err := config.LoadConfig()
+	var configErr *config.Err
+	errors.As(err, &configErr)
+	if configErr.IsNoConfigFileErr() {
+		// 若未找到配置文件，则单独开启配置服务，与业务端口分开使用
+		server := startConfigServer()
+		// 等待配置服务关闭
+		closeConfigServer(server)
+	}
 
 	// 加载基础组件
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-	defer cancel()
 	loadComponent(ctx)
+	cancel()
 
 	// 启动服务
 	srv := runServer()
 
 	// 监听系统信号
-	listenSysSignal(srv)
+	closeWebServer(srv)
 }
