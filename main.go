@@ -46,8 +46,7 @@ func loadComponent(ctx context.Context) {
 // runServer 启动服务
 func runServer() *http.Server {
 	logger.Info("加载路由信息")
-	routers.IncludeOpts(blogrouters.Routers) // 添加博客路由
-	routers.IncludeOpts(imgrouters.Routers)  // 添加图片路由
+	routers.IncludeOpts(blogrouters.Routers, imgrouters.Routers) // 添加路由
 	logger.Info("路由信息加载完成")
 
 	logger.Info("配置路由")
