@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"h2blog_server/internal/model/dto"
-	"h2blog_server/pkg/logger"
 	"h2blog_server/pkg/resp"
 
 	"github.com/gin-gonic/gin"
@@ -29,7 +28,6 @@ func GetMapFromRawData(ctx *gin.Context) (map[string]any, error) {
 				ctx.Request.URL.Path,
 				err.Error(),
 			)
-			logger.Error(msg)
 			resp.BadRequest(ctx, msg, -1)
 		}
 
@@ -41,7 +39,6 @@ func GetMapFromRawData(ctx *gin.Context) (map[string]any, error) {
 				ctx.Request.URL.Path,
 				err.Error(),
 			)
-			logger.Error(msg)
 			resp.BadRequest(ctx, msg, -1)
 			return nil, err
 		}
@@ -106,14 +103,12 @@ func rowDataToDto(ctx *gin.Context, dto dto.Dto) error {
 				ctx.Request.URL.Path,
 				err.Error(),
 			)
-			logger.Error(msg)
 			return errors.New(msg)
 		}
 
 		err = json.Unmarshal(rowData, dto)
 		if err != nil {
 			msg := fmt.Sprintf("%s => %s 请求解析失败，请检查数据格式是否符合待转换值类型，err: %s", ctx.Request.Method, ctx.Request.URL.Path, err.Error())
-			logger.Error(msg)
 			return errors.New(msg)
 		}
 	}
