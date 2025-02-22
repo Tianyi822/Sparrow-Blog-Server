@@ -107,6 +107,9 @@ func closeWebServer(srv *http.Server) {
 }
 
 func startConfigServer() *http.Server {
+	// 初始化各个配置项
+	config.Server = &config.ServerConfigData{}
+
 	// 加载配置接口
 	routers.IncludeOpts(configRouters.Routers)
 
@@ -152,13 +155,15 @@ func closeConfigServer(srv *http.Server) {
 func main() {
 	// 优先去本地默认路径加载配置文件
 	err := config.LoadConfig()
-	var configErr *config.Err
-	errors.As(err, &configErr)
-	if configErr.IsNoConfigFileErr() {
-		// 若未找到配置文件，则单独开启配置服务，与业务端口分开使用
-		server := startConfigServer()
-		// 等待配置服务关闭
-		closeConfigServer(server)
+	if err != nil {
+		var configErr *config.Err
+		errors.As(err, &configErr)
+		if configErr.IsNoConfigFileErr() {
+			// 若未找到配置文件，则单独开启配置服务，与业务端口分开使用
+			server := startConfigServer()
+			// 等待配置服务关闭
+			closeConfigServer(server)
+		}
 	}
 
 	// 加载基础组件

@@ -47,7 +47,7 @@ type WebPConfig struct {
 type ServerConfigData struct {
 	Port                uint16         `yaml:"port"`                  // Server port number
 	TokenKey            string         `yaml:"token_key"`             // JWT signing and verification key
-	TokenExpireDuration uint16         `yaml:"token_expire_duration"` // Token expiration in days
+	TokenExpireDuration uint8          `yaml:"token_expire_duration"` // Token expiration in days
 	Cors                CorsConfigData `yaml:"cors"`                  // CORS configuration
 }
 
@@ -281,7 +281,7 @@ func loadConfigFromTerminal() error {
 				}
 			}(),
 			TokenKey:            getInput("JWT token key (press Enter for generating random string as token key): ", utils.GenRandomString(32)),
-			TokenExpireDuration: getUint16Input("Token expiration in days (press Enter for default 1 day): ", 1, 365, "1"),
+			TokenExpireDuration: getUint8Input("Token expiration in days (press Enter for default 1 day): ", 1, 365, "1"),
 			Cors: CorsConfigData{
 				Origins: []string{"*"}, // Default values
 				Headers: []string{"Content-Type", "Authorization", "Token"},
@@ -399,6 +399,17 @@ func getBoolInput(prompt string, defaultValue ...string) bool {
 			return false
 		}
 		fmt.Println("Please enter 'y' or 'n'")
+	}
+}
+
+func getUint8Input(prompt string, min, max uint16, defaultValue ...string) uint8 {
+	for {
+		input := getInput(prompt, defaultValue...)
+		val, err := strconv.ParseUint(input, 10, 8)
+		if err == nil && val >= uint64(min) && val <= uint64(max) {
+			return uint8(val)
+		}
+		fmt.Printf("Please enter a number between %d and %d\n", min, max)
 	}
 }
 

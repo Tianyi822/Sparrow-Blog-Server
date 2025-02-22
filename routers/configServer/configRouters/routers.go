@@ -27,7 +27,7 @@ func Routers(e *gin.Engine) {
 	//	      - DELETE
 	//	      - GET
 	//	      - OPTIONS
-	configServerGroup.GET("/base", configBase)
+	configServerGroup.POST("/base", configBase)
 
 	configServerGroup.GET("/shutdown", closeConfigServer)
 }
