@@ -39,6 +39,9 @@ func configBase(ctx *gin.Context) {
 	}
 	config.Server.Cors.Origins = corsOrigins
 
+	config.Server.Cors.Headers = []string{"Content-Type", "Authorization", "X-CSRF-Token"}
+	config.Server.Cors.Methods = []string{"POST", "PUT", "DELETE", "GET"}
+
 	resp.Ok(ctx, "配置完成", config.Server)
 }
 
