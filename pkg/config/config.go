@@ -18,7 +18,7 @@ import (
 
 // ProjectConfig defines the structure for all configuration data
 type ProjectConfig struct {
-	User   UserConfig       `yaml:"user"`   // User configuration
+	User   UserConfigData   `yaml:"user"`   // User configuration
 	Server ServerConfigData `yaml:"server"` // Server configuration
 	Logger LoggerConfigData `yaml:"logger"` // Logger configuration
 	MySQL  MySQLConfigData  `yaml:"mysql"`  // MySQL database configuration
@@ -26,18 +26,18 @@ type ProjectConfig struct {
 	Cache  CacheConfig      `yaml:"cache"`  // Cache configuration
 }
 
-// UserConfig defines user-specific configuration
-type UserConfig struct {
-	Username        string     `yaml:"username"`         // User's username
-	Email           string     `yaml:"email"`            // User's email address
-	ImageOssPath    string     `yaml:"image_oss_path"`   // Path for storing images
-	BlogOssPath     string     `yaml:"blog_oss_path"`    // Path for storing blog content
-	BackgroundImage string     `yaml:"background_image"` // Background image name
-	WebP            WebPConfig `yaml:"webp"`             // WebP image configuration
+// UserConfigData defines user-specific configuration
+type UserConfigData struct {
+	Username        string         `yaml:"username"`         // User's username
+	Email           string         `yaml:"email"`            // User's email address
+	ImageOssPath    string         `yaml:"image_oss_path"`   // Path for storing images
+	BlogOssPath     string         `yaml:"blog_oss_path"`    // Path for storing blog content
+	BackgroundImage string         `yaml:"background_image"` // Background image name
+	WebP            WebPConfigData `yaml:"webp"`             // WebP image configuration
 }
 
-// WebPConfig defines WebP image conversion settings
-type WebPConfig struct {
+// WebPConfigData defines WebP image conversion settings
+type WebPConfigData struct {
 	Enable  bool    `yaml:"enable"`  // Whether to enable WebP conversion
 	Quality float32 `yaml:"quality"` // WebP image quality (1-100)
 	Size    float32 `yaml:"size"`    // Maximum WebP image size in MB
@@ -107,7 +107,7 @@ var (
 	loadConfigLock sync.Once
 
 	// User holds global user configuration
-	User *UserConfig = nil
+	User *UserConfigData = nil
 
 	// Server holds global server configuration
 	Server *ServerConfigData = nil
@@ -254,12 +254,12 @@ func loadConfigFromTerminal() error {
 	defaultAofPath := path.Join(h2blogDir, "aof", "h2blog.aof")
 
 	conf := &ProjectConfig{
-		User: UserConfig{
+		User: UserConfigData{
 			Username:     getInput("Username: "),
 			Email:        getInput("Email: "),
 			ImageOssPath: "images/", // Default values
 			BlogOssPath:  "blogs/",
-			WebP: WebPConfig{
+			WebP: WebPConfigData{
 				Enable:  getBoolInput("Enable WebP conversion? (y/n) (press Enter for default yes): ", "y"),
 				Quality: getFloatInput("WebP quality (1-100) (press Enter for default 75): ", 1, 100, "75"),
 				Size:    getFloatInput("Maximum WebP size in MB (press Enter for default 1): ", 0.1, 10, "1"),
