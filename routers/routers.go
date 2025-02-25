@@ -32,5 +32,7 @@ func InitRouter(curEnv string) *gin.Engine {
 	for _, opt := range options {
 		opt(r)
 	}
+	// 注册完成后清除所有 opts
+	clear(options)
 	return r
 }

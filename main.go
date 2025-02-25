@@ -140,13 +140,12 @@ func closeConfigServer(srv *http.Server) {
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
 
 	// 定时优雅关闭服务（将未处理完的请求处理完再关闭服务），超时就退出
 	if err := srv.Shutdown(ctx); err != nil {
 		panic(fmt.Sprintf("配置服务关闭超时, 哥们已强制关闭: %v", err.Error()))
 	}
-
-	cancel()
 }
 
 func main() {
