@@ -78,7 +78,7 @@ func InitConverter(ctx context.Context) error {
 			Converter = &converter{
 				inputCh:   make(chan task, 30),            // 输入任务通道，缓冲区大小为30
 				outputCh:  make(chan OutputData, 30),      // 输出结果通道，缓冲区大小为30
-				quality:   config.User.WebP.Quality,       // WebP转换质量
+				quality:   config.Oss.WebP.Quality,        // WebP转换质量
 				done:      make(chan struct{}),            // 关闭信号通道
 				completed: make(chan CompletionStatus, 1), // 完成状态通道，缓冲区大小为1，不设置缓冲区也可以，设置以免死锁
 				workerNum: runtime.NumCPU() / 2,           // 工作协程数量，等于CPU核心数除以2

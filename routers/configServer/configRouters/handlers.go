@@ -6,7 +6,6 @@ import (
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/resp"
 	"h2blog_server/routers/configServer/configAnalyze"
-	"h2blog_server/routers/tools"
 	"strings"
 )
 
@@ -55,35 +54,35 @@ func configUser(ctx *gin.Context) {
 	}
 	config.User.Email = email
 
-	imageOssPath := strings.TrimSpace(ctx.PostForm("user.image_oss_path"))
-	if err := configAnalyze.AnalyzeOssPath(imageOssPath); err != nil {
-		resp.BadRequest(ctx, "图片 OSS 路径配置错误", err)
-	}
-	config.User.ImageOssPath = imageOssPath
-
-	blogOssPath := strings.TrimSpace(ctx.PostForm("user.blog_oss_path"))
-	if err := configAnalyze.AnalyzeOssPath(blogOssPath); err != nil {
-		resp.BadRequest(ctx, "博客 OSS 路径配置错误", err)
-	}
-	config.User.BlogOssPath = blogOssPath
-
-	webpEnable, err := tools.GetIntFromPostForm(ctx, "user.webp.enable")
-	if err != nil {
-		resp.BadRequest(ctx, "WebP 启用配置错误", err)
-	}
-	config.User.WebP.Enable = webpEnable == 1
-
-	webpQuality, err := tools.GetFloatFromPostForm(ctx, "user.webp.quality")
-	if err != nil {
-		resp.BadRequest(ctx, "WebP 压缩质量配置错误", err)
-	}
-	config.User.WebP.Quality = webpQuality
-
-	webpSize, err := tools.GetFloatFromPostForm(ctx, "user.webp.size")
-	if err != nil {
-		resp.BadRequest(ctx, "WebP 压缩后大小配置错误", err)
-	}
-	config.User.WebP.Size = webpSize
+	//imageOssPath := strings.TrimSpace(ctx.PostForm("user.image_oss_path"))
+	//if err := configAnalyze.AnalyzeOssPath(imageOssPath); err != nil {
+	//	resp.BadRequest(ctx, "图片 OSS 路径配置错误", err)
+	//}
+	//config.User.ImageOssPath = imageOssPath
+	//
+	//blogOssPath := strings.TrimSpace(ctx.PostForm("user.blog_oss_path"))
+	//if err := configAnalyze.AnalyzeOssPath(blogOssPath); err != nil {
+	//	resp.BadRequest(ctx, "博客 OSS 路径配置错误", err)
+	//}
+	//config.User.BlogOssPath = blogOssPath
+	//
+	//webpEnable, err := tools.GetIntFromPostForm(ctx, "user.webp.enable")
+	//if err != nil {
+	//	resp.BadRequest(ctx, "WebP 启用配置错误", err)
+	//}
+	//config.User.WebP.Enable = webpEnable == 1
+	//
+	//webpQuality, err := tools.GetFloatFromPostForm(ctx, "user.webp.quality")
+	//if err != nil {
+	//	resp.BadRequest(ctx, "WebP 压缩质量配置错误", err)
+	//}
+	//config.User.WebP.Quality = webpQuality
+	//
+	//webpSize, err := tools.GetFloatFromPostForm(ctx, "user.webp.size")
+	//if err != nil {
+	//	resp.BadRequest(ctx, "WebP 压缩后大小配置错误", err)
+	//}
+	//config.User.WebP.Size = webpSize
 
 	resp.Ok(ctx, "配置完成", config.User)
 }

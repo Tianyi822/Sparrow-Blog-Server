@@ -28,12 +28,9 @@ type ProjectConfig struct {
 
 // UserConfigData defines user-specific configuration
 type UserConfigData struct {
-	Username        string         `yaml:"username"`         // User's username
-	Email           string         `yaml:"email"`            // User's email address
-	ImageOssPath    string         `yaml:"image_oss_path"`   // Path for storing images
-	BlogOssPath     string         `yaml:"blog_oss_path"`    // Path for storing blog content
-	BackgroundImage string         `yaml:"background_image"` // Background image name
-	WebP            WebPConfigData `yaml:"webp"`             // WebP image configuration
+	Username        string `yaml:"username"`         // User's username
+	Email           string `yaml:"email"`            // User's email address
+	BackgroundImage string `yaml:"background_image"` // Background image name
 }
 
 // WebPConfigData defines WebP image conversion settings
@@ -81,11 +78,14 @@ type MySQLConfigData struct {
 
 // OssConfig defines Object Storage Service configuration
 type OssConfig struct {
-	Endpoint        string `yaml:"endpoint"`
-	Region          string `yaml:"region"`
-	AccessKeyId     string `yaml:"access_key_id"`
-	AccessKeySecret string `yaml:"access_key_secret"`
-	Bucket          string `yaml:"bucket"`
+	Endpoint        string         `yaml:"endpoint"`
+	Region          string         `yaml:"region"`
+	AccessKeyId     string         `yaml:"access_key_id"`
+	AccessKeySecret string         `yaml:"access_key_secret"`
+	Bucket          string         `yaml:"bucket"`
+	ImageOssPath    string         `yaml:"image_oss_path"` // Path for storing images
+	BlogOssPath     string         `yaml:"blog_oss_path"`  // Path for storing blog content
+	WebP            WebPConfigData `yaml:"webp"`           // WebP image configuration
 }
 
 // CacheConfig defines cache system configuration
@@ -255,15 +255,8 @@ func loadConfigFromTerminal() error {
 
 	conf := &ProjectConfig{
 		User: UserConfigData{
-			Username:     getInput("Username: "),
-			Email:        getInput("Email: "),
-			ImageOssPath: "images/", // Default values
-			BlogOssPath:  "blogs/",
-			WebP: WebPConfigData{
-				Enable:  getBoolInput("Enable WebP conversion? (y/n) (press Enter for default yes): ", "y"),
-				Quality: getFloatInput("WebP quality (1-100) (press Enter for default 75): ", 1, 100, "75"),
-				Size:    getFloatInput("Maximum WebP size in MB (press Enter for default 1): ", 0.1, 10, "1"),
-			},
+			Username: getInput("Username: "),
+			Email:    getInput("Email: "),
 		},
 
 		Server: ServerConfigData{
@@ -314,6 +307,13 @@ func loadConfigFromTerminal() error {
 			AccessKeyId:     getInput("OSS access key ID: "),
 			AccessKeySecret: getInput("OSS access key secret: "),
 			Bucket:          getInput("OSS bucket name: "),
+			ImageOssPath:    "images/", // Default values
+			BlogOssPath:     "blogs/",
+			WebP: WebPConfigData{
+				Enable:  getBoolInput("Enable WebP conversion? (y/n) (press Enter for default yes): ", "y"),
+				Quality: getFloatInput("WebP quality (1-100) (press Enter for default 75): ", 1, 100, "75"),
+				Size:    getFloatInput("Maximum WebP size in MB (press Enter for default 1): ", 0.1, 10, "1"),
+			},
 		},
 
 		Cache: CacheConfig{
