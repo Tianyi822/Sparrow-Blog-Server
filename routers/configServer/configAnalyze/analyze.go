@@ -2,6 +2,7 @@ package configAnalyze
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss/credentials"
@@ -159,6 +160,56 @@ func AnalyzeOssConfig(ossConfig *config.OssConfig) error {
 
 	if result.StatusCode != http.StatusOK {
 		return fmt.Errorf("获取 bucket 信息失败: %v", result.StatusCode)
+	}
+
+	return nil
+}
+
+func AnalyzeHostAddress(host string) error {
+	// 域名验证正则表达式
+	domainRegex := `^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$`
+	domainMatch, _ := regexp.MatchString(domainRegex, host)
+
+	// IPv4 地址验证
+	ip4 := net.ParseIP(host)
+	isIPv4 := ip4 != nil && ip4.To4() != nil
+
+	// IPv6 地址验证
+	isIPv6 := ip4 != nil && ip4.To16() != nil && ip4.To4() == nil
+
+	if !(domainMatch || isIPv4 || isIPv6) {
+		return fmt.Errorf("host 地址 %v 格式不正确", host)
+	}
+
+	return nil
+}
+
+func AnalyzeMySqlConnect(mysqlConfig *config.MySQLConfigData) error {
+	// 连接 MySQL（不指定库名）
+	db, err := sql.Open(
+		"mysql",
+		fmt.Sprintf(
+			"%s:%s@tcp(%s:%d)/?charset=utf8mb4&parseTime=true&loc=Asia%%2FShanghai",
+			mysqlConfig.User,     // MySQL 用户名
+			mysqlConfig.Password, // MySQL 密码
+			mysqlConfig.Host,     // MySQL 服务器地址
+			mysqlConfig.Port,     // MySQL 服务器端口
+		),
+	)
+	if err != nil {
+		return err
+	}
+	defer func(db *sql.DB) {
+		err = db.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(db)
+
+	// 创建数据库
+	_, err = db.Exec(fmt.Sprintf(`CREATE DATABASE IF NOT EXISTS %s DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`, mysqlConfig.DB))
+	if err != nil {
+		return err
 	}
 
 	return nil

@@ -21,7 +21,7 @@ func configBase(ctx *gin.Context) {
 	portStr := strings.TrimSpace(ctx.PostForm("server.port"))
 	port, err := configAnalyze.AnalyzePort(portStr)
 	if err != nil {
-		resp.BadRequest(ctx, "端口配置错误", err)
+		resp.BadRequest(ctx, "端口配置错误", err.Error())
 		return
 	}
 	serverConfig.Port = port
@@ -29,7 +29,7 @@ func configBase(ctx *gin.Context) {
 	// 解析 Token 密钥
 	tokenKey := strings.TrimSpace(ctx.PostForm("server.token_key"))
 	if err = configAnalyze.AnalyzeTokenKey(tokenKey); err != nil {
-		resp.BadRequest(ctx, "Token 密钥配置错误", err)
+		resp.BadRequest(ctx, "Token 密钥配置错误", err.Error())
 		return
 	}
 	serverConfig.TokenKey = tokenKey
@@ -37,7 +37,7 @@ func configBase(ctx *gin.Context) {
 	tokenExpireDuration := strings.TrimSpace(ctx.PostForm("server.token_expire_duration"))
 	dur, err := configAnalyze.AnalyzeTokenExpireDuration(tokenExpireDuration)
 	if err != nil {
-		resp.BadRequest(ctx, "Token 过期时间配置错误", err)
+		resp.BadRequest(ctx, "Token 过期时间配置错误", err.Error())
 		return
 	}
 	serverConfig.TokenExpireDuration = dur
@@ -62,7 +62,7 @@ func configUser(ctx *gin.Context) {
 
 	email := strings.TrimSpace(ctx.PostForm("user.email"))
 	if err := configAnalyze.AnalyzeEmail(email); err != nil {
-		resp.BadRequest(ctx, "邮箱配置错误", err)
+		resp.BadRequest(ctx, "邮箱配置错误", err.Error())
 		return
 	}
 	userConfig.Email = email
@@ -71,6 +71,62 @@ func configUser(ctx *gin.Context) {
 	config.User = userConfig
 
 	resp.Ok(ctx, "配置完成", config.User)
+}
+
+func configMysql(ctx *gin.Context) {
+	mysqlConfig := &config.MySQLConfigData{}
+
+	mysqlConfig.User = strings.TrimSpace(ctx.PostForm("mysql.user"))
+	mysqlConfig.Password = strings.TrimSpace(ctx.PostForm("mysql.password"))
+
+	host := strings.TrimSpace(ctx.PostForm("mysql.host"))
+	if err := configAnalyze.AnalyzeHostAddress(host); err != nil {
+		resp.BadRequest(ctx, "数据库主机地址配置错误", err.Error())
+		return
+	}
+	mysqlConfig.Host = host
+
+	// 解析端口
+	port, err := tools.GetUInt16FromPostForm(ctx, "mysql.port")
+	if err != nil {
+		resp.BadRequest(ctx, "端口配置错误", err.Error())
+		return
+	}
+	mysqlConfig.Port = port
+
+	mysqlConfig.DB = strings.TrimSpace(ctx.PostForm("mysql.database"))
+
+	// 解析最大打开连接数
+	maxOpen, err := tools.GetUInt16FromPostForm(ctx, "mysql.max_open")
+	if err != nil {
+		resp.BadRequest(ctx, "最大打开连接数配置错误", err.Error())
+		return
+	}
+	mysqlConfig.MaxOpen = maxOpen
+
+	// 解析最大空闲连接数
+	maxIdle, err := tools.GetUInt16FromPostForm(ctx, "mysql.max_idle")
+	if err != nil {
+		resp.BadRequest(ctx, "最大空闲连接数配置错误", err.Error())
+		return
+	}
+	mysqlConfig.MaxIdle = maxIdle
+
+	// 检查连接数和空闲数
+	if maxIdle > maxOpen {
+		resp.BadRequest(ctx, "最大空闲连接数不能大于最大打开连接数", nil)
+		return
+	}
+
+	if err = configAnalyze.AnalyzeMySqlConnect(mysqlConfig); err != nil {
+		resp.BadRequest(ctx, "数据库连接配置错误", err.Error())
+		return
+	}
+
+	// 完成配置，将配置添加到全局
+	config.MySQL = mysqlConfig
+
+	resp.Ok(ctx, "配置完成", config.MySQL)
 }
 
 func configOss(ctx *gin.Context) {
@@ -83,21 +139,21 @@ func configOss(ctx *gin.Context) {
 	ossConfig.AccessKeySecret = strings.TrimSpace(ctx.PostForm("oss.access_key_secret"))
 	ossConfig.Bucket = strings.TrimSpace(ctx.PostForm("oss.bucket"))
 	if err := configAnalyze.AnalyzeOssConfig(ossConfig); err != nil {
-		resp.BadRequest(ctx, "OSS 配置错误", err)
+		resp.BadRequest(ctx, "OSS 配置错误", err.Error())
 		return
 	}
 
 	// OSS 路径配置
 	imageOssPath := strings.TrimSpace(ctx.PostForm("oss.image_oss_path"))
 	if err := configAnalyze.AnalyzeOssPath(imageOssPath); err != nil {
-		resp.BadRequest(ctx, "图片 OSS 路径配置错误", err)
+		resp.BadRequest(ctx, "图片 OSS 路径配置错误", err.Error())
 		return
 	}
 	ossConfig.ImageOssPath = imageOssPath
 
 	blogOssPath := strings.TrimSpace(ctx.PostForm("oss.blog_oss_path"))
 	if err := configAnalyze.AnalyzeOssPath(blogOssPath); err != nil {
-		resp.BadRequest(ctx, "博客 OSS 路径配置错误", err)
+		resp.BadRequest(ctx, "博客 OSS 路径配置错误", err.Error())
 		return
 	}
 	ossConfig.BlogOssPath = blogOssPath
@@ -105,21 +161,21 @@ func configOss(ctx *gin.Context) {
 	// OSS 下的 webp 文件配置
 	webpEnable, err := tools.GetIntFromPostForm(ctx, "oss.webp.enable")
 	if err != nil {
-		resp.BadRequest(ctx, "WebP 启用配置错误", err)
+		resp.BadRequest(ctx, "WebP 启用配置错误", err.Error())
 		return
 	}
 	ossConfig.WebP.Enable = webpEnable == 1
 
 	webpQuality, err := tools.GetFloatFromPostForm(ctx, "oss.webp.quality")
 	if err != nil {
-		resp.BadRequest(ctx, "WebP 压缩质量配置错误", err)
+		resp.BadRequest(ctx, "WebP 压缩质量配置错误", err.Error())
 		return
 	}
 	ossConfig.WebP.Quality = webpQuality
 
 	webpSize, err := tools.GetFloatFromPostForm(ctx, "oss.webp.size")
 	if err != nil {
-		resp.BadRequest(ctx, "WebP 压缩后大小配置错误", err)
+		resp.BadRequest(ctx, "WebP 压缩后大小配置错误", err.Error())
 		return
 	}
 	ossConfig.WebP.Size = webpSize

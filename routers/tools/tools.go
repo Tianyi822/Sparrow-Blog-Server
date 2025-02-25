@@ -129,6 +129,18 @@ func GetIntFromPostForm(c *gin.Context, key string) (int, error) {
 	return num, nil
 }
 
+func GetUInt16FromPostForm(c *gin.Context, key string) (uint16, error) {
+	value := c.PostForm(key)
+	if value == "" {
+		return 0, fmt.Errorf("'%s' 为空", key)
+	}
+	num, err := strconv.ParseUint(value, 10, 16)
+	if err != nil {
+		return 0, fmt.Errorf("不可使用的无符号整型值 '%s': %w", key, err)
+	}
+	return uint16(num), nil
+}
+
 func GetFloatFromPostForm(c *gin.Context, key string) (float32, error) {
 	value := c.PostForm(key)
 	if value == "" {

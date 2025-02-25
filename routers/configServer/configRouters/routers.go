@@ -36,6 +36,26 @@ func Routers(e *gin.Engine) {
 	//   email: mail@xx.com # 邮箱
 	configServerGroup.POST("/user", configUser)
 
+	// 配置 MySQL 数据库
+	//
+	// # 定义MySQL数据库的连接配置
+	// mysql:
+	//   # 数据库用户名
+	//   user: xxxxxx
+	//   # 数据库密码
+	//   password: xxxxxx
+	//   # 数据库主机地址
+	//   host: 127.0.0.1
+	//   # 数据库端口号
+	//   port: 3306
+	//   # 数据库名称
+	//   database: xxxxxx
+	//   # 最大打开的数据库连接数
+	//   max_open: 10
+	//   # 最大空闲的数据库连接数
+	//   max_idle: 5
+	configServerGroup.POST("/mysql", configMysql)
+
 	// 配置 OSS，其配置项如下，保存在 config.yaml 中：
 	//
 	// oss:
@@ -44,9 +64,9 @@ func Routers(e *gin.Engine) {
 	//   # OSS 地域
 	//   region: cn-xxxxxx
 	//   # OSS AccessKey ID
-	//   access_key_id: xxxxxxxxxxxxxxxxxxxxxx
+	//   access_key_id: xxxxxx
 	//   # OSS AccessKey Secret
-	//   access_key_secret: xxxxxxxxxxxxxxxxxxxxxx
+	//   access_key_secret: xxxxxx
 	//   # OSS bucket 名称
 	//   bucket: xxx
 	//   # 图片在 OSS 上的路径
