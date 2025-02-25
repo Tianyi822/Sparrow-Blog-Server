@@ -96,10 +96,6 @@ func AnalyzeCorsOrigins(corsOrigins []string) error {
 		if address.Scheme != "https" {
 			return fmt.Errorf("跨域请求来源地址 %v 的协议不是 https", origin)
 		}
-		// 若域名解析失败，则报错
-		if _, err = net.LookupHost(ori); err != nil {
-			return fmt.Errorf("跨域请求来源地址 %v 解析失败", origin)
-		}
 		corsOrigins[index] = ori
 	}
 	return nil

@@ -11,66 +11,78 @@ import (
 )
 
 func configBase(ctx *gin.Context) {
-	portStr := strings.TrimSpace(ctx.PostForm("server.port"))
-	tokenKey := strings.TrimSpace(ctx.PostForm("server.token_key"))
-	tokenExpireDuration := strings.TrimSpace(ctx.PostForm("server.token_expire_duration"))
-	corsOrigins := ctx.PostFormArray("server.cors.origins")
+	serverConfig := &config.ServerConfigData{}
+
+	// 以下两项不需要前端传入配置，直接写死
+	serverConfig.Cors.Headers = []string{"Content-Type", "Authorization", "X-CSRF-Token"}
+	serverConfig.Cors.Methods = []string{"POST", "PUT", "DELETE", "GET"}
 
 	// 解析端口
+	portStr := strings.TrimSpace(ctx.PostForm("server.port"))
 	port, err := configAnalyze.AnalyzePort(portStr)
 	if err != nil {
 		resp.BadRequest(ctx, "端口配置错误", err)
 		return
 	}
-	config.Server.Port = port
+	serverConfig.Port = port
 
 	// 解析 Token 密钥
+	tokenKey := strings.TrimSpace(ctx.PostForm("server.token_key"))
 	if err = configAnalyze.AnalyzeTokenKey(tokenKey); err != nil {
 		resp.BadRequest(ctx, "Token 密钥配置错误", err)
 		return
 	}
-	config.Server.TokenKey = tokenKey
+	serverConfig.TokenKey = tokenKey
 
+	tokenExpireDuration := strings.TrimSpace(ctx.PostForm("server.token_expire_duration"))
 	dur, err := configAnalyze.AnalyzeTokenExpireDuration(tokenExpireDuration)
 	if err != nil {
 		resp.BadRequest(ctx, "Token 过期时间配置错误", err)
 		return
 	}
-	config.Server.TokenExpireDuration = dur
+	serverConfig.TokenExpireDuration = dur
 
+	corsOrigins := ctx.PostFormArray("server.cors.origins")
 	if err = configAnalyze.AnalyzeCorsOrigins(corsOrigins); err != nil {
-		resp.BadRequest(ctx, "跨域源配置错误", err)
+		resp.BadRequest(ctx, "跨域源配置错误", err.Error())
 		return
 	}
-	config.Server.Cors.Origins = corsOrigins
+	serverConfig.Cors.Origins = corsOrigins
 
-	config.Server.Cors.Headers = []string{"Content-Type", "Authorization", "X-CSRF-Token"}
-	config.Server.Cors.Methods = []string{"POST", "PUT", "DELETE", "GET"}
+	// 完成配置，将配置添加到全局
+	config.Server = serverConfig
 
 	resp.Ok(ctx, "配置完成", config.Server)
 }
 
 func configUser(ctx *gin.Context) {
-	config.User.Username = strings.TrimSpace(ctx.PostForm("user.username"))
+	userConfig := &config.UserConfigData{}
+
+	userConfig.Username = strings.TrimSpace(ctx.PostForm("user.username"))
 
 	email := strings.TrimSpace(ctx.PostForm("user.email"))
 	if err := configAnalyze.AnalyzeEmail(email); err != nil {
 		resp.BadRequest(ctx, "邮箱配置错误", err)
 		return
 	}
-	config.User.Email = email
+	userConfig.Email = email
+
+	// 完成配置，将配置添加到全局
+	config.User = userConfig
 
 	resp.Ok(ctx, "配置完成", config.User)
 }
 
 func configOss(ctx *gin.Context) {
+	ossConfig := &config.OssConfig{}
+
 	// OSS 基础配置
-	config.Oss.Endpoint = strings.TrimSpace(ctx.PostForm("oss.endpoint"))
-	config.Oss.Region = strings.TrimSpace(ctx.PostForm("oss.region"))
-	config.Oss.AccessKeyId = strings.TrimSpace(ctx.PostForm("oss.access_key_id"))
-	config.Oss.AccessKeySecret = strings.TrimSpace(ctx.PostForm("oss.access_key_secret"))
-	config.Oss.Bucket = strings.TrimSpace(ctx.PostForm("oss.bucket"))
-	if err := configAnalyze.AnalyzeOssConfig(config.Oss); err != nil {
+	ossConfig.Endpoint = strings.TrimSpace(ctx.PostForm("oss.endpoint"))
+	ossConfig.Region = strings.TrimSpace(ctx.PostForm("oss.region"))
+	ossConfig.AccessKeyId = strings.TrimSpace(ctx.PostForm("oss.access_key_id"))
+	ossConfig.AccessKeySecret = strings.TrimSpace(ctx.PostForm("oss.access_key_secret"))
+	ossConfig.Bucket = strings.TrimSpace(ctx.PostForm("oss.bucket"))
+	if err := configAnalyze.AnalyzeOssConfig(ossConfig); err != nil {
 		resp.BadRequest(ctx, "OSS 配置错误", err)
 		return
 	}
@@ -81,14 +93,14 @@ func configOss(ctx *gin.Context) {
 		resp.BadRequest(ctx, "图片 OSS 路径配置错误", err)
 		return
 	}
-	config.Oss.ImageOssPath = imageOssPath
+	ossConfig.ImageOssPath = imageOssPath
 
 	blogOssPath := strings.TrimSpace(ctx.PostForm("oss.blog_oss_path"))
 	if err := configAnalyze.AnalyzeOssPath(blogOssPath); err != nil {
 		resp.BadRequest(ctx, "博客 OSS 路径配置错误", err)
 		return
 	}
-	config.Oss.BlogOssPath = blogOssPath
+	ossConfig.BlogOssPath = blogOssPath
 
 	// OSS 下的 webp 文件配置
 	webpEnable, err := tools.GetIntFromPostForm(ctx, "oss.webp.enable")
@@ -96,21 +108,24 @@ func configOss(ctx *gin.Context) {
 		resp.BadRequest(ctx, "WebP 启用配置错误", err)
 		return
 	}
-	config.Oss.WebP.Enable = webpEnable == 1
+	ossConfig.WebP.Enable = webpEnable == 1
 
 	webpQuality, err := tools.GetFloatFromPostForm(ctx, "oss.webp.quality")
 	if err != nil {
 		resp.BadRequest(ctx, "WebP 压缩质量配置错误", err)
 		return
 	}
-	config.Oss.WebP.Quality = webpQuality
+	ossConfig.WebP.Quality = webpQuality
 
 	webpSize, err := tools.GetFloatFromPostForm(ctx, "oss.webp.size")
 	if err != nil {
 		resp.BadRequest(ctx, "WebP 压缩后大小配置错误", err)
 		return
 	}
-	config.Oss.WebP.Size = webpSize
+	ossConfig.WebP.Size = webpSize
+
+	// 完成配置，并将配置添加到全局
+	config.Oss = ossConfig
 
 	resp.Ok(ctx, "配置完成", config.Oss)
 }
