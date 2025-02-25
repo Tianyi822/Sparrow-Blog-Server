@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"h2blog_server/internal/model/dto"
 	"h2blog_server/pkg/resp"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -114,4 +115,28 @@ func rowDataToDto(ctx *gin.Context, dto dto.Dto) error {
 	}
 
 	return nil
+}
+
+func GetIntFromPostForm(c *gin.Context, key string) (int, error) {
+	value := c.PostForm(key)
+	if value == "" {
+		return 0, fmt.Errorf("'%s' 为空", key)
+	}
+	num, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, fmt.Errorf("不可使用的整型值 '%s': %w", key, err)
+	}
+	return num, nil
+}
+
+func GetFloatFromPostForm(c *gin.Context, key string) (float32, error) {
+	value := c.PostForm(key)
+	if value == "" {
+		return 0, fmt.Errorf("'%s' 为空", key)
+	}
+	num, err := strconv.ParseFloat(value, 32)
+	if err != nil {
+		return 0, fmt.Errorf("不可使用的浮点值 '%s': %w", key, err)
+	}
+	return float32(num), nil
 }

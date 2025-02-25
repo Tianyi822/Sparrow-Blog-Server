@@ -5,6 +5,7 @@ import (
 	"math"
 	"net"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -96,5 +97,36 @@ func AnalyzeCorsOrigins(corsOrigins []string) error {
 		}
 		corsOrigins[index] = ori
 	}
+	return nil
+}
+
+// AnalyzeEmail 分析邮箱格式是否正确
+func AnalyzeEmail(email string) error {
+	if email == "" {
+		return fmt.Errorf("邮箱不能为空")
+	}
+
+	// 使用正则表达式判断
+	matched, _ := regexp.MatchString(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`, email)
+	if !matched {
+		return fmt.Errorf("邮箱格式不正确: %v", email)
+	}
+	return nil
+}
+
+// AnalyzeOssPath 分析 OSS 路径
+func AnalyzeOssPath(ossPath string) error {
+	if ossPath == "" {
+		return fmt.Errorf("ossPath 不能为空")
+	}
+
+	if !strings.HasSuffix(ossPath, "/") {
+		return fmt.Errorf("ossPath 必须以 / 结尾")
+	}
+
+	if strings.HasPrefix(ossPath, "/") {
+		return fmt.Errorf("ossPath 不能以 / 开头")
+	}
+
 	return nil
 }

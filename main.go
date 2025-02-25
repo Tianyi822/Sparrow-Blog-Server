@@ -109,6 +109,7 @@ func closeWebServer(srv *http.Server) {
 func startConfigServer() *http.Server {
 	// 初始化各个配置项
 	config.Server = &config.ServerConfigData{}
+	config.User = &config.UserConfigData{}
 
 	// 加载配置接口
 	routers.IncludeOpts(configRouters.Routers)
