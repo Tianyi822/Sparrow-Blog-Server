@@ -34,14 +34,36 @@ func Routers(e *gin.Engine) {
 	// user:
 	//   username: name # 用户名
 	//   email: mail@xx.com # 邮箱
-	//   image_oss_path: images/ # 图片在 OSS 上的路径
-	//   avatar_oss_path: images/avatar/ # 头像在 OSS 上的路径
-	//   blog_oss_path: blogs/ # 博客在 OSS 上的路径
-	//   webp: # webp 配置
-	//     enable: true # 是否开启 webp 功能
-	//     quality: 75 # webp 压缩质量
-	//     size: 1 # 压缩后的大小，单位 MB
 	configServerGroup.POST("/user", configUser)
+
+	// 配置 OSS，其配置项如下，保存在 config.yaml 中：
+	//
+	// oss:
+	//   # OSS endpoint
+	//   endpoint: oss-xx-xxxxxx.xxxxxx.com
+	//   # OSS 地域
+	//   region: cn-xxxxxx
+	//   # OSS AccessKey ID
+	//   access_key_id: xxxxxxxxxxxxxxxxxxxxxx
+	//   # OSS AccessKey Secret
+	//   access_key_secret: xxxxxxxxxxxxxxxxxxxxxx
+	//   # OSS bucket 名称
+	//   bucket: xxx
+	//   # 图片在 OSS 上的路径
+	//   image_oss_path: images/
+	//   # 头像在 OSS 上的路径
+	//   avatar_oss_path: images/avatar/
+	//   # 博客在 OSS 上的路径
+	//   blog_oss_path: blogs/
+	//   # webp 配置
+	//   webp:
+	//     # 是否开启 webp 功能
+	//     enable: true
+	//     # webp 压缩质量
+	//     quality: 75
+	//     # 压缩后的大小，单位 MB
+	//     size: 1
+	configServerGroup.POST("/oss", configOss)
 
 	configServerGroup.GET("/shutdown", closeConfigServer)
 }
