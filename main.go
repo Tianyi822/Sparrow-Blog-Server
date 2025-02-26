@@ -52,7 +52,8 @@ func runServer() *http.Server {
 	logger.Info("路由信息加载完成")
 
 	logger.Info("配置路由")
-	r := routers.InitRouter(env.RuntimeEnv)
+	env.CurrentEnv = env.RuntimeEnv
+	r := routers.InitRouter()
 	logger.Info("路由配置完成")
 
 	logger.Info("启动服务中")
@@ -111,7 +112,8 @@ func startConfigServer() *http.Server {
 	routers.IncludeOpts(configrouters.Routers)
 
 	// 初始化路由
-	r := routers.InitRouter(env.ConfigServerEnv)
+	env.CurrentEnv = env.ConfigServerEnv
+	r := routers.InitRouter()
 
 	// 配置 HTTP 服务
 	srv := &http.Server{

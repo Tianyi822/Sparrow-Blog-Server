@@ -17,12 +17,12 @@ func IncludeOpts(opts ...Option) {
 	options = append(options, opts...)
 }
 
-func InitRouter(curEnv string) *gin.Engine {
+func InitRouter() *gin.Engine {
 	// 创建一个没有任何中间件的路由
 	r := gin.New()
 
 	// 添加自定义的中间件
-	switch curEnv {
+	switch env.CurrentEnv {
 	case env.RuntimeEnv:
 		r.Use(middleware.Logger(), gin.Recovery())
 	case env.ConfigServerEnv:

@@ -1,6 +1,9 @@
 package configRouters
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"h2blog_server/env"
+)
 
 func Routers(e *gin.Engine) {
 	// 配置服务统一接口
@@ -85,5 +88,8 @@ func Routers(e *gin.Engine) {
 	//     size: 1
 	configGroup.POST("/oss", configOss)
 
-	configGroup.GET("/shutdown", closeConfigServer)
+	// 只有在 CONFIG_SERVER_ENV 环境下才允许关闭配置服务
+	if env.CurrentEnv == env.ConfigServerEnv {
+		configGroup.GET("/shutdown", closeConfigServer)
+	}
 }
