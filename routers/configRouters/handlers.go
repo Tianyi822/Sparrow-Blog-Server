@@ -6,6 +6,8 @@ import (
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/resp"
 	"h2blog_server/routers/tools"
+	"os/user"
+	"path"
 	"strings"
 )
 
@@ -183,6 +185,54 @@ func configOss(ctx *gin.Context) {
 	config.Oss = ossConfig
 
 	resp.Ok(ctx, "配置完成", config.Oss)
+}
+
+func configCache(ctx *gin.Context) {
+	cacheConfig := &config.CacheConfig{}
+
+	aofEnable, err := tools.GetIntFromPostForm(ctx, "cache.aof.enable")
+	if err != nil {
+		resp.BadRequest(ctx, "AOF 启用配置错误", err.Error())
+		return
+	}
+	cacheConfig.Aof.Enable = aofEnable == 1
+
+	aofPath := strings.TrimSpace(ctx.PostForm("cache.aof.path"))
+	// 如果路径为空，则使用默认路径，即家目录下的 aof 目录
+	if len(aofPath) == 0 {
+		u, err := user.Current()
+		if err != nil {
+			resp.BadRequest(ctx, "获取当前用户信息失败", err.Error())
+			return
+		}
+		aofPath = path.Join(u.HomeDir, "aof")
+	}
+	if err := tools.AnalyzeAbsolutePath(aofPath); err != nil {
+		resp.BadRequest(ctx, "AOF 路径配置错误", err.Error())
+		return
+	}
+	cacheConfig.Aof.Path = aofPath
+
+	// 解析最大 AOF 文件大小
+	maxSize, err := tools.GetUInt16FromPostForm(ctx, "cache.aof.max_size")
+	if err != nil {
+		resp.BadRequest(ctx, "AOF 最大文件大小配置错误", err.Error())
+		return
+	}
+	cacheConfig.Aof.MaxSize = maxSize
+
+	// 解析 AOF 文件压缩
+	aofCompress, err := tools.GetIntFromPostForm(ctx, "cache.aof.compress")
+	if err != nil {
+		resp.BadRequest(ctx, "AOF 文件压缩配置错误", err.Error())
+		return
+	}
+	cacheConfig.Aof.Compress = aofCompress == 1
+
+	// 完成配置，将配置添加到全局
+	config.Cache = cacheConfig
+
+	resp.Ok(ctx, "配置完成", config.Cache)
 }
 
 // closeConfigServer 关闭配置服务

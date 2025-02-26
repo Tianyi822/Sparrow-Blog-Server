@@ -88,6 +88,21 @@ func Routers(e *gin.Engine) {
 	//     size: 1
 	configGroup.POST("/oss", configOss)
 
+	// 配置缓存，其配置项如下，保存在 config.yaml 中：
+	//
+	// cache:
+	//   # AOF 配置
+	//   aof:
+	//     # 是否开启AOF
+	//     enable: true
+	//     # AOF 文件路径
+	//     path: ../temp/h2blog.aof
+	//     # AOF 文件最大大小，单位-MB
+	//     max_size: 1
+	//     # 是否开启压缩
+	//     compress: true
+	configGroup.POST("/cache", configCache)
+
 	// 只有在 CONFIG_SERVER_ENV 环境下才允许关闭配置服务
 	if env.CurrentEnv == env.ConfigServerEnv {
 		configGroup.GET("/shutdown", closeConfigServer)

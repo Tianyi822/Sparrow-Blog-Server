@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -210,6 +211,14 @@ func AnalyzeMySqlConnect(mysqlConfig *config.MySQLConfigData) error {
 	_, err = db.Exec(fmt.Sprintf(`CREATE DATABASE IF NOT EXISTS %s DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`, mysqlConfig.DB))
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func AnalyzeAbsolutePath(path string) error {
+	if !filepath.IsAbs(path) {
+		return fmt.Errorf("路径必须是绝对路径")
 	}
 
 	return nil
