@@ -4,7 +4,7 @@ import "github.com/gin-gonic/gin"
 
 func Routers(e *gin.Engine) {
 	// 配置服务统一接口
-	configServerGroup := e.Group("/config-server")
+	configGroup := e.Group("/config")
 
 	// 基础配置接口，其配置项如下，保存在 config.yaml 中：
 	//
@@ -27,14 +27,14 @@ func Routers(e *gin.Engine) {
 	//       - DELETE
 	//       - GET
 	//       - OPTIONS
-	configServerGroup.POST("/base", configBase)
+	configGroup.POST("/base", configBase)
 
 	// 配置用户服务，其配置项如下，保存在 config.yaml 中：
 	//
 	// user:
 	//   username: name # 用户名
 	//   email: mail@xx.com # 邮箱
-	configServerGroup.POST("/user", configUser)
+	configGroup.POST("/user", configUser)
 
 	// 配置 MySQL 数据库
 	//
@@ -54,7 +54,7 @@ func Routers(e *gin.Engine) {
 	//   max_open: 10
 	//   # 最大空闲的数据库连接数
 	//   max_idle: 5
-	configServerGroup.POST("/mysql", configMysql)
+	configGroup.POST("/mysql", configMysql)
 
 	// 配置 OSS，其配置项如下，保存在 config.yaml 中：
 	//
@@ -83,7 +83,7 @@ func Routers(e *gin.Engine) {
 	//     quality: 75
 	//     # 压缩后的大小，单位 MB
 	//     size: 1
-	configServerGroup.POST("/oss", configOss)
+	configGroup.POST("/oss", configOss)
 
-	configServerGroup.GET("/shutdown", closeConfigServer)
+	configGroup.GET("/shutdown", closeConfigServer)
 }

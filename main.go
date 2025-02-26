@@ -10,9 +10,9 @@ import (
 	"h2blog_server/pkg/markdown"
 	"h2blog_server/pkg/webp"
 	"h2blog_server/routers"
-	"h2blog_server/routers/configServer/configRouters"
-	blogrouters "h2blog_server/routers/webServer/blogRouters"
-	imgrouters "h2blog_server/routers/webServer/imgRouters"
+	blogrouters "h2blog_server/routers/blogRouters"
+	configrouters "h2blog_server/routers/configRouters"
+	imgrouters "h2blog_server/routers/imgRouters"
 	"h2blog_server/storage"
 	"net/http"
 	"os"
@@ -48,7 +48,7 @@ func loadComponent(ctx context.Context) {
 // runServer 启动服务
 func runServer() *http.Server {
 	logger.Info("加载路由信息")
-	routers.IncludeOpts(blogrouters.Routers, imgrouters.Routers) // 添加路由
+	routers.IncludeOpts(blogrouters.Routers, imgrouters.Routers, configrouters.Routers)
 	logger.Info("路由信息加载完成")
 
 	logger.Info("配置路由")
@@ -108,7 +108,7 @@ func closeWebServer(srv *http.Server) {
 
 func startConfigServer() *http.Server {
 	// 加载配置接口
-	routers.IncludeOpts(configRouters.Routers)
+	routers.IncludeOpts(configrouters.Routers)
 
 	// 初始化路由
 	r := routers.InitRouter(env.ConfigServerEnv)
