@@ -24,11 +24,11 @@ func InitRouter(curEnv string) *gin.Engine {
 	// 添加自定义的中间件
 	switch curEnv {
 	case env.RuntimeEnv:
-		r.Use(middleware.LoggerToFile())
+		r.Use(middleware.Logger(), gin.Recovery())
 	case env.ConfigServerEnv:
 	}
 
-	//r.Use(middleware.LoggerToFile(), middleware.Cors(), gin.Recovery())
+	//r.Use(middleware.Logger(), middleware.Cors(), gin.Recovery())
 	for _, opt := range options {
 		opt(r)
 	}

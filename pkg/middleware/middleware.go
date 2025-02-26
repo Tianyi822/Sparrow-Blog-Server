@@ -14,7 +14,7 @@ type RequestInfo struct {
 	Header http.Header `json:"header"`
 }
 
-func LoggerToFile() gin.HandlerFunc {
+func Logger() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 
 		// 构造我们需要的结构体
