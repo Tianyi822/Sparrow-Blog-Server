@@ -1,4 +1,4 @@
-package configAnalyze
+package tools
 
 import (
 	"context"

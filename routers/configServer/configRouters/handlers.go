@@ -5,7 +5,6 @@ import (
 	"h2blog_server/env"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/resp"
-	"h2blog_server/routers/configServer/configAnalyze"
 	"h2blog_server/routers/tools"
 	"strings"
 )
@@ -19,7 +18,7 @@ func configBase(ctx *gin.Context) {
 
 	// 解析端口
 	portStr := strings.TrimSpace(ctx.PostForm("server.port"))
-	port, err := configAnalyze.AnalyzePort(portStr)
+	port, err := tools.AnalyzePort(portStr)
 	if err != nil {
 		resp.BadRequest(ctx, "端口配置错误", err.Error())
 		return
@@ -28,14 +27,14 @@ func configBase(ctx *gin.Context) {
 
 	// 解析 Token 密钥
 	tokenKey := strings.TrimSpace(ctx.PostForm("server.token_key"))
-	if err = configAnalyze.AnalyzeTokenKey(tokenKey); err != nil {
+	if err = tools.AnalyzeTokenKey(tokenKey); err != nil {
 		resp.BadRequest(ctx, "Token 密钥配置错误", err.Error())
 		return
 	}
 	serverConfig.TokenKey = tokenKey
 
 	tokenExpireDuration := strings.TrimSpace(ctx.PostForm("server.token_expire_duration"))
-	dur, err := configAnalyze.AnalyzeTokenExpireDuration(tokenExpireDuration)
+	dur, err := tools.AnalyzeTokenExpireDuration(tokenExpireDuration)
 	if err != nil {
 		resp.BadRequest(ctx, "Token 过期时间配置错误", err.Error())
 		return
@@ -43,7 +42,7 @@ func configBase(ctx *gin.Context) {
 	serverConfig.TokenExpireDuration = dur
 
 	corsOrigins := ctx.PostFormArray("server.cors.origins")
-	if err = configAnalyze.AnalyzeCorsOrigins(corsOrigins); err != nil {
+	if err = tools.AnalyzeCorsOrigins(corsOrigins); err != nil {
 		resp.BadRequest(ctx, "跨域源配置错误", err.Error())
 		return
 	}
@@ -61,7 +60,7 @@ func configUser(ctx *gin.Context) {
 	userConfig.Username = strings.TrimSpace(ctx.PostForm("user.username"))
 
 	email := strings.TrimSpace(ctx.PostForm("user.email"))
-	if err := configAnalyze.AnalyzeEmail(email); err != nil {
+	if err := tools.AnalyzeEmail(email); err != nil {
 		resp.BadRequest(ctx, "邮箱配置错误", err.Error())
 		return
 	}
@@ -80,7 +79,7 @@ func configMysql(ctx *gin.Context) {
 	mysqlConfig.Password = strings.TrimSpace(ctx.PostForm("mysql.password"))
 
 	host := strings.TrimSpace(ctx.PostForm("mysql.host"))
-	if err := configAnalyze.AnalyzeHostAddress(host); err != nil {
+	if err := tools.AnalyzeHostAddress(host); err != nil {
 		resp.BadRequest(ctx, "数据库主机地址配置错误", err.Error())
 		return
 	}
@@ -118,7 +117,7 @@ func configMysql(ctx *gin.Context) {
 		return
 	}
 
-	if err = configAnalyze.AnalyzeMySqlConnect(mysqlConfig); err != nil {
+	if err = tools.AnalyzeMySqlConnect(mysqlConfig); err != nil {
 		resp.BadRequest(ctx, "数据库连接配置错误", err.Error())
 		return
 	}
@@ -138,21 +137,21 @@ func configOss(ctx *gin.Context) {
 	ossConfig.AccessKeyId = strings.TrimSpace(ctx.PostForm("oss.access_key_id"))
 	ossConfig.AccessKeySecret = strings.TrimSpace(ctx.PostForm("oss.access_key_secret"))
 	ossConfig.Bucket = strings.TrimSpace(ctx.PostForm("oss.bucket"))
-	if err := configAnalyze.AnalyzeOssConfig(ossConfig); err != nil {
+	if err := tools.AnalyzeOssConfig(ossConfig); err != nil {
 		resp.BadRequest(ctx, "OSS 配置错误", err.Error())
 		return
 	}
 
 	// OSS 路径配置
 	imageOssPath := strings.TrimSpace(ctx.PostForm("oss.image_oss_path"))
-	if err := configAnalyze.AnalyzeOssPath(imageOssPath); err != nil {
+	if err := tools.AnalyzeOssPath(imageOssPath); err != nil {
 		resp.BadRequest(ctx, "图片 OSS 路径配置错误", err.Error())
 		return
 	}
 	ossConfig.ImageOssPath = imageOssPath
 
 	blogOssPath := strings.TrimSpace(ctx.PostForm("oss.blog_oss_path"))
-	if err := configAnalyze.AnalyzeOssPath(blogOssPath); err != nil {
+	if err := tools.AnalyzeOssPath(blogOssPath); err != nil {
 		resp.BadRequest(ctx, "博客 OSS 路径配置错误", err.Error())
 		return
 	}
