@@ -6,8 +6,7 @@ import (
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/resp"
 	"h2blog_server/routers/tools"
-	"os/user"
-	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -197,21 +196,12 @@ func configCache(ctx *gin.Context) {
 	}
 	cacheConfig.Aof.Enable = aofEnable == 1
 
-	aofPath := strings.TrimSpace(ctx.PostForm("cache.aof.path"))
-	// 如果路径为空，则使用默认路径，即家目录下的 aof 目录
-	if len(aofPath) == 0 {
-		u, err := user.Current()
-		if err != nil {
-			resp.BadRequest(ctx, "获取当前用户信息失败", err.Error())
-			return
-		}
-		aofPath = path.Join(u.HomeDir, "aof")
-	}
-	if err := tools.AnalyzeAbsolutePath(aofPath); err != nil {
+	aofPath, err := tools.AnalyzeAbsolutePath(strings.TrimSpace(ctx.PostForm("cache.aof.path")))
+	if err != nil {
 		resp.BadRequest(ctx, "AOF 路径配置错误", err.Error())
 		return
 	}
-	cacheConfig.Aof.Path = aofPath
+	cacheConfig.Aof.Path = filepath.Join(aofPath, "aof.log")
 
 	// 解析最大 AOF 文件大小
 	maxSize, err := tools.GetUInt16FromPostForm(ctx, "cache.aof.max_size")
@@ -233,6 +223,57 @@ func configCache(ctx *gin.Context) {
 	config.Cache = cacheConfig
 
 	resp.Ok(ctx, "配置完成", config.Cache)
+}
+
+func configLogger(ctx *gin.Context) {
+	loggerConfig := &config.LoggerConfigData{}
+
+	level := strings.TrimSpace(ctx.PostForm("logger.level"))
+	if err := tools.AnalyzeLoggerLevel(level); err != nil {
+		resp.BadRequest(ctx, "日志级别配置错误", err.Error())
+		return
+	}
+	loggerConfig.Level = level
+
+	logPath, err := tools.AnalyzeAbsolutePath(strings.TrimSpace(ctx.PostForm("logger.path")))
+	if err != nil {
+		resp.BadRequest(ctx, "日志路径配置错误", err.Error())
+		return
+	}
+	loggerConfig.Path = filepath.Join(logPath, "h2blog.log")
+
+	maxSize, err := tools.GetUInt16FromPostForm(ctx, "logger.max_size")
+	if err != nil {
+		resp.BadRequest(ctx, "日志最大文件大小配置错误", err.Error())
+		return
+	}
+	loggerConfig.MaxSize = maxSize
+
+	maxBackups, err := tools.GetUInt16FromPostForm(ctx, "logger.max_backups")
+	if err != nil {
+		resp.BadRequest(ctx, "日志最大备份数量配置错误", err.Error())
+		return
+	}
+	loggerConfig.MaxBackups = maxBackups
+
+	maxAge, err := tools.GetUInt16FromPostForm(ctx, "logger.max_age")
+	if err != nil {
+		resp.BadRequest(ctx, "日志最大保存天数配置错误", err.Error())
+		return
+	}
+	loggerConfig.MaxAge = maxAge
+
+	compress, err := tools.GetIntFromPostForm(ctx, "logger.compress")
+	if err != nil {
+		resp.BadRequest(ctx, "日志文件压缩配置错误", err.Error())
+		return
+	}
+	loggerConfig.Compress = compress == 1
+
+	// 完成配置，将配置添加到全局
+	config.Logger = loggerConfig
+
+	resp.Ok(ctx, "配置完成", config.Logger)
 }
 
 // closeConfigServer 关闭配置服务

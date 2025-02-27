@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os/user"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -216,10 +217,32 @@ func AnalyzeMySqlConnect(mysqlConfig *config.MySQLConfigData) error {
 	return nil
 }
 
-func AnalyzeAbsolutePath(path string) error {
-	if !filepath.IsAbs(path) {
-		return fmt.Errorf("路径必须是绝对路径")
+// AnalyzeLoggerLevel 分析日志级别
+// 只允许一下的日志级别
+// - INFO
+// - DEBUG
+// - ERROR
+// - WARN
+func AnalyzeLoggerLevel(level string) error {
+	level = strings.ToUpper(level)
+	if level != "INFO" && level != "DEBUG" && level != "ERROR" && level != "WARN" {
+		return fmt.Errorf("日志级别 %v 不正确", level)
+	}
+	return nil
+}
+
+func AnalyzeAbsolutePath(path string) (string, error) {
+	if path == "" {
+		u, err := user.Current()
+		if err != nil {
+			return "", err
+		}
+		path = filepath.Join(u.HomeDir, "aof")
 	}
 
-	return nil
+	if !filepath.IsAbs(path) {
+		return "", fmt.Errorf("路径必须是绝对路径")
+	}
+
+	return path, nil
 }
