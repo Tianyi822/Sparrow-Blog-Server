@@ -30,7 +30,7 @@ func TestConverter(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	files, err := storage.Storage.ListOssDirFiles(ctx, config.User.ImageOssPath)
+	files, err := storage.Storage.ListOssDirFiles(ctx, config.Oss.ImageOssPath)
 	if err != nil {
 		t.Fatal(err)
 	}

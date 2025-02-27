@@ -31,7 +31,7 @@ func TestStorage_GetContentFromOss(t *testing.T) {
 
 func TestStorage_ListOssDirFiles(t *testing.T) {
 	ctx := context.Background()
-	files, err := Storage.ListOssDirFiles(ctx, config.User.ImageOssPath)
+	files, err := Storage.ListOssDirFiles(ctx, config.Oss.ImageOssPath)
 	if err != nil {
 		fmt.Printf("获取文件列表失败: %v", err)
 	}
