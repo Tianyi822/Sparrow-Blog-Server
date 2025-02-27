@@ -107,7 +107,7 @@ func closeWebServer(srv *http.Server) {
 	logger.Info("服务已退出")
 }
 
-func startConfigServer() *http.Server {
+func startConfigServer(port string) *http.Server {
 	// 加载配置接口
 	routers.IncludeOpts(configrouters.Routers)
 
@@ -117,7 +117,7 @@ func startConfigServer() *http.Server {
 
 	// 配置 HTTP 服务
 	srv := &http.Server{
-		Addr:    ":2234",
+		Addr:    fmt.Sprintf(":%v", port),
 		Handler: r,
 	}
 
@@ -150,7 +150,8 @@ func closeConfigServer(srv *http.Server) {
 	}
 }
 
-func main() {
+// checkConfig 检查配置文件，若未找到配置文件，则开启配置服务
+func checkConfig(port string) {
 	// 优先去本地默认路径加载配置文件
 	err := config.LoadConfig()
 	if err != nil {
@@ -158,11 +159,31 @@ func main() {
 		errors.As(err, &configErr)
 		if configErr.IsNoConfigFileErr() {
 			// 若未找到配置文件，则单独开启配置服务，与业务端口分开使用
-			server := startConfigServer()
+			server := startConfigServer(port)
 			// 等待配置服务关闭
 			closeConfigServer(server)
 		}
 	}
+}
+
+// getArgsFromTerminal 从终端获取参数
+func getArgsFromTerminal() map[string]string {
+	var result = make(map[string]string)
+
+	for i := 0; i < len(os.Args); i++ {
+		if os.Args[i] == "--config-server-port" || os.Args[i] == "-csp" {
+			result["config-server-port"] = os.Args[i+1]
+			i++
+		}
+	}
+
+	return result
+}
+
+func main() {
+	args := getArgsFromTerminal()
+
+	checkConfig(args["config-server-port"])
 
 	// 加载基础组件
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
