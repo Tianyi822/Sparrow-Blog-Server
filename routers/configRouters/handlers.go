@@ -60,12 +60,30 @@ func configUser(ctx *gin.Context) {
 
 	userConfig.Username = strings.TrimSpace(ctx.PostForm("user.username"))
 
-	email := strings.TrimSpace(ctx.PostForm("user.email"))
-	if err := tools.AnalyzeEmail(email); err != nil {
-		resp.BadRequest(ctx, "邮箱配置错误", err.Error())
+	userEmail := strings.TrimSpace(ctx.PostForm("user.user_email"))
+	if err := tools.AnalyzeEmail(userEmail); err != nil {
+		resp.BadRequest(ctx, "用户邮箱配置错误", err.Error())
 		return
 	}
-	userConfig.Email = email
+	userConfig.UserEmail = userEmail
+
+	sysEmailAccount := strings.TrimSpace(ctx.PostForm("user.sys_email_account"))
+	if err := tools.AnalyzeEmail(sysEmailAccount); err != nil {
+		resp.BadRequest(ctx, "系统邮箱配置错误", err.Error())
+		return
+	}
+	userConfig.SysEmailAccount = sysEmailAccount
+
+	userConfig.SysEmailSmtp = strings.TrimSpace(ctx.PostForm("user.sys_email_smtp"))
+
+	sysEmailPort, err := tools.GetUInt16FromPostForm(ctx, "user.sys_email_port")
+	if err != nil {
+		resp.BadRequest(ctx, "系统邮箱端口配置错误", err.Error())
+		return
+	}
+	userConfig.SysEmailPort = sysEmailPort
+
+	userConfig.SysEmailAuthCode = strings.TrimSpace(ctx.PostForm("user.sys_email_auth_code"))
 
 	// 完成配置，将配置添加到全局
 	config.User = userConfig

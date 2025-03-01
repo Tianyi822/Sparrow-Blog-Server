@@ -103,6 +103,21 @@ func Routers(e *gin.Engine) {
 	//     compress: true
 	configGroup.POST("/cache", configCache)
 
+	// 配置日志，其配置项如下，保存在 config.yaml 中：
+	//
+	// logger:
+	//  # 日志级别
+	//  level: debug
+	//  # 日志文件路径
+	//  path: temp/h2blog.log
+	//  # 日志文件最大大小，单位-MB
+	//  max_size: 3
+	//  # 日志文件最大备份数量
+	//  max_backups: 30
+	//  # 日志文件最大保存时间，单位-天
+	//  max_age: 7
+	//  # 是否压缩日志文件
+	//  compress: true
 	configGroup.POST("/logger", configLogger)
 
 	// 只有在 CONFIG_SERVER_ENV 环境下才允许关闭配置服务

@@ -16,112 +16,116 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// ProjectConfig defines the structure for all configuration data
+// ProjectConfig 定义了所有配置数据的结构
 type ProjectConfig struct {
-	User   UserConfigData   `yaml:"user"`   // User configuration
-	Server ServerConfigData `yaml:"server"` // Server configuration
-	Logger LoggerConfigData `yaml:"logger"` // Logger configuration
-	MySQL  MySQLConfigData  `yaml:"mysql"`  // MySQL database configuration
-	Oss    OssConfig        `yaml:"oss"`    // OSS configuration
-	Cache  CacheConfig      `yaml:"cache"`  // Cache configuration
+	User   UserConfigData   `yaml:"user"`   // 用户配置
+	Server ServerConfigData `yaml:"server"` // 服务器配置
+	Logger LoggerConfigData `yaml:"logger"` // 日志配置
+	MySQL  MySQLConfigData  `yaml:"mysql"`  // MySQL数据库配置
+	Oss    OssConfig        `yaml:"oss"`    // OSS对象存储配置
+	Cache  CacheConfig      `yaml:"cache"`  // 缓存配置
 }
 
-// UserConfigData defines user-specific configuration
+// UserConfigData 用户配置
 type UserConfigData struct {
-	Username        string `yaml:"username"`         // User's username
-	Email           string `yaml:"email"`            // User's email address
-	BackgroundImage string `yaml:"background_image"` // Background image name
+	Username         string `yaml:"username"`            // 用户名
+	UserEmail        string `yaml:"user_email"`          // 用户邮箱
+	SysEmailAccount  string `yaml:"sys_email_account"`   // 邮箱 SMTP 账号
+	SysEmailSmtp     string `yaml:"sys_email_smtp"`      // 邮箱 SMTP 服务器地址
+	SysEmailPort     uint16 `yaml:"sys_email_port"`      // 邮箱 SMTP 端口
+	SysEmailAuthCode string `yaml:"sys_email_auth_code"` // 邮箱 SMTP 密码
+	BackgroundImage  string `yaml:"background_image"`    // Background image name
 }
 
-// WebPConfigData defines WebP image conversion settings
+// WebPConfigData 定义了WebP图片转换设置
 type WebPConfigData struct {
-	Enable  bool    `yaml:"enable"`  // Whether to enable WebP conversion
-	Quality float32 `yaml:"quality"` // WebP image quality (1-100)
-	Size    float32 `yaml:"size"`    // Maximum WebP image size in MB
+	Enable  bool    `yaml:"enable"`  // 是否启用WebP转换
+	Quality float32 `yaml:"quality"` // WebP图片质量(1-100)
+	Size    float32 `yaml:"size"`    // WebP图片最大大小(MB)
 }
 
-// ServerConfigData defines server-related configuration
+// ServerConfigData 定义了服务器相关配置
 type ServerConfigData struct {
-	Port                uint16         `yaml:"port"`                  // Server port number
-	TokenKey            string         `yaml:"token_key"`             // JWT signing and verification key
-	TokenExpireDuration uint8          `yaml:"token_expire_duration"` // Token expiration in days
-	Cors                CorsConfigData `yaml:"cors"`                  // CORS configuration
+	Port                uint16         `yaml:"port"`                  // 服务器端口号
+	TokenKey            string         `yaml:"token_key"`             // JWT签名和验证密钥
+	TokenExpireDuration uint8          `yaml:"token_expire_duration"` // Token过期时间(天)
+	Cors                CorsConfigData `yaml:"cors"`                  // CORS跨域配置
 }
 
-// CorsConfigData defines Cross-Origin Resource Sharing configuration
+// CorsConfigData 定义了跨域资源共享配置
 type CorsConfigData struct {
-	Origins []string `yaml:"origins"` // Allowed origins
-	Headers []string `yaml:"headers"` // Allowed headers
-	Methods []string `yaml:"methods"` // Allowed methods
+	Origins []string `yaml:"origins"` // 允许的源
+	Headers []string `yaml:"headers"` // 允许的请求头
+	Methods []string `yaml:"methods"` // 允许的请求方法
 }
 
-// LoggerConfigData defines logging configuration
+// LoggerConfigData 定义了日志配置
 type LoggerConfigData struct {
-	Level      string `yaml:"level"`       // Logging level
-	Path       string `yaml:"path"`        // Log file path
-	MaxAge     uint16 `yaml:"max_age"`     // Maximum days to retain log files
-	MaxSize    uint16 `yaml:"max_size"`    // Maximum size of log files in MB
-	MaxBackups uint16 `yaml:"max_backups"` // Maximum number of log backups
-	Compress   bool   `yaml:"compress"`    // Whether to compress log files
+	Level      string `yaml:"level"`       // 日志级别
+	Path       string `yaml:"path"`        // 日志文件路径
+	MaxAge     uint16 `yaml:"max_age"`     // 日志文件保留最大天数
+	MaxSize    uint16 `yaml:"max_size"`    // 日志文件最大大小(MB)
+	MaxBackups uint16 `yaml:"max_backups"` // 日志备份文件最大数量
+	Compress   bool   `yaml:"compress"`    // 是否压缩日志文件
 }
 
-// MySQLConfigData defines MySQL database configuration
+// MySQLConfigData 定义了MySQL数据库配置
 type MySQLConfigData struct {
-	User     string `yaml:"user"`     // Database username
-	Password string `yaml:"password"` // Database password
-	Host     string `yaml:"host"`     // Database host address
-	Port     uint16 `yaml:"port"`     // Database port number
-	DB       string `yaml:"database"` // Database name
-	MaxOpen  uint16 `yaml:"max_open"` // Maximum open connections
-	MaxIdle  uint16 `yaml:"max_idle"` // Maximum idle connections
+	User     string `yaml:"user"`     // 数据库用户名
+	Password string `yaml:"password"` // 数据库密码
+	Host     string `yaml:"host"`     // 数据库主机地址
+	Port     uint16 `yaml:"port"`     // 数据库端口号
+	DB       string `yaml:"database"` // 数据库名称
+	MaxOpen  uint16 `yaml:"max_open"` // 最大打开连接数
+	MaxIdle  uint16 `yaml:"max_idle"` // 最大空闲连接数
 }
 
-// OssConfig defines Object Storage Service configuration
+// OssConfig 定义了对象存储服务配置
 type OssConfig struct {
-	Endpoint        string         `yaml:"endpoint"`
-	Region          string         `yaml:"region"`
-	AccessKeyId     string         `yaml:"access_key_id"`
-	AccessKeySecret string         `yaml:"access_key_secret"`
-	Bucket          string         `yaml:"bucket"`
-	ImageOssPath    string         `yaml:"image_oss_path"` // Path for storing images
-	BlogOssPath     string         `yaml:"blog_oss_path"`  // Path for storing blog content
-	WebP            WebPConfigData `yaml:"webp"`           // WebP image configuration
+	Endpoint        string         `yaml:"endpoint"`          // OSS 服务的访问域名
+	Region          string         `yaml:"region"`            // OSS 服务的地域
+	AccessKeyId     string         `yaml:"access_key_id"`     // OSS 访问密钥ID
+	AccessKeySecret string         `yaml:"access_key_secret"` // OSS 访问密钥密文
+	Bucket          string         `yaml:"bucket"`            // OSS 存储空间名称
+	ImageOssPath    string         `yaml:"image_oss_path"`    // 图片存储路径
+	BlogOssPath     string         `yaml:"blog_oss_path"`     // 博客内容存储路径
+	WebP            WebPConfigData `yaml:"webp"`              // WebP图片配置
 }
 
-// CacheConfig defines cache system configuration
+// CacheConfig 定义了缓存系统配置
 type CacheConfig struct {
-	Aof AofConfig `yaml:"aof"` // AOF persistence configuration
+	Aof AofConfig `yaml:"aof"` // AOF持久化配置
 }
 
-// AofConfig defines Append-Only File persistence configuration
+// AofConfig 定义了追加文件持久化配置
 type AofConfig struct {
-	Enable   bool   `yaml:"enable"`   // Whether to enable AOF persistence
-	Path     string `yaml:"path"`     // AOF file path
-	MaxSize  uint16 `yaml:"max_size"` // Maximum AOF file size in MB
-	Compress bool   `yaml:"compress"` // Whether to compress AOF files
+	Enable   bool   `yaml:"enable"`   // 是否启用AOF持久化
+	Path     string `yaml:"path"`     // AOF文件路径
+	MaxSize  uint16 `yaml:"max_size"` // AOF文件最大大小(MB)
+	Compress bool   `yaml:"compress"` // 是否压缩AOF文件
 }
 
-// Global configuration variables
+// 全局配置变量
 var (
-	// loadConfigLock ensures configuration is loaded only once
+	// loadConfigLock 确保配置只被加载一次
 	loadConfigLock sync.Once
 
-	// User holds global user configuration
+	// User 保存全局用户配置
 	User *UserConfigData = nil
 
-	// Server holds global server configuration
+	// Server 保存全局服务器配置
 	Server *ServerConfigData = nil
 
-	// Logger holds global logger configuration
+	// Logger 保存全局日志配置
 	Logger *LoggerConfigData = nil
 
-	// MySQL holds global MySQL database configuration
+	// MySQL 保存全局MySQL数据库配置
 	MySQL *MySQLConfigData = nil
 
-	// Oss holds global OSS configuration
+	// Oss 保存全局OSS配置
 	Oss *OssConfig = nil
 
-	// Cache holds global cache configuration
+	// Cache 保存全局缓存配置
 	Cache *CacheConfig = nil
 )
 
@@ -153,38 +157,38 @@ func LoadConfig() error {
 	return nil
 }
 
-// getH2BlogDir returns the base directory for h2blog configuration and data
-// It uses the user's home directory as the base path
+// getH2BlogDir 返回h2blog配置和数据的基础目录
+// 它使用用户的主目录作为基础路径
 //
-// Returns:
-//   - string: The full path to the h2blog directory
-//   - error: Any error encountered while getting the user's home directory
+// 返回:
+//   - string: h2blog目录的完整路径
+//   - error: 获取用户主目录时遇到的任何错误
 func getH2BlogDir() (string, error) {
-	// Get current user information
+	// 获取当前用户信息
 	usr, err := user.Current()
 	if err != nil {
-		return "", fmt.Errorf("failed to get current user: %w", err)
+		return "", fmt.Errorf("获取当前用户失败: %w", err)
 	}
 
-	// Join home directory with .h2blog
+	// 将主目录与.h2blog连接
 	return path.Join(usr.HomeDir, ".h2blog"), nil
 }
 
-// loadConfigFromFile Loading config data from file
+// loadConfigFromFile 从文件加载配置数据
 func loadConfigFromFile() error {
-	// Try user's home directory first
+	// 首先尝试用户的主目录
 	h2blogDir, err := getH2BlogDir()
 	if err != nil {
-		return fmt.Errorf("failed to get h2blog directory: %w", err)
+		return fmt.Errorf("获取h2blog目录失败: %w", err)
 	}
 
-	// Try home directory first
+	// 首先尝试主目录
 	configPath := path.Join(h2blogDir, "config", "h2blog_config.yaml")
 	if fileTool.IsExist(configPath) {
 		return loadConfigFromPath(configPath)
 	}
 
-	// If not found in home directory, try current directory
+	// 如果在主目录中未找到，则尝试当前目录
 	currentDirPath := path.Join(".h2blog", "config", "h2blog_config.yaml")
 	if fileTool.IsExist(currentDirPath) {
 		return loadConfigFromPath(currentDirPath)
@@ -193,7 +197,7 @@ func loadConfigFromFile() error {
 	return fmt.Errorf("config file not found")
 }
 
-// loadConfigFromPath loads config from specified path
+// loadConfigFromPath 从指定路径加载配置
 func loadConfigFromPath(configPath string) error {
 	data, err := os.ReadFile(configPath)
 	if err != nil {
@@ -205,7 +209,7 @@ func loadConfigFromPath(configPath string) error {
 		return fmt.Errorf("reflect config to struct error: %w", err)
 	}
 
-	// Set global config
+	// 设置全局配置
 	User = &conf.User
 	Server = &conf.Server
 	Logger = &conf.Logger
@@ -216,13 +220,13 @@ func loadConfigFromPath(configPath string) error {
 	return nil
 }
 
-// checkPortAvailable attempts to bind to a port to check its availability
-// It returns an error if the port is already in use
-// Parameters:
-//   - port: The port number to check
+// checkPortAvailable 尝试绑定端口以检查其可用性
+// 如果端口已被占用则返回错误
+// 参数:
+//   - port: 要检查的端口号
 //
-// Returns:
-//   - error: nil if port is available, error message if port is in use
+// 返回:
+//   - error: 如果端口可用则返回nil，如果端口被占用则返回错误信息
 func checkPortAvailable(port uint16) error {
 	// Try to listen on the port
 	addr := fmt.Sprintf(":%d", port)
@@ -238,25 +242,25 @@ func checkPortAvailable(port uint16) error {
 	return nil
 }
 
-// loadConfigFromTerminal loads configuration from terminal input
-// It prompts user for necessary configuration values and saves them to a config file
+// loadConfigFromTerminal 从终端输入加载配置
+// 提示用户输入必要的配置值并将其保存到配置文件中
 func loadConfigFromTerminal() error {
-	fmt.Println("No configuration file found. Please enter configuration values:")
+	fmt.Println("未找到配置文件。请输入配置值:")
 
-	// Get h2blog directory
+	// 获取 h2blog 目录
 	h2blogDir, err := getH2BlogDir()
 	if err != nil {
-		return fmt.Errorf("failed to get h2blog directory: %w", err)
+		return fmt.Errorf("获取 h2blog 目录失败: %w", err)
 	}
 
-	// Update default paths for logs and aof
+	// 更新日志和 AOF 的默认路径
 	defaultLogPath := path.Join(h2blogDir, "logs", "h2blog.log")
 	defaultAofPath := path.Join(h2blogDir, "aof", "h2blog.aof")
 
 	conf := &ProjectConfig{
 		User: UserConfigData{
-			Username: getInput("Username: "),
-			Email:    getInput("Email: "),
+			Username:  getInput("Username: "),
+			UserEmail: getInput("Email: "),
 		},
 
 		Server: ServerConfigData{
@@ -357,7 +361,7 @@ func loadConfigFromTerminal() error {
 
 // Helper functions for getting user input
 
-// getInput prompts for user input and ensures non-empty response
+// getInput 提示用户输入并确保返回非空响应
 func getInput(prompt string, defaultValue ...string) string {
 	for {
 		fmt.Print(prompt)
@@ -388,7 +392,7 @@ func getInput(prompt string, defaultValue ...string) string {
 	}
 }
 
-// getBoolInput prompts for a yes/no response and returns true for yes
+// getBoolInput 提示用户输入是/否响应，对于是返回true
 func getBoolInput(prompt string, defaultValue ...string) bool {
 	for {
 		input := strings.ToLower(getInput(prompt, defaultValue...))
@@ -413,7 +417,7 @@ func getUint8Input(prompt string, min, max uint16, defaultValue ...string) uint8
 	}
 }
 
-// getUint16Input prompts for a uint16 within the specified range
+// getUint16Input 提示用户输入指定范围内的uint16数值
 func getUint16Input(prompt string, min, max uint16, defaultValue ...string) uint16 {
 	for {
 		input := getInput(prompt, defaultValue...)
@@ -425,7 +429,7 @@ func getUint16Input(prompt string, min, max uint16, defaultValue ...string) uint
 	}
 }
 
-// getFloatInput prompts for a float32 within the specified range
+// getFloatInput 提示用户输入指定范围内的float32数值
 func getFloatInput(prompt string, min, max float32, defaultValue ...string) float32 {
 	for {
 		input := getInput(prompt, defaultValue...)
