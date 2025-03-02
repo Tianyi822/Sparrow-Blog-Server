@@ -1,46 +1,12 @@
 package utils
 
 import (
-	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"math/rand"
 
-	"github.com/google/uuid"
 	"golang.org/x/crypto/blake2b"
 )
-
-func GenHash(str string) string {
-	// 创建SHA256哈希对象
-	hash := sha256.New()
-
-	// 将字符串转换为字节数组并写入哈希对象
-	hash.Write([]byte(str))
-
-	// 计算哈希值
-	hashBytes := hash.Sum(nil)
-
-	// 将哈希值转换为十六进制字符串
-	hashStr := hex.EncodeToString(hashBytes)
-
-	return hashStr
-}
-
-// GenUUID 生成一个随机的 UUID
-func GenUUID() string {
-	return uuid.New().String()
-}
-
-// GenShortUUID 生成一个短 UUID (去掉横线)
-func GenShortUUID() string {
-	return uuid.New().String()[:8]
-}
-
-// IsValidUUID 验证UUID是否有效
-func IsValidUUID(u string) bool {
-	_, err := uuid.Parse(u)
-	return err == nil
-}
 
 // GenId 用于生成博客的唯一标识符
 //   - title 是博客的标题
