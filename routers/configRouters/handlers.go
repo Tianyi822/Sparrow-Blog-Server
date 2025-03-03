@@ -76,7 +76,7 @@ func configUser(ctx *gin.Context) {
 
 	userConfig.SysEmailSmtp = strings.TrimSpace(ctx.PostForm("user.sys_email_smtp"))
 
-	sysEmailPort, err := tools.GetUInt16FromPostForm(ctx, "user.sys_email_port")
+	sysEmailPort, err := tools.GetIntFromPostForm(ctx, "user.sys_email_port")
 	if err != nil {
 		resp.BadRequest(ctx, "系统邮箱端口配置错误", err.Error())
 		return

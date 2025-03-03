@@ -32,7 +32,7 @@ type UserConfigData struct {
 	UserEmail        string `yaml:"user_email"`          // 用户邮箱
 	SysEmailAccount  string `yaml:"sys_email_account"`   // 邮箱 SMTP 账号
 	SysEmailSmtp     string `yaml:"sys_email_smtp"`      // 邮箱 SMTP 服务器地址
-	SysEmailPort     uint16 `yaml:"sys_email_port"`      // 邮箱 SMTP 端口
+	SysEmailPort     int    `yaml:"sys_email_port"`      // 邮箱 SMTP 端口
 	SysEmailAuthCode string `yaml:"sys_email_auth_code"` // 邮箱 SMTP 密码
 	BackgroundImage  string `yaml:"background_image"`    // Background image name
 }
