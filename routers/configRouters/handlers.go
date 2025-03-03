@@ -2,10 +2,12 @@ package configRouters
 
 import (
 	"github.com/gin-gonic/gin"
+	"h2blog_server/email"
 	"h2blog_server/env"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/resp"
 	"h2blog_server/routers/tools"
+	"h2blog_server/storage"
 	"path/filepath"
 	"strings"
 )
@@ -55,11 +57,68 @@ func configBase(ctx *gin.Context) {
 	resp.Ok(ctx, "配置完成", config.Server)
 }
 
+// configUser 配置用户信息，包括验证验证码和设置用户名。
+// 该函数根据当前环境（配置服务器环境或运行时环境）来决定如何处理验证码的验证与清除。
+// 参数:
+//   - ctx: *gin.Context, Gin框架的上下文对象，包含了请求和响应的信息。
+//
+// 返回值:
+//
+//	无直接返回值，通过ctx对象向客户端发送响应。
 func configUser(ctx *gin.Context) {
+	code := strings.TrimSpace(ctx.PostForm("user.verification_code"))
+
+	// 根据当前环境验证验证码
+	switch env.CurrentEnv {
+	case env.ConfigServerEnv:
+		if env.VerificationCode != code {
+			resp.BadRequest(ctx, "验证码错误", nil)
+			return
+		}
+	case env.RuntimeEnv:
+		c, err := storage.Storage.Cache.GetString(ctx, "verification-code")
+		if err != nil {
+			resp.BadRequest(ctx, "验证码过期", err.Error())
+			return
+		}
+		if c != code {
+			resp.BadRequest(ctx, "验证码错误", nil)
+			return
+		}
+	}
+
+	// 设置用户名称
+	config.User.Username = strings.TrimSpace(ctx.PostForm("user.username"))
+
+	// 清除已使用的验证码
+	switch env.CurrentEnv {
+	case env.ConfigServerEnv:
+		env.VerificationCode = ""
+	case env.RuntimeEnv:
+		err := storage.Storage.Cache.Delete(ctx, "verification-code")
+		if err != nil {
+			resp.Err(ctx, "验证码缓存清除失败", err.Error())
+			return
+		}
+	}
+
+	// 向客户端返回成功消息及配置后的用户信息
+	resp.Ok(ctx, "配置完成", config.User)
+}
+
+// sendVerificationCode 处理发送验证码的请求。
+// 该函数从请求中获取用户邮箱、SMTP账户等信息，验证这些信息的有效性，并将有效的配置保存到全局配置中。
+// 最后，通过电子邮件发送验证码。如果过程中出现任何错误，将返回相应的错误信息。
+// 参数:
+//   - ctx: *gin.Context, 用于处理HTTP请求的上下文。
+//
+// 返回值:
+//
+//	无直接返回值，但会通过ctx对象响应客户端。
+func sendVerificationCode(ctx *gin.Context) {
 	userConfig := &config.UserConfigData{}
 
-	userConfig.Username = strings.TrimSpace(ctx.PostForm("user.username"))
-
+	// 从请求中获取并验证用户邮箱
 	userEmail := strings.TrimSpace(ctx.PostForm("user.user_email"))
 	if err := tools.AnalyzeEmail(userEmail); err != nil {
 		resp.BadRequest(ctx, "用户邮箱配置错误", err.Error())
@@ -67,6 +126,7 @@ func configUser(ctx *gin.Context) {
 	}
 	userConfig.UserEmail = userEmail
 
+	// 从请求中获取并验证系统邮箱
 	smtpAccount := strings.TrimSpace(ctx.PostForm("user.smtp_account"))
 	if err := tools.AnalyzeEmail(smtpAccount); err != nil {
 		resp.BadRequest(ctx, "系统邮箱配置错误", err.Error())
@@ -74,8 +134,10 @@ func configUser(ctx *gin.Context) {
 	}
 	userConfig.SmtpAccount = smtpAccount
 
+	// 获取SMTP服务器地址
 	userConfig.SmtpAddress = strings.TrimSpace(ctx.PostForm("user.smtp_address"))
 
+	// 从请求中获取并验证SMTP端口
 	smtpPort, err := tools.GetIntFromPostForm(ctx, "user.smtp_port")
 	if err != nil {
 		resp.BadRequest(ctx, "系统邮箱端口配置错误", err.Error())
@@ -83,16 +145,20 @@ func configUser(ctx *gin.Context) {
 	}
 	userConfig.SmtpPort = smtpPort
 
+	// 获取SMTP授权码
 	userConfig.SmtpAuthCode = strings.TrimSpace(ctx.PostForm("user.smtp_auth_code"))
 
-	// 完成配置，将配置添加到全局
+	// 发送验证码邮件
+	if err = email.SendVerificationCodeEmail(ctx, userConfig.UserEmail); err != nil {
+		resp.BadRequest(ctx, "验证码发送失败", err.Error())
+		return
+	}
+
+	// 将验证后的配置添加到全局配置
 	config.User = userConfig
 
-	resp.Ok(ctx, "配置完成", config.User)
-}
-
-func verifyEmail(ctx *gin.Context) {
-	resp.Ok(ctx, "邮箱验证成功", nil)
+	// 响应客户端验证码发送成功
+	resp.Ok(ctx, "验证码发送成功", config.User)
 }
 
 func configMysql(ctx *gin.Context) {

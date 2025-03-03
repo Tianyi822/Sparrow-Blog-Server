@@ -32,6 +32,9 @@ func Routers(e *gin.Engine) {
 	//       - OPTIONS
 	configGroup.POST("/base", configBase)
 
+	// 发送验证码，并且将传入的用户配置参数先保存到全局中，必须在前端中保证只有验证码通过后，才能发起配置 User 的请求
+	configGroup.POST("/send-verification-code", sendVerificationCode)
+
 	// 配置用户服务，其配置项如下，保存在 config.yaml 中：
 	//
 	// user:
@@ -48,8 +51,6 @@ func Routers(e *gin.Engine) {
 	//  # 邮箱 SMTP 密码
 	//  smtp_auth_code: YThfU32Tcq3FdVvx
 	configGroup.POST("/user", configUser)
-
-	configGroup.POST("/verify-email", verifyEmail)
 
 	// 配置 MySQL 数据库
 	//
