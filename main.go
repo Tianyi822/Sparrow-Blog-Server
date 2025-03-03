@@ -12,6 +12,7 @@ import (
 	"h2blog_server/routers"
 	blogrouters "h2blog_server/routers/blogRouters"
 	configrouters "h2blog_server/routers/configRouters"
+	"h2blog_server/routers/email"
 	imgrouters "h2blog_server/routers/imgRouters"
 	"h2blog_server/storage"
 	"net/http"
@@ -109,7 +110,7 @@ func closeWebServer(srv *http.Server) {
 
 func startConfigServer(port string) *http.Server {
 	// 加载配置接口
-	routers.IncludeOpts(configrouters.Routers)
+	routers.IncludeOpts(configrouters.Routers, email.Routers)
 
 	// 初始化路由
 	env.CurrentEnv = env.ConfigServerEnv
