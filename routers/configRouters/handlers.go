@@ -67,28 +67,32 @@ func configUser(ctx *gin.Context) {
 	}
 	userConfig.UserEmail = userEmail
 
-	sysEmailAccount := strings.TrimSpace(ctx.PostForm("user.sys_email_account"))
-	if err := tools.AnalyzeEmail(sysEmailAccount); err != nil {
+	smtpAccount := strings.TrimSpace(ctx.PostForm("user.smtp_account"))
+	if err := tools.AnalyzeEmail(smtpAccount); err != nil {
 		resp.BadRequest(ctx, "系统邮箱配置错误", err.Error())
 		return
 	}
-	userConfig.SysEmailAccount = sysEmailAccount
+	userConfig.SmtpAccount = smtpAccount
 
-	userConfig.SysEmailSmtp = strings.TrimSpace(ctx.PostForm("user.sys_email_smtp"))
+	userConfig.SmtpAddress = strings.TrimSpace(ctx.PostForm("user.smtp_address"))
 
-	sysEmailPort, err := tools.GetIntFromPostForm(ctx, "user.sys_email_port")
+	smtpPort, err := tools.GetIntFromPostForm(ctx, "user.smtp_port")
 	if err != nil {
 		resp.BadRequest(ctx, "系统邮箱端口配置错误", err.Error())
 		return
 	}
-	userConfig.SysEmailPort = sysEmailPort
+	userConfig.SmtpPort = smtpPort
 
-	userConfig.SysEmailAuthCode = strings.TrimSpace(ctx.PostForm("user.sys_email_auth_code"))
+	userConfig.SmtpAuthCode = strings.TrimSpace(ctx.PostForm("user.smtp_auth_code"))
 
 	// 完成配置，将配置添加到全局
 	config.User = userConfig
 
 	resp.Ok(ctx, "配置完成", config.User)
+}
+
+func verifyEmail(ctx *gin.Context) {
+	resp.Ok(ctx, "邮箱验证成功", nil)
 }
 
 func configMysql(ctx *gin.Context) {

@@ -35,9 +35,21 @@ func Routers(e *gin.Engine) {
 	// 配置用户服务，其配置项如下，保存在 config.yaml 中：
 	//
 	// user:
-	//   username: name # 用户名
-	//   email: mail@xx.com # 邮箱
+	//  # 用户名
+	//  username: chentyit
+	//  # 用户邮箱
+	//  user_email: chentyit@163.com
+	//  # 邮箱 SMTP 账号
+	//  smtp_account: chentyit@163.com
+	//  # 邮箱 SMTP 服务器地址
+	//  smtp_address: smtp.163.com
+	//  # 邮箱 SMTP 端口
+	//  smtp_port: 465
+	//  # 邮箱 SMTP 密码
+	//  smtp_auth_code: YThfU32Tcq3FdVvx
 	configGroup.POST("/user", configUser)
+
+	configGroup.POST("/verify-email", verifyEmail)
 
 	// 配置 MySQL 数据库
 	//
