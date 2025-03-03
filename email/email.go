@@ -18,13 +18,21 @@ func SendVerificationCodeEmail(ctx context.Context, email string) error {
 
 	switch env.CurrentEnv {
 	case env.ConfigServerEnv:
-		env.VerificationCode = code
-	case env.RuntimeEnv:
-		err := storage.Storage.Cache.SetWithExpired(ctx, "config-server-verification-code", code, 5*time.Minute)
-		if err != nil {
-			msg := fmt.Sprintf("缓存验证码失败: %v", err)
-			return errors.New(msg)
+		if env.VerificationCode == "" {
+			env.VerificationCode = code
+		} else {
+			code = env.VerificationCode
 		}
+	case env.RuntimeEnv:
+		c, err := storage.Storage.Cache.GetString(ctx, "config-server-verification-code")
+		if err != nil {
+			err = storage.Storage.Cache.SetWithExpired(ctx, "config-server-verification-code", code, 5*time.Minute)
+			if err != nil {
+				msg := fmt.Sprintf("缓存验证码失败: %v", err)
+				return errors.New(msg)
+			}
+		}
+		code = c
 	}
 
 	// 创建邮件内容

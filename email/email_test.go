@@ -16,4 +16,9 @@ func TestSendVerificationCodeEmail(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SendVerificationCodeEmail failed: %v", err)
 	}
+
+	err = SendVerificationCodeEmail(ctx, "chentyit@163.com")
+	if err != nil {
+		t.Fatalf("SendVerificationCodeEmail failed: %v", err)
+	}
 }

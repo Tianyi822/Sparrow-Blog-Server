@@ -10,7 +10,7 @@ const (
 )
 
 // CurrentEnv 全局环境变量
-var CurrentEnv Env
+var CurrentEnv = ConfigServerEnv
 
 // CompletedConfigSign 全局配置加载完成信号
 var CompletedConfigSign chan bool
