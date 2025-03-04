@@ -24,8 +24,9 @@ func InitRouter() *gin.Engine {
 	// 添加自定义的中间件
 	switch env.CurrentEnv {
 	case env.RuntimeEnv:
-		r.Use(middleware.Logger(), gin.Recovery())
+		r.Use(middleware.Logger(), middleware.RunTimeCors(), gin.Recovery())
 	case env.ConfigServerEnv:
+		r.Use(middleware.ConfigServiceCors(), gin.Recovery())
 	}
 
 	//r.Use(middleware.Logger(), middleware.Cors(), gin.Recovery())

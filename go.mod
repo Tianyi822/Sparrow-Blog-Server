@@ -5,6 +5,7 @@ go 1.23
 require (
 	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.2.0
 	github.com/aliyun/credentials-go v1.4.3
+	github.com/gin-contrib/cors v1.7.3
 	github.com/gin-gonic/gin v1.10.0
 	github.com/kolesa-team/go-webp v1.0.4
 	github.com/yuin/goldmark v1.7.8
