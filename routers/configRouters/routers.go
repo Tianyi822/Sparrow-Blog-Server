@@ -135,6 +135,6 @@ func Routers(e *gin.Engine) {
 
 	// 只有在 CONFIG_SERVER_ENV 环境下才允许关闭配置服务
 	if env.CurrentEnv == env.ConfigServerEnv {
-		configGroup.GET("/shutdown", closeConfigServer)
+		configGroup.GET("/complete-config", completeConfig)
 	}
 }

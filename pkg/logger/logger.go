@@ -38,8 +38,8 @@ func GetLogger() *zap.SugaredLogger {
 // initLogger 实际的初始化逻辑
 func initLogger() error {
 	loggerConf := config.Logger
-	if loggerConf == nil {
-		return fmt.Errorf("logger config is nil")
+	if len(loggerConf.Path) == 0 {
+		return fmt.Errorf("日志配置路径为空，请检查配置文件是否有误")
 	}
 
 	// 创建日志写入器

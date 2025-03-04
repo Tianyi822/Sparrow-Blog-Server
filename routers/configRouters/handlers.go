@@ -13,7 +13,7 @@ import (
 )
 
 func configBase(ctx *gin.Context) {
-	serverConfig := &config.ServerConfigData{}
+	serverConfig := config.ServerConfigData{}
 
 	// 以下两项不需要前端传入配置，直接写死
 	serverConfig.Cors.Headers = []string{"Content-Type", "Authorization", "X-CSRF-Token"}
@@ -116,7 +116,7 @@ func configUser(ctx *gin.Context) {
 //
 //	无直接返回值，但会通过ctx对象响应客户端。
 func sendVerificationCode(ctx *gin.Context) {
-	userConfig := &config.UserConfigData{}
+	userConfig := config.UserConfigData{}
 
 	// 从请求中获取并验证用户邮箱
 	userEmail := strings.TrimSpace(ctx.PostForm("user.user_email"))
@@ -162,7 +162,7 @@ func sendVerificationCode(ctx *gin.Context) {
 }
 
 func configMysql(ctx *gin.Context) {
-	mysqlConfig := &config.MySQLConfigData{}
+	mysqlConfig := config.MySQLConfigData{}
 
 	mysqlConfig.User = strings.TrimSpace(ctx.PostForm("mysql.user"))
 	mysqlConfig.Password = strings.TrimSpace(ctx.PostForm("mysql.password"))
@@ -206,7 +206,7 @@ func configMysql(ctx *gin.Context) {
 		return
 	}
 
-	if err = tools.AnalyzeMySqlConnect(mysqlConfig); err != nil {
+	if err = tools.AnalyzeMySqlConnect(&mysqlConfig); err != nil {
 		resp.BadRequest(ctx, "数据库连接配置错误", err.Error())
 		return
 	}
@@ -218,7 +218,7 @@ func configMysql(ctx *gin.Context) {
 }
 
 func configOss(ctx *gin.Context) {
-	ossConfig := &config.OssConfig{}
+	ossConfig := config.OssConfig{}
 
 	// OSS 基础配置
 	ossConfig.Endpoint = strings.TrimSpace(ctx.PostForm("oss.endpoint"))
@@ -226,7 +226,7 @@ func configOss(ctx *gin.Context) {
 	ossConfig.AccessKeyId = strings.TrimSpace(ctx.PostForm("oss.access_key_id"))
 	ossConfig.AccessKeySecret = strings.TrimSpace(ctx.PostForm("oss.access_key_secret"))
 	ossConfig.Bucket = strings.TrimSpace(ctx.PostForm("oss.bucket"))
-	if err := tools.AnalyzeOssConfig(ossConfig); err != nil {
+	if err := tools.AnalyzeOssConfig(&ossConfig); err != nil {
 		resp.BadRequest(ctx, "OSS 配置错误", err.Error())
 		return
 	}
@@ -275,7 +275,7 @@ func configOss(ctx *gin.Context) {
 }
 
 func configCache(ctx *gin.Context) {
-	cacheConfig := &config.CacheConfig{}
+	cacheConfig := config.CacheConfig{}
 
 	aofEnable, err := tools.GetIntFromPostForm(ctx, "cache.aof.enable")
 	if err != nil {
@@ -314,7 +314,7 @@ func configCache(ctx *gin.Context) {
 }
 
 func configLogger(ctx *gin.Context) {
-	loggerConfig := &config.LoggerConfigData{}
+	loggerConfig := config.LoggerConfigData{}
 
 	level := strings.TrimSpace(ctx.PostForm("logger.level"))
 	if err := tools.AnalyzeLoggerLevel(level); err != nil {
@@ -364,8 +364,24 @@ func configLogger(ctx *gin.Context) {
 	resp.Ok(ctx, "配置完成", config.Logger)
 }
 
-// closeConfigServer 关闭配置服务
-func closeConfigServer(ctx *gin.Context) {
+// completeConfig 完成配置，将配置保存到本地文件中
+func completeConfig(ctx *gin.Context) {
+
+	projConfig := config.ProjectConfig{
+		User:   config.User,
+		Server: config.Server,
+		MySQL:  config.MySQL,
+		Oss:    config.Oss,
+		Cache:  config.Cache,
+		Logger: config.Logger,
+	}
+
+	err := projConfig.Store()
+	if err != nil {
+		resp.Err(ctx, "配置保存失败", err.Error())
+		return
+	}
+
 	resp.Ok(ctx, "关闭配置服务", nil)
 	// 配置完成，通知关闭配置服务
 	env.CompletedConfigSign <- true

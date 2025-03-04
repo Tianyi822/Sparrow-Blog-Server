@@ -8,7 +8,7 @@ import (
 	"net"
 	"os"
 	"os/user"
-	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,6 +24,38 @@ type ProjectConfig struct {
 	MySQL  MySQLConfigData  `yaml:"mysql"`  // MySQL数据库配置
 	Oss    OssConfig        `yaml:"oss"`    // OSS对象存储配置
 	Cache  CacheConfig      `yaml:"cache"`  // 缓存配置
+}
+
+func (pc *ProjectConfig) Store() error {
+	h2BlogHomePath, err := getH2BlogDir()
+	if err != nil {
+		return fmt.Errorf("获取或创建 H2Blog 目录失败: %w", err)
+	}
+
+	// 将 ProjectConfig 结构体转换为 YAML 格式的字节数组
+	yamlData, err := yaml.Marshal(pc)
+	if err != nil {
+		return fmt.Errorf("将配置数据转换为YAML失败: %w", err)
+	}
+
+	// 将 YAML 数据写入到文件中
+	file, err := fileTool.CreateFile(filepath.Join(h2BlogHomePath, "config", "h2blog_config.yaml"))
+	if err != nil {
+		return fmt.Errorf("创建配置文件失败: %w", err)
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+
+		}
+	}(file)
+
+	_, err = file.Write(yamlData)
+	if err != nil {
+		return fmt.Errorf("写入配置文件失败: %w", err)
+	}
+
+	return nil
 }
 
 // UserConfigData 用户配置
@@ -111,22 +143,22 @@ var (
 	loadConfigLock sync.Once
 
 	// User 保存全局用户配置
-	User *UserConfigData = nil
+	User UserConfigData
 
 	// Server 保存全局服务器配置
-	Server *ServerConfigData = nil
+	Server ServerConfigData
 
 	// Logger 保存全局日志配置
-	Logger *LoggerConfigData = nil
+	Logger LoggerConfigData
 
 	// MySQL 保存全局MySQL数据库配置
-	MySQL *MySQLConfigData = nil
+	MySQL MySQLConfigData
 
 	// Oss 保存全局OSS配置
-	Oss *OssConfig = nil
+	Oss OssConfig
 
 	// Cache 保存全局缓存配置
-	Cache *CacheConfig = nil
+	Cache CacheConfig
 )
 
 // LoadConfig 加载配置文件
@@ -136,7 +168,7 @@ func LoadConfig() error {
 		panic(err)
 	}
 
-	if !fileTool.IsExist(path.Join(userHomePath, "config", "h2blog_config.yaml")) {
+	if !fileTool.IsExist(filepath.Join(userHomePath, "config", "h2blog_config.yaml")) {
 		return NewNoConfigFileErr("配置文件不存在")
 	}
 
@@ -164,6 +196,11 @@ func LoadConfig() error {
 //   - string: h2blog目录的完整路径
 //   - error: 获取用户主目录时遇到的任何错误
 func getH2BlogDir() (string, error) {
+	// 从环境变量中获取 H2BLOG_HOME
+	if h2blogHome := os.Getenv("H2BLOG_HOME"); h2blogHome != "" {
+		return h2blogHome, nil
+	}
+
 	// 获取当前用户信息
 	usr, err := user.Current()
 	if err != nil {
@@ -171,7 +208,7 @@ func getH2BlogDir() (string, error) {
 	}
 
 	// 将主目录与.h2blog连接
-	return path.Join(usr.HomeDir, ".h2blog"), nil
+	return filepath.Join(usr.HomeDir, ".h2blog"), nil
 }
 
 // loadConfigFromFile 从文件加载配置数据
@@ -183,13 +220,13 @@ func loadConfigFromFile() error {
 	}
 
 	// 首先尝试主目录
-	configPath := path.Join(h2blogDir, "config", "h2blog_config.yaml")
+	configPath := filepath.Join(h2blogDir, "config", "h2blog_config.yaml")
 	if fileTool.IsExist(configPath) {
 		return loadConfigFromPath(configPath)
 	}
 
 	// 如果在主目录中未找到，则尝试当前目录
-	currentDirPath := path.Join(".h2blog", "config", "h2blog_config.yaml")
+	currentDirPath := filepath.Join(".h2blog", "config", "h2blog_config.yaml")
 	if fileTool.IsExist(currentDirPath) {
 		return loadConfigFromPath(currentDirPath)
 	}
@@ -210,12 +247,12 @@ func loadConfigFromPath(configPath string) error {
 	}
 
 	// 设置全局配置
-	User = &conf.User
-	Server = &conf.Server
-	Logger = &conf.Logger
-	MySQL = &conf.MySQL
-	Oss = &conf.Oss
-	Cache = &conf.Cache
+	User = conf.User
+	Server = conf.Server
+	Logger = conf.Logger
+	MySQL = conf.MySQL
+	Oss = conf.Oss
+	Cache = conf.Cache
 
 	return nil
 }
@@ -254,8 +291,8 @@ func loadConfigFromTerminal() error {
 	}
 
 	// 更新日志和 AOF 的默认路径
-	defaultLogPath := path.Join(h2blogDir, "logs", "h2blog.log")
-	defaultAofPath := path.Join(h2blogDir, "aof", "h2blog.aof")
+	defaultLogPath := filepath.Join(h2blogDir, "logs", "h2blog.log")
+	defaultAofPath := filepath.Join(h2blogDir, "aof", "h2blog.aof")
 
 	conf := &ProjectConfig{
 		User: UserConfigData{
@@ -331,15 +368,15 @@ func loadConfigFromTerminal() error {
 	}
 
 	// Set global variables
-	User = &conf.User
-	Server = &conf.Server
-	Logger = &conf.Logger
-	MySQL = &conf.MySQL
-	Oss = &conf.Oss
-	Cache = &conf.Cache
+	User = conf.User
+	Server = conf.Server
+	Logger = conf.Logger
+	MySQL = conf.MySQL
+	Oss = conf.Oss
+	Cache = conf.Cache
 
 	// Create config directory in user's home
-	configDir := path.Join(h2blogDir, "config")
+	configDir := filepath.Join(h2blogDir, "config")
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
@@ -350,7 +387,7 @@ func loadConfigFromTerminal() error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	configPath := path.Join(configDir, "h2blog_config.yaml")
+	configPath := filepath.Join(configDir, "h2blog_config.yaml")
 	if err := os.WriteFile(configPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to save config file: %w", err)
 	}
