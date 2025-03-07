@@ -53,3 +53,17 @@ func (is *ImgsDto) DtoFlag() string {
 func (is *ImgsDto) Name() string {
 	return "ImgsDto"
 }
+
+type FriendLinkDto struct {
+	FriendLinkId   string `json:"friend_link_id,omitempty"`
+	FriendLinkName string `json:"friend_link_name,omitempty"`
+	FriendLinkUrl  string `json:"friend_link_url,omitempty"`
+}
+
+func (fl *FriendLinkDto) DtoFlag() string {
+	return "FriendLinkDto"
+}
+
+func (fl *FriendLinkDto) Name() string {
+	return fl.FriendLinkName
+}
