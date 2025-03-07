@@ -1,16 +1,11 @@
 package config
 
 import (
-	"bufio"
 	"fmt"
 	"h2blog_server/pkg/fileTool"
-	"h2blog_server/pkg/utils"
-	"net"
 	"os"
 	"os/user"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"sync"
 
 	"gopkg.in/yaml.v3"
@@ -161,31 +156,36 @@ var (
 	Cache CacheConfig
 )
 
-// LoadConfig 加载配置文件
+// LoadConfig 加载配置文件。
+// 该函数的主要功能是检查并加载 H2Blog 的配置文件，确保配置文件存在并正确加载。
+// 如果配置文件不存在或加载过程中发生错误，会返回相应的错误或触发 panic。
+//
+// 返回值:
+// - error: 如果配置文件不存在，返回 NoConfigFileErr 错误；否则返回 nil。
 func LoadConfig() error {
+	// 获取 H2Blog 的用户目录路径。如果获取失败，直接触发 panic。
 	userHomePath, err := getH2BlogDir()
 	if err != nil {
 		panic(err)
 	}
 
+	// 检查配置文件是否存在。如果不存在，返回 NoConfigFileErr 错误。
 	if !fileTool.IsExist(filepath.Join(userHomePath, "config", "h2blog_config.yaml")) {
 		return NewNoConfigFileErr("配置文件不存在")
 	}
 
+	// 使用 sync.Once 确保配置文件只加载一次。
+	// 如果加载过程中发生错误，直接触发 panic。
 	loadConfigLock.Do(
 		func() {
 			err = loadConfigFromFile()
-			if err != nil {
-				err = loadConfigFromTerminal()
-			}
-
-			// If both loading from file and terminal failed, then panic
 			if err != nil {
 				panic(err)
 			}
 		},
 	)
 
+	// 如果一切正常，返回 nil 表示加载成功。
 	return nil
 }
 
@@ -211,38 +211,50 @@ func getH2BlogDir() (string, error) {
 	return filepath.Join(usr.HomeDir, ".h2blog"), nil
 }
 
-// loadConfigFromFile 从文件加载配置数据
+// loadConfigFromFile 尝试从文件中加载配置。
+// 该函数首先检查用户的主目录下是否存在配置文件，如果存在则加载配置。
+// 如果在预期路径中未找到配置文件，则返回错误。
+//
+// 返回值:
+// - error: 如果加载配置失败或配置文件不存在，则返回相应的错误信息。
 func loadConfigFromFile() error {
-	// 首先尝试用户的主目录
+	// 尝试获取用户的主目录下的 h2blog 目录路径
 	h2blogDir, err := getH2BlogDir()
 	if err != nil {
 		return fmt.Errorf("获取h2blog目录失败: %w", err)
 	}
 
-	// 首先尝试主目录
+	// 构造配置文件的路径，并检查该路径下的配置文件是否存在
 	configPath := filepath.Join(h2blogDir, "config", "h2blog_config.yaml")
 	if fileTool.IsExist(configPath) {
+		// 如果配置文件存在，则尝试从该路径加载配置
 		return loadConfigFromPath(configPath)
 	}
 
-	// 如果在主目录中未找到，则尝试当前目录
-	currentDirPath := filepath.Join(".h2blog", "config", "h2blog_config.yaml")
-	if fileTool.IsExist(currentDirPath) {
-		return loadConfigFromPath(currentDirPath)
-	}
-
+	// 如果未找到配置文件，返回错误
 	return fmt.Errorf("config file not found")
 }
 
-// loadConfigFromPath 从指定路径加载配置
+// loadConfigFromPath 从指定路径加载配置文件。
+// 参数:
+//
+//	configPath - 配置文件的路径。
+//
+// 返回值:
+//
+//	如果加载或解析配置文件时发生错误，则返回错误。
 func loadConfigFromPath(configPath string) error {
+	// 读取配置文件内容
 	data, err := os.ReadFile(configPath)
 	if err != nil {
+		// 如果读取配置文件时发生错误，返回错误信息
 		return fmt.Errorf("load config file error: %w", err)
 	}
 
+	// 初始化配置结构体并解析配置文件内容到该结构体
 	conf := &ProjectConfig{}
-	if err := yaml.Unmarshal(data, &conf); err != nil {
+	if err = yaml.Unmarshal(data, &conf); err != nil {
+		// 如果解析配置到结构体时发生错误，返回错误信息
 		return fmt.Errorf("reflect config to struct error: %w", err)
 	}
 
@@ -254,227 +266,6 @@ func loadConfigFromPath(configPath string) error {
 	Oss = conf.Oss
 	Cache = conf.Cache
 
+	// 如果一切正常，返回nil表示成功
 	return nil
-}
-
-// checkPortAvailable 尝试绑定端口以检查其可用性
-// 如果端口已被占用则返回错误
-// 参数:
-//   - port: 要检查的端口号
-//
-// 返回:
-//   - error: 如果端口可用则返回nil，如果端口被占用则返回错误信息
-func checkPortAvailable(port uint16) error {
-	// Try to listen on the port
-	addr := fmt.Sprintf(":%d", port)
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		return fmt.Errorf("port %d is not available", port)
-	}
-	// Close the listener immediately to free the port
-	err = listener.Close()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// loadConfigFromTerminal 从终端输入加载配置
-// 提示用户输入必要的配置值并将其保存到配置文件中
-func loadConfigFromTerminal() error {
-	fmt.Println("未找到配置文件。请输入配置值:")
-
-	// 获取 h2blog 目录
-	h2blogDir, err := getH2BlogDir()
-	if err != nil {
-		return fmt.Errorf("获取 h2blog 目录失败: %w", err)
-	}
-
-	// 更新日志和 AOF 的默认路径
-	defaultLogPath := filepath.Join(h2blogDir, "logs", "h2blog.log")
-	defaultAofPath := filepath.Join(h2blogDir, "aof", "h2blog.aof")
-
-	conf := &ProjectConfig{
-		User: UserConfigData{
-			Username:  getInput("Username: "),
-			UserEmail: getInput("Email: "),
-		},
-
-		Server: ServerConfigData{
-			Port: func() uint16 {
-				for {
-					port := getUint16Input("Server port (press Enter to use default '2233'): ", 0, 65535, "2233")
-
-					// Check if the specified port is available
-					if err := checkPortAvailable(port); err != nil {
-						fmt.Printf("Port %d is not available. Please choose a different port.\n", port)
-						continue
-					}
-
-					return port
-				}
-			}(),
-			TokenKey:            getInput("JWT token key (press Enter for generating random string as token key): ", utils.GenRandomString(32)),
-			TokenExpireDuration: getUint8Input("Token expiration in days (press Enter for default 1 day): ", 1, 365, "1"),
-			Cors: CorsConfigData{
-				Origins: []string{"*"}, // Default values
-				Headers: []string{"Content-Type", "Authorization", "Token"},
-				Methods: []string{"GET", "POST", "PUT", "DELETE"},
-			},
-		},
-
-		Logger: LoggerConfigData{
-			Level:      "info",
-			Path:       getInput(fmt.Sprintf("Log file path (press Enter to use default '%s'): ", defaultLogPath), defaultLogPath),
-			MaxAge:     getUint16Input("Log max age in days (press Enter for default 1 day): ", 1, 365, "1"),
-			MaxSize:    getUint16Input("Log max size in MB (press Enter for default 1): ", 1, 100, "1"),
-			MaxBackups: getUint16Input("Max log backups (press Enter for default 10): ", 1, 100, "10"),
-			Compress:   getBoolInput("Compress logs? (y/n) (press Enter for default yes): ", "y"),
-		},
-
-		MySQL: MySQLConfigData{
-			User:     getInput("MySQL username: "),
-			Password: getInput("MySQL password: "),
-			Host:     getInput("MySQL host: "),
-			Port:     getUint16Input("MySQL port (1-65535): ", 1, 65535),
-			DB:       getInput("MySQL database name: "),
-			MaxOpen:  getUint16Input("Max open connections (1-1000) (press Enter for default 10): ", 1, 1000, "10"),
-			MaxIdle:  getUint16Input("Max idle connections (1-100) (press Enter for default 10): ", 1, 100, "10"),
-		},
-
-		Oss: OssConfig{
-			Endpoint:        getInput("OSS endpoint: "),
-			Region:          getInput("OSS region: "),
-			AccessKeyId:     getInput("OSS access key ID: "),
-			AccessKeySecret: getInput("OSS access key secret: "),
-			Bucket:          getInput("OSS bucket name: "),
-			ImageOssPath:    "images/", // Default values
-			BlogOssPath:     "blogs/",
-			WebP: WebPConfigData{
-				Enable:  getBoolInput("Enable WebP conversion? (y/n) (press Enter for default yes): ", "y"),
-				Quality: getFloatInput("WebP quality (1-100) (press Enter for default 75): ", 1, 100, "75"),
-				Size:    getFloatInput("Maximum WebP size in MB (press Enter for default 1): ", 0.1, 10, "1"),
-			},
-		},
-
-		Cache: CacheConfig{
-			Aof: AofConfig{
-				Enable:   getBoolInput("Enable AOF persistence? (y/n) (press Enter for default yes): ", "y"),
-				Path:     getInput(fmt.Sprintf("AOF file path (press Enter to use default '%s'): ", defaultAofPath), defaultAofPath),
-				MaxSize:  getUint16Input("AOF max size in MB (press Enter for default 1): ", 1, 10, "1"),
-				Compress: getBoolInput("Compress AOF files? (y/n) (press Enter for default yes): ", "y"),
-			},
-		},
-	}
-
-	// Set global variables
-	User = conf.User
-	Server = conf.Server
-	Logger = conf.Logger
-	MySQL = conf.MySQL
-	Oss = conf.Oss
-	Cache = conf.Cache
-
-	// Create config directory in user's home
-	configDir := filepath.Join(h2blogDir, "config")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
-	}
-
-	// Save configuration to file
-	data, err := yaml.Marshal(conf)
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	configPath := filepath.Join(configDir, "h2blog_config.yaml")
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to save config file: %w", err)
-	}
-
-	fmt.Printf("Configuration saved to %s\n", configPath)
-	return nil
-}
-
-// Helper functions for getting user input
-
-// getInput 提示用户输入并确保返回非空响应
-func getInput(prompt string, defaultValue ...string) string {
-	for {
-		fmt.Print(prompt)
-		var input string
-
-		// Use bufio.NewReader to read full line including spaces
-		reader := bufio.NewReader(os.Stdin)
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			fmt.Printf("Error reading input: %v. Please try again.\n", err)
-			continue
-		}
-
-		// Remove trailing newline and spaces
-		input = strings.TrimSpace(line)
-
-		// Ensure input is not empty
-		if input != "" {
-			return input
-		}
-
-		// If no input is provided and a default value is provided, use the default value
-		if input == "" && len(defaultValue) > 0 {
-			return defaultValue[0]
-		}
-
-		fmt.Println("Input cannot be empty. Please try again.")
-	}
-}
-
-// getBoolInput 提示用户输入是/否响应，对于是返回true
-func getBoolInput(prompt string, defaultValue ...string) bool {
-	for {
-		input := strings.ToLower(getInput(prompt, defaultValue...))
-		if input == "y" || input == "yes" {
-			return true
-		}
-		if input == "n" || input == "no" {
-			return false
-		}
-		fmt.Println("Please enter 'y' or 'n'")
-	}
-}
-
-func getUint8Input(prompt string, min, max uint16, defaultValue ...string) uint8 {
-	for {
-		input := getInput(prompt, defaultValue...)
-		val, err := strconv.ParseUint(input, 10, 8)
-		if err == nil && val >= uint64(min) && val <= uint64(max) {
-			return uint8(val)
-		}
-		fmt.Printf("Please enter a number between %d and %d\n", min, max)
-	}
-}
-
-// getUint16Input 提示用户输入指定范围内的uint16数值
-func getUint16Input(prompt string, min, max uint16, defaultValue ...string) uint16 {
-	for {
-		input := getInput(prompt, defaultValue...)
-		val, err := strconv.ParseUint(input, 10, 16)
-		if err == nil && val >= uint64(min) && val <= uint64(max) {
-			return uint16(val)
-		}
-		fmt.Printf("Please enter a number between %d and %d\n", min, max)
-	}
-}
-
-// getFloatInput 提示用户输入指定范围内的float32数值
-func getFloatInput(prompt string, min, max float32, defaultValue ...string) float32 {
-	for {
-		input := getInput(prompt, defaultValue...)
-
-		val, err := strconv.ParseFloat(input, 32)
-		if err == nil && float32(val) >= min && float32(val) <= max {
-			return float32(val)
-		}
-		fmt.Printf("Please enter a number between %.1f and %.1f\n", min, max)
-	}
 }
