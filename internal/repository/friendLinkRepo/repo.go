@@ -7,6 +7,7 @@ import (
 	"h2blog_server/internal/model/dto"
 	"h2blog_server/internal/model/po"
 	"h2blog_server/pkg/logger"
+	"h2blog_server/pkg/utils"
 	"h2blog_server/storage"
 )
 
@@ -57,9 +58,14 @@ func GetFriendLinkByName(ctx context.Context, name string) (*dto.FriendLinkDto, 
 //	int64: 影响的数据库行数（成功时返回1，失败时返回0）
 //	error: 操作过程中产生的错误（成功时返回nil）
 func CreateFriendLink(ctx context.Context, friendLinkDto dto.FriendLinkDto) (int64, error) {
+	friendLinkId, err := utils.GenId(friendLinkDto.FriendLinkName)
+	if err != nil {
+		return 0, err
+	}
+
 	// 根据传入的FriendLinkDto对象初始化一个FriendLink对象
 	friendLink := &po.FriendLink{
-		FriendLinkId:   friendLinkDto.FriendLinkId,
+		FriendLinkId:   friendLinkId,
 		FriendLinkName: friendLinkDto.FriendLinkName,
 		FriendLinkUrl:  friendLinkDto.FriendLinkUrl,
 	}

@@ -8,30 +8,33 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
-// GenId 用于生成博客的唯一标识符
-//   - title 是博客的标题
+// GenId 根据名称生成一个唯一的ID。
+// 参数:
 //
-// 返回值
-//   - string 表示生成的博客ID
-func GenId(title string) (string, error) {
+//	name - 用于生成ID的字符串。
+//
+// 返回值:
+//
+//	生成的ID字符串和一个错误对象，如果生成失败则返回错误。
+func GenId(name string) (string, error) {
 	// 使用envs包的HashWithLength函数生成一个长度为16的哈希字符串作为博客ID
-	str, err := HashWithLength(title, 16)
+	str, err := HashWithLength(name, 16)
 	// 检查是否生成成功，如果失败则记录错误并尝试重新生成
 	if err != nil {
 		// 初始化计数器，用于限制重试次数
 		count := 0
-		title = fmt.Sprintf("%v%d", title, count)
+		name = fmt.Sprintf("%v%d", name, count)
 		// 使用for循环尝试重新生成ID，最多重试3次
 		for count <= 3 && err != nil {
-			str, err = HashWithLength(title, 16)
+			str, err = HashWithLength(name, 16)
 			count++
-			title = fmt.Sprintf("%v%d", title, count)
+			name = fmt.Sprintf("%v%d", name, count)
 		}
 	}
 
 	// 如果仍然失败，则记录错误并返回空字符串
 	if err != nil {
-		return "", fmt.Errorf("failed to generate ID: %v", err)
+		return "", fmt.Errorf("生成 ID 失败: %v", err)
 	}
 
 	// 返回生成的ID
