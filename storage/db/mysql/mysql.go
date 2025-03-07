@@ -112,9 +112,15 @@ func ConnectMysql(ctx context.Context) (*gorm.DB, error) {
 		}
 	}
 	if !tableExists(db, "H2_COMMENT") {
-		err = db.Exec(createCommentTableSQL).Error
+		err = db.Exec(createH2CommentTableSQL).Error
 		if err != nil {
 			handleError("创建 H2_COMMENT 表失败", err)
+		}
+	}
+	if !tableExists(db, "H2_FRIEND_LINK") {
+		err = db.Exec(createH2FriendLinkTableSQL).Error
+		if err != nil {
+			handleError("创建 H2_FRIEND_LINK 表失败", err)
 		}
 	}
 

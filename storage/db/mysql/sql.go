@@ -56,7 +56,7 @@ const createH2ImgInfoTableSQL = `
 	  COLLATE = utf8mb4_unicode_ci;
 `
 
-const createCommentTableSQL = `
+const createH2CommentTableSQL = `
 	CREATE TABLE IF NOT EXISTS H2_COMMENT
 	(
 		comment_id 			VARCHAR(16) 	PRIMARY KEY NOT NULL 															COMMENT '评论ID',
@@ -72,6 +72,23 @@ const createCommentTableSQL = `
 		INDEX (original_poster_id),
 		INDEX (create_time)
 	) COMMENT = '评论主表'
+	  ENGINE = InnoDB
+	  DEFAULT CHARSET = utf8mb4
+	  COLLATE = utf8mb4_unicode_ci;
+`
+
+const createH2FriendLinkTableSQL = `
+	CREATE TABLE IF NOT EXISTS H2_FRIEND_LINK
+	(
+		friend_link_id 		VARCHAR(16) 	PRIMARY KEY NOT NULL 															COMMENT '友情链接ID',
+		friend_link_name 	VARCHAR(50) 				NOT NULL 															COMMENT '友情链接名称',
+		friend_link_url 	VARCHAR(200) 				NOT NULL 															COMMENT '友情链接URL',
+		create_time 		TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
+		update_time 		TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
+		INDEX (friend_link_id),
+		INDEX (friend_link_name),
+		INDEX (create_time)
+	) COMMENT = '友链表'
 	  ENGINE = InnoDB
 	  DEFAULT CHARSET = utf8mb4
 	  COLLATE = utf8mb4_unicode_ci;
