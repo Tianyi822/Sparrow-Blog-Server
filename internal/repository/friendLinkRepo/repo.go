@@ -11,24 +11,23 @@ import (
 	"h2blog_server/storage"
 )
 
-// GetFriendLinkByName 根据友链名称查询友链信息
+// GetFriendLinkByNameLike 根据友链名称模糊查询友链信息
+// 参数：
 //
-// 参数:
+//	ctx context.Context: 请求上下文，用于控制超时和取消
+//	name string: 友链名称的模糊查询条件（支持%通配符）
 //
-//	ctx      context.Context - 上下文对象，用于控制查询请求的生命周期和截止时间
-//	name     string          - 需要查询的友链名称
+// 返回值：
 //
-// 返回值:
-//
-//	*dto.FriendLinkDto - 包含友链ID、名称、URL的DTO对象，若未找到返回nil
-//	error              - 查询过程中产生的错误，成功时返回nil
-func GetFriendLinkByName(ctx context.Context, name string) (*dto.FriendLinkDto, error) {
+//	*dto.FriendLinkDto: 查询到的友链数据
+//	error: 查询失败时返回的错误信息
+func GetFriendLinkByNameLike(ctx context.Context, name string) (*dto.FriendLinkDto, error) {
 	friendLink := &po.FriendLink{}
 
 	// 执行数据库查询以获取指定名称的友链记录
 	result := storage.Storage.Db.Model(friendLink).
 		WithContext(ctx).
-		Where("H2_FRIEND_LINK.friend_link_name = ?", name).
+		Where("friend_link_name LIKE ?", "%"+name+"%").
 		First(friendLink)
 
 	if result.Error != nil {
