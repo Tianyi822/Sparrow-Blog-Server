@@ -48,3 +48,25 @@ func TestGetFriendLinkByName(t *testing.T) {
 
 	fmt.Printf("friendLinkDto = %v\n", friendLinkDto)
 }
+
+func TestUpdateFriendLinkByID(t *testing.T) {
+	ctx := context.Background()
+	num, err := UpdateFriendLinkByID(ctx, dto.FriendLinkDto{
+		FriendLinkId:   "eefe040262ec2915",
+		FriendLinkName: "chentyit666",
+		FriendLinkUrl:  "https://chentyit.github.io",
+	})
+	if err != nil {
+		t.Errorf("UpdateFriendLinkByID() error = %v", err)
+	}
+	fmt.Printf("更新 %v", num)
+}
+
+func TestDeleteFriendLinkById(t *testing.T) {
+	ctx := context.Background()
+	num, err := DeleteFriendLinkById(ctx, "eefe040262ec2915")
+	if err != nil {
+		t.Errorf("DeleteFriendLinkById() error = %v", err)
+	}
+	fmt.Printf("删除 %v 条数据\n", num)
+}
