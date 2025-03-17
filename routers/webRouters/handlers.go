@@ -9,5 +9,5 @@ import (
 // status 处理状态请求
 // 该函数通过 HTTP 上下文 ctx 返回当前环境状态
 func status(ctx *gin.Context) {
-	resp.Ok(ctx, env.CurrentEnv, nil)
+	resp.Ok(ctx, "当前网站状态", env.CurrentEnv)
 }
