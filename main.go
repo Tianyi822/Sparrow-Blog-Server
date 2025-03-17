@@ -14,6 +14,7 @@ import (
 	configrouters "h2blog_server/routers/configRouters"
 	"h2blog_server/routers/email"
 	imgrouters "h2blog_server/routers/imgRouters"
+	"h2blog_server/routers/webRouters"
 	"h2blog_server/storage"
 	"net/http"
 	"os"
@@ -49,7 +50,7 @@ func loadComponent(ctx context.Context) {
 // runServer 启动服务
 func runServer() *http.Server {
 	logger.Info("加载路由信息")
-	routers.IncludeOpts(blogrouters.Routers, imgrouters.Routers, configrouters.Routers)
+	routers.IncludeOpts(blogrouters.Routers, imgrouters.Routers, configrouters.Routers, webRouters.Routers)
 	logger.Info("路由信息加载完成")
 
 	logger.Info("配置路由")
@@ -110,7 +111,7 @@ func closeWebServer(srv *http.Server) {
 
 func startConfigServer(port string) *http.Server {
 	// 加载配置接口
-	routers.IncludeOpts(configrouters.Routers, email.Routers)
+	routers.IncludeOpts(configrouters.Routers, email.Routers, webRouters.Routers)
 
 	// 初始化路由
 	env.CurrentEnv = env.ConfigServerEnv
@@ -151,14 +152,17 @@ func closeConfigServer(srv *http.Server) {
 	}
 }
 
-// checkConfig 检查配置文件，若未找到配置文件，则开启配置服务
-func checkConfig(port string) {
+// checkConfigOrStartConfigServer 检查配置文件，若未找到配置文件，则开启配置服务
+func checkConfigOrStartConfigServer(port string) {
 	// 优先去本地默认路径加载配置文件
 	err := config.LoadConfig()
 	if err != nil {
 		var configErr *config.Err
 		errors.As(err, &configErr)
 		if configErr.IsNoConfigFileErr() {
+			if len(port) == 0 {
+				port = "2234"
+			}
 			// 若未找到配置文件，则单独开启配置服务，与业务端口分开使用
 			server := startConfigServer(port)
 			// 等待配置服务关闭
@@ -184,7 +188,7 @@ func getArgsFromTerminal() map[string]string {
 func main() {
 	args := getArgsFromTerminal()
 
-	checkConfig(args["config-server-port"])
+	checkConfigOrStartConfigServer(args["config-server-port"])
 
 	// 加载基础组件
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
