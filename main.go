@@ -10,10 +10,10 @@ import (
 	"h2blog_server/pkg/markdown"
 	"h2blog_server/pkg/webp"
 	"h2blog_server/routers"
-	blogrouters "h2blog_server/routers/blogRouters"
-	configrouters "h2blog_server/routers/configRouters"
-	"h2blog_server/routers/email"
-	imgrouters "h2blog_server/routers/imgRouters"
+	"h2blog_server/routers/blogRouters"
+	"h2blog_server/routers/configRouters"
+	"h2blog_server/routers/emailRouters"
+	"h2blog_server/routers/imgRouters"
 	"h2blog_server/routers/webRouters"
 	"h2blog_server/storage"
 	"net/http"
@@ -50,7 +50,7 @@ func loadComponent(ctx context.Context) {
 // runServer 启动服务
 func runServer() *http.Server {
 	logger.Info("加载路由信息")
-	routers.IncludeOpts(blogrouters.Routers, imgrouters.Routers, configrouters.Routers, webRouters.Routers)
+	routers.IncludeOpts(blogRouters.Routers, imgRouters.Routers, configRouters.Routers, webRouters.Routers)
 	logger.Info("路由信息加载完成")
 
 	logger.Info("配置路由")
@@ -111,7 +111,7 @@ func closeWebServer(srv *http.Server) {
 
 func startConfigServer(port string) *http.Server {
 	// 加载配置接口
-	routers.IncludeOpts(configrouters.Routers, email.Routers, webRouters.Routers)
+	routers.IncludeOpts(configRouters.Routers, emailRouters.Routers, webRouters.Routers)
 
 	// 初始化路由
 	env.CurrentEnv = env.ConfigServerEnv

@@ -1,4 +1,4 @@
-package email
+package emailRouters
 
 import (
 	"h2blog_server/email"

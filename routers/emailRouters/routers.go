@@ -1,4 +1,4 @@
-package email
+package emailRouters
 
 import "github.com/gin-gonic/gin"
 
