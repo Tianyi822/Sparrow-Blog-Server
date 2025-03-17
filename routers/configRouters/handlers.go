@@ -12,31 +12,46 @@ import (
 	"strings"
 )
 
+// configBase 是一个用于解析和配置服务器基础信息的函数。
+// 参数:
+//
+//	ctx *gin.Context - Gin 框架的上下文对象，用于处理 HTTP 请求和响应。
+//
+// 返回值:
+//
+//	无返回值，但通过 ctx 返回 JSON 格式的响应结果。
 func configBase(ctx *gin.Context) {
 	serverConfig := config.ServerConfigData{}
 
-	// 以下两项不需要前端传入配置，直接写死
+	// 配置跨域相关的固定值，这些值不需要前端传入，直接在代码中写死。
 	serverConfig.Cors.Headers = []string{"Content-Type", "Authorization", "X-CSRF-Token"}
 	serverConfig.Cors.Methods = []string{"POST", "PUT", "DELETE", "GET"}
 
-	// 解析端口
-	portStr := strings.TrimSpace(ctx.PostForm("server.port"))
-	port, err := tools.AnalyzePort(portStr)
+	// 从请求的原始数据中解析出配置信息，并存储为 map 格式。
+	mapData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "配置解析错误", err.Error())
+		return
+	}
+
+	// 解析服务器端口配置，确保端口号合法。
+	port, err := tools.AnalyzePort(mapData["server.port"].(string))
 	if err != nil {
 		resp.BadRequest(ctx, "端口配置错误", err.Error())
 		return
 	}
 	serverConfig.Port = port
 
-	// 解析 Token 密钥
-	tokenKey := strings.TrimSpace(ctx.PostForm("server.token_key"))
+	// 解析 Token 密钥配置，确保密钥符合要求。
+	tokenKey := strings.TrimSpace(mapData["server.token_key"].(string))
 	if err = tools.AnalyzeTokenKey(tokenKey); err != nil {
 		resp.BadRequest(ctx, "Token 密钥配置错误", err.Error())
 		return
 	}
 	serverConfig.TokenKey = tokenKey
 
-	tokenExpireDuration := strings.TrimSpace(ctx.PostForm("server.token_expire_duration"))
+	// 解析 Token 过期时间配置，确保时间格式正确并转换为有效的时间间隔。
+	tokenExpireDuration := strings.TrimSpace(mapData["server.token_expire_duration"].(string))
 	dur, err := tools.AnalyzeTokenExpireDuration(tokenExpireDuration)
 	if err != nil {
 		resp.BadRequest(ctx, "Token 过期时间配置错误", err.Error())
@@ -44,16 +59,22 @@ func configBase(ctx *gin.Context) {
 	}
 	serverConfig.TokenExpireDuration = dur
 
-	corsOrigins := ctx.PostFormArray("server.cors.origins")
+	// 解析跨域源配置，生成完整的跨域源地址列表并验证其合法性。
+	domain := mapData["server.cors.origins"].(string)
+	corsOrigins := []string{
+		"https://" + domain,
+		"https://www." + domain,
+	}
 	if err = tools.AnalyzeCorsOrigins(corsOrigins); err != nil {
 		resp.BadRequest(ctx, "跨域源配置错误", err.Error())
 		return
 	}
 	serverConfig.Cors.Origins = corsOrigins
 
-	// 完成配置，将配置添加到全局
+	// 将解析完成的服务器配置存储到全局变量中，供后续使用。
 	config.Server = serverConfig
 
+	// 返回成功响应，包含配置完成的信息和最终的服务器配置。
 	resp.Ok(ctx, "配置完成", config.Server)
 }
 
