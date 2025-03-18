@@ -87,7 +87,13 @@ func configBase(ctx *gin.Context) {
 //
 //	无直接返回值，通过ctx对象向客户端发送响应。
 func configUser(ctx *gin.Context) {
-	code := strings.TrimSpace(ctx.PostForm("user.verification_code"))
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "配置解析错误", err.Error())
+		return
+	}
+
+	code := strings.TrimSpace(rawData["user.verification_code"].(string))
 
 	// 根据当前环境验证验证码
 	switch env.CurrentEnv {
@@ -97,7 +103,7 @@ func configUser(ctx *gin.Context) {
 			return
 		}
 	case env.RuntimeEnv:
-		c, err := storage.Storage.Cache.GetString(ctx, "verification-code")
+		c, err := storage.Storage.Cache.GetString(ctx, env.VerificationCodeKey)
 		if err != nil {
 			resp.BadRequest(ctx, "验证码过期", err.Error())
 			return
@@ -109,14 +115,14 @@ func configUser(ctx *gin.Context) {
 	}
 
 	// 设置用户名称
-	config.User.Username = strings.TrimSpace(ctx.PostForm("user.username"))
+	config.User.Username = strings.TrimSpace(rawData["user.username"].(string))
 
 	// 清除已使用的验证码
 	switch env.CurrentEnv {
 	case env.ConfigServerEnv:
 		env.VerificationCode = ""
 	case env.RuntimeEnv:
-		err := storage.Storage.Cache.Delete(ctx, "verification-code")
+		err := storage.Storage.Cache.Delete(ctx, env.VerificationCodeKey)
 		if err != nil {
 			resp.Err(ctx, "验证码缓存清除失败", err.Error())
 			return
@@ -139,8 +145,14 @@ func configUser(ctx *gin.Context) {
 func sendVerificationCode(ctx *gin.Context) {
 	userConfig := config.UserConfigData{}
 
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "配置解析错误", err.Error())
+		return
+	}
+
 	// 从请求中获取并验证用户邮箱
-	userEmail := strings.TrimSpace(ctx.PostForm("user.user_email"))
+	userEmail := strings.TrimSpace(rawData["user.user_email"].(string))
 	if err := tools.AnalyzeEmail(userEmail); err != nil {
 		resp.BadRequest(ctx, "用户邮箱配置错误", err.Error())
 		return
@@ -148,7 +160,7 @@ func sendVerificationCode(ctx *gin.Context) {
 	userConfig.UserEmail = userEmail
 
 	// 从请求中获取并验证系统邮箱
-	smtpAccount := strings.TrimSpace(ctx.PostForm("user.smtp_account"))
+	smtpAccount := strings.TrimSpace(rawData["user.smtp_account"].(string))
 	if err := tools.AnalyzeEmail(smtpAccount); err != nil {
 		resp.BadRequest(ctx, "系统邮箱配置错误", err.Error())
 		return
@@ -156,10 +168,10 @@ func sendVerificationCode(ctx *gin.Context) {
 	userConfig.SmtpAccount = smtpAccount
 
 	// 获取SMTP服务器地址
-	userConfig.SmtpAddress = strings.TrimSpace(ctx.PostForm("user.smtp_address"))
+	userConfig.SmtpAddress = strings.TrimSpace(rawData["user.smtp_address"].(string))
 
 	// 从请求中获取并验证SMTP端口
-	smtpPort, err := tools.GetIntFromPostForm(ctx, "user.smtp_port")
+	smtpPort, err := tools.GetUInt16FromRawData(rawData, "user.smtp_port")
 	if err != nil {
 		resp.BadRequest(ctx, "系统邮箱端口配置错误", err.Error())
 		return
@@ -167,16 +179,16 @@ func sendVerificationCode(ctx *gin.Context) {
 	userConfig.SmtpPort = smtpPort
 
 	// 获取SMTP授权码
-	userConfig.SmtpAuthCode = strings.TrimSpace(ctx.PostForm("user.smtp_auth_code"))
+	userConfig.SmtpAuthCode = strings.TrimSpace(rawData["user.smtp_auth_code"].(string))
+
+	// 将验证后的配置添加到全局配置
+	config.User = userConfig
 
 	// 发送验证码邮件
 	if err = email.SendVerificationCodeEmail(ctx, userConfig.UserEmail); err != nil {
 		resp.BadRequest(ctx, "验证码发送失败", err.Error())
 		return
 	}
-
-	// 将验证后的配置添加到全局配置
-	config.User = userConfig
 
 	// 响应客户端验证码发送成功
 	resp.Ok(ctx, "验证码发送成功", config.User)
