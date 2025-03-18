@@ -231,17 +231,32 @@ func AnalyzeLoggerLevel(level string) error {
 	return nil
 }
 
+// AnalyzeAbsolutePath 分析并验证给定的绝对路径。
+// 如果路径为空，则尝试使用当前用户的主目录作为默认路径。
+// 参数:
+//
+//	path - 待分析的路径字符串。如果为空，函数会尝试使用用户的主目录。
+//
+// 返回值:
+//
+//	string - 验证通过的绝对路径。
+//	error - 如果发生错误（如无法获取用户信息或路径不是绝对路径），返回相应的错误信息。
 func AnalyzeAbsolutePath(path string) (string, error) {
+	// 如果路径为空，尝试使用用户的主目录作为默认路径
 	if path == "" {
 		u, err := user.Current()
 		if err != nil {
-			return "", err
+			// 明确指出获取用户信息失败的原因
+			return "", fmt.Errorf("无法获取当前用户信息: %w", err)
 		}
-		path = filepath.Join(u.HomeDir, "aof")
+		// 使用用户的主目录拼接默认路径
+		path = filepath.Join(u.HomeDir, ".h2blog")
 	}
 
+	// 检查路径是否为绝对路径
 	if !filepath.IsAbs(path) {
-		return "", fmt.Errorf("路径必须是绝对路径")
+		// 提供更详细的错误信息，帮助调用者定位问题
+		return "", fmt.Errorf("提供的路径 '%s' 不是绝对路径，请提供有效的绝对路径", path)
 	}
 
 	return path, nil

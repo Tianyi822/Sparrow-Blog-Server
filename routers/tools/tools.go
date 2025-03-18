@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"h2blog_server/internal/model/dto"
 	"h2blog_server/pkg/resp"
+	"math"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -129,6 +130,46 @@ func GetIntFromPostForm(c *gin.Context, key string) (int, error) {
 	return num, nil
 }
 
+// GetIntFromRawData 从给定的 map 中提取指定键的值，并尝试将其转换为整型。
+// 参数:
+//
+//	reqData - 包含键值对的 map，值可以是任意类型。
+//	key     - 要提取和转换的键。
+//
+// 返回值:
+//
+//	int  - 如果成功提取并转换，则返回对应的整数值。
+//	error - 如果键不存在、值类型不支持或转换失败，则返回相应的错误信息。
+func GetIntFromRawData(reqData map[string]any, key string) (int, error) {
+	val, ok := reqData[key]
+	if !ok {
+		// 如果键不存在，返回错误提示键为空
+		return 0, fmt.Errorf("'%s' 为空", key)
+	}
+
+	switch v := val.(type) {
+	case float64:
+		// 如果值是 float64 类型，检查是否在 int32 范围内
+		if v < math.MinInt32 || v > math.MaxInt32 {
+			return 0, fmt.Errorf("'%s' 超出 int32 范围", key)
+		}
+		return int(v), nil
+	case int:
+		// 如果值已经是 int 类型，直接返回
+		return v, nil
+	case string:
+		// 如果值是字符串类型，尝试将其转换为整数
+		num, err := strconv.Atoi(v)
+		if err != nil {
+			return 0, fmt.Errorf("不可使用的整型值 '%s': %w", key, err)
+		}
+		return num, nil
+	default:
+		// 如果值的类型不被支持，返回错误提示
+		return 0, fmt.Errorf("'%s' 类型不支持", key)
+	}
+}
+
 func GetUInt16FromPostForm(c *gin.Context, key string) (uint16, error) {
 	value := c.PostForm(key)
 	if value == "" {
@@ -139,6 +180,51 @@ func GetUInt16FromPostForm(c *gin.Context, key string) (uint16, error) {
 		return 0, fmt.Errorf("不可使用的无符号整型值 '%s': %w", key, err)
 	}
 	return uint16(num), nil
+}
+
+// GetUInt16FromRawData 从原始数据中提取指定键的值并将其转换为 uint16 类型。
+// 参数:
+// - reqData: 包含键值对的 map，值可以是任意类型。
+// - key: 要提取的键名。
+// 返回值:
+// - uint16: 提取并转换成功的 uint16 值。
+// - error: 如果键不存在、值类型不支持或值超出 uint16 范围，则返回相应的错误信息。
+func GetUInt16FromRawData(reqData map[string]any, key string) (uint16, error) {
+	// 检查键是否存在，如果不存在则返回错误。
+	val, ok := reqData[key]
+	if !ok {
+		return 0, fmt.Errorf("'%s' 为空", key)
+	}
+
+	// 根据值的实际类型进行处理。
+	switch v := val.(type) {
+	case float64:
+		// 如果值是 float64 类型，检查是否在 uint16 范围内。
+		if v < 0 || v > math.MaxUint16 {
+			return 0, fmt.Errorf("'%s' 超出 uint16 范围", key)
+		}
+		return uint16(v), nil
+	case int:
+		// 如果值是 int 类型，检查是否在 uint16 范围内。
+		if v < 0 || v > math.MaxUint16 {
+			return 0, fmt.Errorf("'%s' 超出 uint16 范围", key)
+		}
+		return uint16(v), nil
+	case string:
+		// 如果值是字符串类型，尝试将其解析为无符号整数。
+		num, err := strconv.ParseUint(v, 10, 16)
+		if err != nil {
+			return 0, fmt.Errorf("不可使用的无符号整型值 '%s': %w", key, err)
+		}
+		// 检查解析后的值是否在 uint16 范围内。
+		if num > math.MaxUint16 {
+			return 0, fmt.Errorf("'%s' 超出 uint16 范围", key)
+		}
+		return uint16(num), nil
+	default:
+		// 如果值的类型不被支持，返回错误。
+		return 0, fmt.Errorf("'%s' 类型不支持", key)
+	}
 }
 
 func GetFloatFromPostForm(c *gin.Context, key string) (float32, error) {

@@ -337,42 +337,48 @@ func configCache(ctx *gin.Context) {
 func configLogger(ctx *gin.Context) {
 	loggerConfig := config.LoggerConfigData{}
 
-	level := strings.TrimSpace(ctx.PostForm("logger.level"))
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "配置解析错误", err.Error())
+		return
+	}
+
+	level := strings.TrimSpace(rawData["logger.level"].(string))
 	if err := tools.AnalyzeLoggerLevel(level); err != nil {
 		resp.BadRequest(ctx, "日志级别配置错误", err.Error())
 		return
 	}
 	loggerConfig.Level = level
 
-	logPath, err := tools.AnalyzeAbsolutePath(strings.TrimSpace(ctx.PostForm("logger.path")))
+	projPath, err := tools.AnalyzeAbsolutePath(strings.TrimSpace(rawData["logger.path"].(string)))
 	if err != nil {
 		resp.BadRequest(ctx, "日志路径配置错误", err.Error())
 		return
 	}
-	loggerConfig.Path = filepath.Join(logPath, "h2blog.log")
+	loggerConfig.Path = filepath.Join(projPath, "log", "h2blog.log")
 
-	maxSize, err := tools.GetUInt16FromPostForm(ctx, "logger.max_size")
+	maxSize, err := tools.GetUInt16FromRawData(rawData, "logger.max_size")
 	if err != nil {
 		resp.BadRequest(ctx, "日志最大文件大小配置错误", err.Error())
 		return
 	}
 	loggerConfig.MaxSize = maxSize
 
-	maxBackups, err := tools.GetUInt16FromPostForm(ctx, "logger.max_backups")
+	maxBackups, err := tools.GetUInt16FromRawData(rawData, "logger.max_backups")
 	if err != nil {
 		resp.BadRequest(ctx, "日志最大备份数量配置错误", err.Error())
 		return
 	}
 	loggerConfig.MaxBackups = maxBackups
 
-	maxAge, err := tools.GetUInt16FromPostForm(ctx, "logger.max_age")
+	maxAge, err := tools.GetUInt16FromRawData(rawData, "logger.max_age")
 	if err != nil {
 		resp.BadRequest(ctx, "日志最大保存天数配置错误", err.Error())
 		return
 	}
 	loggerConfig.MaxAge = maxAge
 
-	compress, err := tools.GetIntFromPostForm(ctx, "logger.compress")
+	compress, err := tools.GetIntFromRawData(rawData, "logger.compress")
 	if err != nil {
 		resp.BadRequest(ctx, "日志文件压缩配置错误", err.Error())
 		return
