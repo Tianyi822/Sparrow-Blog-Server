@@ -227,14 +227,37 @@ func GetUInt16FromRawData(reqData map[string]any, key string) (uint16, error) {
 	}
 }
 
-func GetFloatFromPostForm(c *gin.Context, key string) (float32, error) {
-	value := c.PostForm(key)
-	if value == "" {
+// GetFloatFromRawData 从原始数据中提取指定键的浮点数值。
+// 参数:
+// - reqData: 包含键值对的原始数据映射，值可以是任意类型。
+// - key: 需要提取浮点数值的键。
+// 返回值:
+// - float32: 提取并转换成功的浮点数值。
+// - error: 如果键不存在、值类型不支持或转换失败，则返回相应的错误信息。
+func GetFloatFromRawData(reqData map[string]any, key string) (float32, error) {
+	// 检查键是否存在，如果不存在则返回错误。
+	val, ok := reqData[key]
+	if !ok {
 		return 0, fmt.Errorf("'%s' 为空", key)
 	}
-	num, err := strconv.ParseFloat(value, 32)
-	if err != nil {
-		return 0, fmt.Errorf("不可使用的浮点值 '%s': %w", key, err)
+
+	// 根据值的实际类型进行处理。
+	switch v := val.(type) {
+	case float64:
+		// 如果值是 float64 类型，直接转换为 float32。
+		return float32(v), nil
+	case int:
+		// 如果值是 int 类型，转换为 float32。
+		return float32(v), nil
+	case string:
+		// 如果值是字符串类型，尝试将其解析为浮点数。
+		num, err := strconv.ParseFloat(v, 32)
+		if err != nil {
+			return 0, fmt.Errorf("不可使用的浮点值 '%s': %w", key, err)
+		}
+		return float32(num), nil
+	default:
+		// 如果值的类型不被支持，返回错误。
+		return 0, fmt.Errorf("'%s' 类型不支持", key)
 	}
-	return float32(num), nil
 }
