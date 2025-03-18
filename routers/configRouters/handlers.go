@@ -298,7 +298,7 @@ func configOss(ctx *gin.Context) {
 	ossConfig.BlogOssPath = blogOssPath
 
 	// OSS 下的 webp 文件配置
-	webpEnable, err := tools.GetIntFromRawData(rawData, "oss.webp.enable")
+	webpEnable, err := tools.GetUInt16FromRawData(rawData, "oss.webp.enable")
 	if err != nil {
 		resp.BadRequest(ctx, "WebP 启用配置错误", err.Error())
 		return
@@ -325,42 +325,60 @@ func configOss(ctx *gin.Context) {
 	resp.Ok(ctx, "配置完成", config.Oss)
 }
 
+// configCache 从请求上下文中解析缓存配置，并将其存储到全局配置中。
+// 参数:
+//
+//	ctx - *gin.Context: HTTP 请求上下文，用于获取请求数据和返回响应。
+//
+// 返回值:
+//
+//	无直接返回值，但通过 ctx 返回 HTTP 响应。
 func configCache(ctx *gin.Context) {
 	cacheConfig := config.CacheConfig{}
 
-	aofEnable, err := tools.GetIntFromPostForm(ctx, "cache.aof.enable")
+	// 从请求中提取原始数据并解析为 map
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "请求数据解析错误", err.Error())
+		return
+	}
+
+	// 解析 AOF 启用配置
+	aofEnable, err := tools.GetUInt16FromRawData(rawData, "cache.aof.enable")
 	if err != nil {
 		resp.BadRequest(ctx, "AOF 启用配置错误", err.Error())
 		return
 	}
 	cacheConfig.Aof.Enable = aofEnable == 1
 
-	aofPath, err := tools.AnalyzeAbsolutePath(strings.TrimSpace(ctx.PostForm("cache.aof.path")))
+	// 解析 AOF 文件路径，并生成绝对路径
+	projPath, err := tools.AnalyzeAbsolutePath(strings.TrimSpace(rawData["cache.aof.path"].(string)))
 	if err != nil {
 		resp.BadRequest(ctx, "AOF 路径配置错误", err.Error())
 		return
 	}
-	cacheConfig.Aof.Path = filepath.Join(aofPath, "aof.log")
+	cacheConfig.Aof.Path = filepath.Join(projPath, "aof", "h2blog.aof")
 
-	// 解析最大 AOF 文件大小
-	maxSize, err := tools.GetUInt16FromPostForm(ctx, "cache.aof.max_size")
+	// 解析 AOF 文件的最大大小配置
+	maxSize, err := tools.GetUInt16FromRawData(rawData, "cache.aof.max_size")
 	if err != nil {
 		resp.BadRequest(ctx, "AOF 最大文件大小配置错误", err.Error())
 		return
 	}
 	cacheConfig.Aof.MaxSize = maxSize
 
-	// 解析 AOF 文件压缩
-	aofCompress, err := tools.GetIntFromPostForm(ctx, "cache.aof.compress")
+	// 解析 AOF 文件压缩配置
+	aofCompress, err := tools.GetUInt16FromRawData(rawData, "cache.aof.compress")
 	if err != nil {
 		resp.BadRequest(ctx, "AOF 文件压缩配置错误", err.Error())
 		return
 	}
 	cacheConfig.Aof.Compress = aofCompress == 1
 
-	// 完成配置，将配置添加到全局
+	// 将解析完成的缓存配置存储到全局配置中
 	config.Cache = cacheConfig
 
+	// 返回成功响应，包含配置信息
 	resp.Ok(ctx, "配置完成", config.Cache)
 }
 
@@ -423,7 +441,7 @@ func configLogger(ctx *gin.Context) {
 	loggerConfig.MaxAge = maxAge
 
 	// 解析日志文件是否启用压缩配置
-	compress, err := tools.GetIntFromRawData(rawData, "logger.compress")
+	compress, err := tools.GetUInt16FromRawData(rawData, "logger.compress")
 	if err != nil {
 		resp.BadRequest(ctx, "日志文件压缩配置错误", err.Error())
 		return
