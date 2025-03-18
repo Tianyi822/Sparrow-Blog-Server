@@ -262,16 +262,25 @@ func configMysql(ctx *gin.Context) {
 	resp.Ok(ctx, "配置完成", config.MySQL)
 }
 
+// configOss 从请求中解析并配置 OSS（对象存储服务）相关参数。
+// 参数:
+//
+//	ctx *gin.Context - HTTP 请求上下文，包含请求数据和响应方法。
+//
+// 返回值:
+//
+//	无直接返回值，但通过 ctx 返回 JSON 响应，指示配置成功或失败的原因。
 func configOss(ctx *gin.Context) {
 	ossConfig := config.OssConfig{}
 
+	// 从请求中提取原始数据并解析为 map
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
 		resp.BadRequest(ctx, "请求数据解析错误", err.Error())
 		return
 	}
 
-	// OSS 基础配置
+	// 配置 OSS 基础信息，包括 endpoint、region、access key 等
 	ossConfig.Endpoint = strings.TrimSpace(rawData["oss.endpoint"].(string))
 	ossConfig.Region = strings.TrimSpace(rawData["oss.region"].(string))
 	ossConfig.AccessKeyId = strings.TrimSpace(rawData["oss.access_key_id"].(string))
@@ -282,7 +291,7 @@ func configOss(ctx *gin.Context) {
 		return
 	}
 
-	// OSS 路径配置
+	// 配置 OSS 图片路径，并验证路径的合法性
 	imageOssPath := strings.TrimSpace(rawData["oss.image_oss_path"].(string))
 	if err := tools.AnalyzeOssPath(imageOssPath); err != nil {
 		resp.BadRequest(ctx, "图片 OSS 路径配置错误", err.Error())
@@ -290,6 +299,7 @@ func configOss(ctx *gin.Context) {
 	}
 	ossConfig.ImageOssPath = imageOssPath
 
+	// 配置 OSS 博客路径，并验证路径的合法性
 	blogOssPath := strings.TrimSpace(rawData["oss.blog_oss_path"].(string))
 	if err := tools.AnalyzeOssPath(blogOssPath); err != nil {
 		resp.BadRequest(ctx, "博客 OSS 路径配置错误", err.Error())
@@ -297,7 +307,7 @@ func configOss(ctx *gin.Context) {
 	}
 	ossConfig.BlogOssPath = blogOssPath
 
-	// OSS 下的 webp 文件配置
+	// 配置 WebP 相关参数，包括启用状态、压缩质量和压缩后大小
 	webpEnable, err := tools.GetUInt16FromRawData(rawData, "oss.webp.enable")
 	if err != nil {
 		resp.BadRequest(ctx, "WebP 启用配置错误", err.Error())
@@ -319,9 +329,10 @@ func configOss(ctx *gin.Context) {
 	}
 	ossConfig.WebP.Size = webpSize
 
-	// 完成配置，并将配置添加到全局
+	// 将配置完成的 OSS 配置对象保存到全局变量中
 	config.Oss = ossConfig
 
+	// 返回成功响应，包含配置完成的 OSS 配置信息
 	resp.Ok(ctx, "配置完成", config.Oss)
 }
 
