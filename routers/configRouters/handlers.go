@@ -182,59 +182,83 @@ func sendVerificationCode(ctx *gin.Context) {
 	resp.Ok(ctx, "验证码发送成功", config.User)
 }
 
+// configMysql 配置MySQL数据库连接信息。
+// 该函数从HTTP请求上下文中提取MySQL配置数据，验证并解析这些数据，然后更新全局MySQL配置。
+// 参数:
+//
+//	ctx *gin.Context: HTTP请求上下文，用于处理响应和获取请求数据。
 func configMysql(ctx *gin.Context) {
+	// 初始化MySQL配置结构体。
 	mysqlConfig := config.MySQLConfigData{}
 
-	mysqlConfig.User = strings.TrimSpace(ctx.PostForm("mysql.user"))
-	mysqlConfig.Password = strings.TrimSpace(ctx.PostForm("mysql.password"))
+	// 从请求中获取原始数据并解析为map形式。
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		// 如果数据解析失败，返回400错误响应。
+		resp.BadRequest(ctx, "请求数据解析错误", err.Error())
+		return
+	}
 
-	host := strings.TrimSpace(ctx.PostForm("mysql.host"))
-	if err := tools.AnalyzeHostAddress(host); err != nil {
+	// 从原始数据中提取并修剪MySQL用户和密码。
+	mysqlConfig.User = strings.TrimSpace(rawData["mysql.user"].(string))
+	mysqlConfig.Password = strings.TrimSpace(rawData["mysql.password"].(string))
+
+	// 提取并验证MySQL主机地址。
+	host := strings.TrimSpace(rawData["mysql.host"].(string))
+	if err = tools.AnalyzeHostAddress(host); err != nil {
+		// 如果主机地址配置错误，返回400错误响应。
 		resp.BadRequest(ctx, "数据库主机地址配置错误", err.Error())
 		return
 	}
 	mysqlConfig.Host = host
 
-	// 解析端口
-	port, err := tools.GetUInt16FromPostForm(ctx, "mysql.port")
+	// 解析MySQL端口。
+	port, err := tools.GetUInt16FromRawData(rawData, "mysql.port")
 	if err != nil {
+		// 如果端口配置错误，返回400错误响应。
 		resp.BadRequest(ctx, "端口配置错误", err.Error())
 		return
 	}
 	mysqlConfig.Port = port
 
-	mysqlConfig.DB = strings.TrimSpace(ctx.PostForm("mysql.database"))
+	// 提取MySQL数据库名称。
+	mysqlConfig.DB = strings.TrimSpace(rawData["mysql.database"].(string))
 
-	// 解析最大打开连接数
-	maxOpen, err := tools.GetUInt16FromPostForm(ctx, "mysql.max_open")
+	// 解析最大打开连接数。
+	maxOpen, err := tools.GetUInt16FromRawData(rawData, "mysql.max_open")
 	if err != nil {
+		// 如果最大打开连接数配置错误，返回400错误响应。
 		resp.BadRequest(ctx, "最大打开连接数配置错误", err.Error())
 		return
 	}
 	mysqlConfig.MaxOpen = maxOpen
 
-	// 解析最大空闲连接数
-	maxIdle, err := tools.GetUInt16FromPostForm(ctx, "mysql.max_idle")
+	// 解析最大空闲连接数。
+	maxIdle, err := tools.GetUInt16FromRawData(rawData, "mysql.max_idle")
 	if err != nil {
+		// 如果最大空闲连接数配置错误，返回400错误响应。
 		resp.BadRequest(ctx, "最大空闲连接数配置错误", err.Error())
 		return
 	}
 	mysqlConfig.MaxIdle = maxIdle
 
-	// 检查连接数和空闲数
+	// 检查最大空闲连接数是否大于最大打开连接数。
 	if maxIdle > maxOpen {
 		resp.BadRequest(ctx, "最大空闲连接数不能大于最大打开连接数", nil)
 		return
 	}
 
+	// 验证MySQL连接配置。
 	if err = tools.AnalyzeMySqlConnect(&mysqlConfig); err != nil {
+		// 如果连接配置验证失败，返回400错误响应。
 		resp.BadRequest(ctx, "数据库连接配置错误", err.Error())
 		return
 	}
 
-	// 完成配置，将配置添加到全局
+	// 完成配置，将配置添加到全局。
 	config.MySQL = mysqlConfig
 
+	// 返回成功响应，通知客户端配置完成。
 	resp.Ok(ctx, "配置完成", config.MySQL)
 }
 
