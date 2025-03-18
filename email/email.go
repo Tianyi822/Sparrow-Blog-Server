@@ -45,10 +45,10 @@ func SendVerificationCodeEmail(ctx context.Context, email string) error {
 		}
 	case env.RuntimeEnv:
 		// 在运行时环境中，尝试从缓存中获取验证代码
-		c, err := storage.Storage.Cache.GetString(ctx, "verification-code")
+		c, err := storage.Storage.Cache.GetString(ctx, env.VerificationCodeKey)
 		if err != nil {
 			// 如果缓存中没有验证代码，将其存储到缓存中，设置过期时间为5分钟
-			err = storage.Storage.Cache.SetWithExpired(ctx, "verification-code", code, 5*time.Minute)
+			err = storage.Storage.Cache.SetWithExpired(ctx, env.VerificationCodeKey, code, 5*time.Minute)
 			if err != nil {
 				msg := fmt.Sprintf("缓存验证码失败: %v", err)
 				return errors.New(msg)
