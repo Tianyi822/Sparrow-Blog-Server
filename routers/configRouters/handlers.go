@@ -334,15 +334,25 @@ func configCache(ctx *gin.Context) {
 	resp.Ok(ctx, "配置完成", config.Cache)
 }
 
+// configLogger 从请求上下文中解析日志配置参数，并将其设置为全局日志配置。
+// 参数:
+//
+//	ctx - gin.Context，包含请求的上下文信息，用于解析请求数据和返回响应。
+//
+// 返回值:
+//
+//	无直接返回值，但通过 ctx 返回 HTTP 响应，指示配置成功或失败的具体原因。
 func configLogger(ctx *gin.Context) {
 	loggerConfig := config.LoggerConfigData{}
 
+	// 从请求中提取原始数据并解析为 map 结构
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
 		resp.BadRequest(ctx, "配置解析错误", err.Error())
 		return
 	}
 
+	// 解析日志级别配置，并验证其合法性
 	level := strings.TrimSpace(rawData["logger.level"].(string))
 	if err := tools.AnalyzeLoggerLevel(level); err != nil {
 		resp.BadRequest(ctx, "日志级别配置错误", err.Error())
@@ -350,6 +360,7 @@ func configLogger(ctx *gin.Context) {
 	}
 	loggerConfig.Level = level
 
+	// 解析日志路径配置，并生成绝对路径
 	projPath, err := tools.AnalyzeAbsolutePath(strings.TrimSpace(rawData["logger.path"].(string)))
 	if err != nil {
 		resp.BadRequest(ctx, "日志路径配置错误", err.Error())
@@ -357,6 +368,7 @@ func configLogger(ctx *gin.Context) {
 	}
 	loggerConfig.Path = filepath.Join(projPath, "log", "h2blog.log")
 
+	// 解析日志文件最大大小配置
 	maxSize, err := tools.GetUInt16FromRawData(rawData, "logger.max_size")
 	if err != nil {
 		resp.BadRequest(ctx, "日志最大文件大小配置错误", err.Error())
@@ -364,6 +376,7 @@ func configLogger(ctx *gin.Context) {
 	}
 	loggerConfig.MaxSize = maxSize
 
+	// 解析日志文件最大备份数量配置
 	maxBackups, err := tools.GetUInt16FromRawData(rawData, "logger.max_backups")
 	if err != nil {
 		resp.BadRequest(ctx, "日志最大备份数量配置错误", err.Error())
@@ -371,6 +384,7 @@ func configLogger(ctx *gin.Context) {
 	}
 	loggerConfig.MaxBackups = maxBackups
 
+	// 解析日志文件最大保存天数配置
 	maxAge, err := tools.GetUInt16FromRawData(rawData, "logger.max_age")
 	if err != nil {
 		resp.BadRequest(ctx, "日志最大保存天数配置错误", err.Error())
@@ -378,6 +392,7 @@ func configLogger(ctx *gin.Context) {
 	}
 	loggerConfig.MaxAge = maxAge
 
+	// 解析日志文件是否启用压缩配置
 	compress, err := tools.GetIntFromRawData(rawData, "logger.compress")
 	if err != nil {
 		resp.BadRequest(ctx, "日志文件压缩配置错误", err.Error())
@@ -385,9 +400,10 @@ func configLogger(ctx *gin.Context) {
 	}
 	loggerConfig.Compress = compress == 1
 
-	// 完成配置，将配置添加到全局
+	// 将解析完成的日志配置设置为全局配置
 	config.Logger = loggerConfig
 
+	// 返回成功响应，包含配置完成的信息
 	resp.Ok(ctx, "配置完成", config.Logger)
 }
 
