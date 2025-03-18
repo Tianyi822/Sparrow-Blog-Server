@@ -59,7 +59,7 @@ type UserConfigData struct {
 	UserEmail       string `yaml:"user_email"`       // 用户邮箱
 	SmtpAccount     string `yaml:"smtp_account"`     // 邮箱 SMTP 账号
 	SmtpAddress     string `yaml:"smtp_address"`     // 邮箱 SMTP 服务器地址
-	SmtpPort        int    `yaml:"smtp_port"`        // 邮箱 SMTP 端口
+	SmtpPort        uint16 `yaml:"smtp_port"`        // 邮箱 SMTP 端口
 	SmtpAuthCode    string `yaml:"smtp_auth_code"`   // 邮箱 SMTP 密码
 	BackgroundImage string `yaml:"background_image"` // Background image name
 }
