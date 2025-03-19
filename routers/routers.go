@@ -29,11 +29,10 @@ func InitRouter() *gin.Engine {
 		r.Use(middleware.ConfigServiceCors(), gin.Recovery())
 	}
 
-	//r.Use(middleware.Logger(), middleware.Cors(), gin.Recovery())
 	for _, opt := range options {
 		opt(r)
 	}
-	// 注册完成后清除所有 opts
-	clear(options)
+	// 注册完成后重置 options
+	options = make([]Option, 0)
 	return r
 }
