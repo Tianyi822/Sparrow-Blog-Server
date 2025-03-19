@@ -109,7 +109,7 @@ func closeWebServer(srv *http.Server) {
 	logger.Info("服务已退出")
 }
 
-func startConfigServer(port string) *http.Server {
+func startInitiateConfigServer(port string) *http.Server {
 	// 加载配置接口
 	routers.IncludeOpts(configRouters.Routers, emailRouters.Routers, webRouters.Routers)
 
@@ -135,7 +135,7 @@ func startConfigServer(port string) *http.Server {
 	return srv
 }
 
-func closeConfigServer(srv *http.Server) {
+func closeInitiateConfigServer(srv *http.Server) {
 	// 等待配置完成
 	sign := <-env.CompletedConfigSign
 
@@ -152,8 +152,8 @@ func closeConfigServer(srv *http.Server) {
 	}
 }
 
-// checkConfigOrStartConfigServer 检查配置文件，若未找到配置文件，则开启配置服务
-func checkConfigOrStartConfigServer(port string) {
+// checkConfigOrStartInitiateConfigServer 检查配置文件，若未找到配置文件，则开启配置服务
+func checkConfigOrStartInitiateConfigServer(port string) {
 	// 优先去本地默认路径加载配置文件
 	err := config.LoadConfig()
 	if err != nil {
@@ -164,9 +164,9 @@ func checkConfigOrStartConfigServer(port string) {
 				port = "2234"
 			}
 			// 若未找到配置文件，则单独开启配置服务，与业务端口分开使用
-			server := startConfigServer(port)
+			server := startInitiateConfigServer(port)
 			// 等待配置服务关闭
-			closeConfigServer(server)
+			closeInitiateConfigServer(server)
 		}
 	}
 }
@@ -188,7 +188,7 @@ func getArgsFromTerminal() map[string]string {
 func main() {
 	args := getArgsFromTerminal()
 
-	checkConfigOrStartConfigServer(args["config-server-port"])
+	checkConfigOrStartInitiateConfigServer(args["config-server-port"])
 
 	// 加载基础组件
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
