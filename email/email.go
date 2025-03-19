@@ -35,7 +35,7 @@ func SendVerificationCodeEmail(ctx context.Context, email string) error {
 
 	// 根据当前环境处理验证代码
 	switch env.CurrentEnv {
-	case env.ConfigServerEnv:
+	case env.InitializedEnv:
 		// 在配置服务器环境中，如果环境变量中没有验证代码，则设置为当前生成的代码
 		if env.VerificationCode == "" {
 			env.VerificationCode = code

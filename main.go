@@ -50,7 +50,7 @@ func loadComponent(ctx context.Context) {
 // runServer 启动服务
 func runServer() *http.Server {
 	logger.Info("加载路由信息")
-	routers.IncludeOpts(blogRouters.Routers, imgRouters.Routers, configRouters.Routers, webRouters.Routers)
+	routers.IncludeOpts(blogRouters.Routers, imgRouters.Routers, configRouters.Routers, webRouters.Routers, emailRouters.Routers)
 	logger.Info("路由信息加载完成")
 
 	logger.Info("配置路由")
@@ -114,7 +114,7 @@ func startInitiateConfigServer(port string) *http.Server {
 	routers.IncludeOpts(configRouters.Routers, emailRouters.Routers, webRouters.Routers)
 
 	// 初始化路由
-	env.CurrentEnv = env.ConfigServerEnv
+	env.CurrentEnv = env.InitializedEnv
 	r := routers.InitRouter()
 
 	// 配置 HTTP 服务

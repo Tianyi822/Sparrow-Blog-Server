@@ -25,7 +25,7 @@ func InitRouter() *gin.Engine {
 	switch env.CurrentEnv {
 	case env.RuntimeEnv:
 		r.Use(middleware.Logger(), middleware.RunTimeCors(), gin.Recovery())
-	case env.ConfigServerEnv:
+	case env.InitializedEnv:
 		r.Use(middleware.ConfigServiceCors(), gin.Recovery())
 	}
 

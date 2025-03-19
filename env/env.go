@@ -2,12 +2,12 @@ package env
 
 // Env 运行时的环境名称
 const (
-	RuntimeEnv      = "RUNTIME_ENV"
-	ConfigServerEnv = "CONFIG_SERVER_ENV"
+	RuntimeEnv     = "RUNTIME_ENV"
+	InitializedEnv = "INITIATE_ENV"
 )
 
 // CurrentEnv 全局环境变量
-var CurrentEnv = ConfigServerEnv
+var CurrentEnv = InitializedEnv
 
 // CompletedConfigSign 全局配置加载完成信号
 var CompletedConfigSign chan bool

@@ -134,7 +134,7 @@ func Routers(e *gin.Engine) {
 	configGroup.POST("/logger", configLogger)
 
 	// 只有在 CONFIG_SERVER_ENV 环境下才允许关闭配置服务
-	if env.CurrentEnv == env.ConfigServerEnv {
+	if env.CurrentEnv == env.InitializedEnv {
 		configGroup.GET("/complete-config", completeConfig)
 	}
 }

@@ -97,7 +97,7 @@ func configUser(ctx *gin.Context) {
 
 	// 根据当前环境验证验证码
 	switch env.CurrentEnv {
-	case env.ConfigServerEnv:
+	case env.InitializedEnv:
 		if env.VerificationCode != code {
 			resp.BadRequest(ctx, "验证码错误", nil)
 			return
@@ -119,7 +119,7 @@ func configUser(ctx *gin.Context) {
 
 	// 清除已使用的验证码
 	switch env.CurrentEnv {
-	case env.ConfigServerEnv:
+	case env.InitializedEnv:
 		env.VerificationCode = ""
 	case env.RuntimeEnv:
 		err := storage.Storage.Cache.Delete(ctx, env.VerificationCodeKey)
