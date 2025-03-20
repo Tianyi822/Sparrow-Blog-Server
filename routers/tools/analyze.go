@@ -90,14 +90,10 @@ func AnalyzeCorsOrigins(corsOrigins []string) error {
 		if ori == "*" {
 			return fmt.Errorf("跨域请求来源地址 %v 不允许全匹配", origin)
 		}
-		// 若为 https://xxx，则解析
-		address, err := url.Parse(ori)
+		// 若为 https://xxx 或 http://xxx，则解析
+		_, err := url.Parse(ori)
 		if err != nil {
 			return err
-		}
-		// 若协议不是 https，则报错
-		if address.Scheme != "https" {
-			return fmt.Errorf("跨域请求来源地址 %v 的协议不是 https", origin)
 		}
 		corsOrigins[index] = ori
 	}

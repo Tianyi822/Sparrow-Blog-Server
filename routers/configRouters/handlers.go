@@ -62,6 +62,8 @@ func configBase(ctx *gin.Context) {
 	// 解析跨域源配置，生成完整的跨域源地址列表并验证其合法性。
 	domain := mapData["server.cors.origins"].(string)
 	corsOrigins := []string{
+		"http://" + domain,
+		"http://www." + domain,
 		"https://" + domain,
 		"https://www." + domain,
 	}
