@@ -484,8 +484,7 @@ func configLogger(ctx *gin.Context) {
 func userBasicInfo(ctx *gin.Context) {
 	// 构造并返回成功的 JSON 响应，包含用户名和用户邮箱信息。
 	resp.Ok(ctx, "获取成功", map[string]string{
-		"username":   config.User.Username,
-		"user_email": config.User.UserEmail,
+		"user_name": config.User.Username,
 	})
 }
 
