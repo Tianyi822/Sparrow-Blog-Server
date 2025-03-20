@@ -2,7 +2,6 @@ package configRouters
 
 import (
 	"github.com/gin-gonic/gin"
-	"h2blog_server/env"
 )
 
 func Routers(e *gin.Engine) {
@@ -133,8 +132,6 @@ func Routers(e *gin.Engine) {
 	//  compress: true
 	configGroup.POST("/logger", configLogger)
 
-	// 只有在 CONFIG_SERVER_ENV 环境下才允许关闭配置服务
-	if env.CurrentEnv == env.InitializedEnv {
-		configGroup.GET("/complete-config", completeConfig)
-	}
+	// 完成配置并保存接口
+	configGroup.GET("/complete-config", completeConfig)
 }

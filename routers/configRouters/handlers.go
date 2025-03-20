@@ -496,7 +496,10 @@ func completeConfig(ctx *gin.Context) {
 		return
 	}
 
-	resp.Ok(ctx, "关闭配置服务", nil)
-	// 配置完成，通知关闭配置服务
-	env.CompletedConfigSign <- true
+	resp.Ok(ctx, "完成并保存配置", nil)
+
+	// 若当前为初始化环境，则发送信号通知关闭配置服务
+	if env.CurrentEnv == env.InitializedEnv {
+		env.CompletedConfigSign <- true
+	}
 }
