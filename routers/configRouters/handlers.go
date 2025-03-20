@@ -135,7 +135,7 @@ func configUser(ctx *gin.Context) {
 	resp.Ok(ctx, "配置完成", config.User)
 }
 
-// sendVerificationCode 处理发送验证码的请求。
+// configEmailAndSendCode 处理发送验证码的请求。
 // 该函数从请求中获取用户邮箱、SMTP账户等信息，验证这些信息的有效性，并将有效的配置保存到全局配置中。
 // 最后，通过电子邮件发送验证码。如果过程中出现任何错误，将返回相应的错误信息。
 // 参数:
@@ -144,7 +144,7 @@ func configUser(ctx *gin.Context) {
 // 返回值:
 //
 //	无直接返回值，但会通过ctx对象响应客户端。
-func sendVerificationCode(ctx *gin.Context) {
+func configEmailAndSendCode(ctx *gin.Context) {
 	userConfig := config.UserConfigData{}
 
 	rawData, err := tools.GetMapFromRawData(ctx)

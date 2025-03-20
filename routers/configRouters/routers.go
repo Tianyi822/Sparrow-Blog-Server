@@ -32,8 +32,8 @@ func Routers(e *gin.Engine) {
 	//       - OPTIONS
 	configGroup.POST("/base", configBase)
 
-	// 发送验证码，并且将传入的用户配置参数先保存到全局中，必须在前端中保证只有验证码通过后，才能发起配置 User 的请求
-	configGroup.POST("/send-verification-code", sendVerificationCode)
+	// 配置邮箱并发送验证码，并且将传入的用户配置参数先保存到全局中，必须在前端中保证只有验证码通过后，才能发起配置 User 的请求
+	configGroup.POST("/config-email-send-code", configEmailAndSendCode)
 
 	// 配置用户服务，其配置项如下，保存在 config.yaml 中：
 	//
