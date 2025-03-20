@@ -478,6 +478,20 @@ func configLogger(ctx *gin.Context) {
 	resp.Ok(ctx, "配置完成", config.Logger)
 }
 
+// userBasicInfo 返回用户的基本信息。
+func userBasicInfo(ctx *gin.Context) {
+	// 构造并返回成功的 JSON 响应，包含用户名和用户邮箱信息。
+	resp.Ok(ctx, "获取成功", map[string]string{
+		"username":   config.User.Username,
+		"user_email": config.User.UserEmail,
+	})
+}
+
+// userAllInfo 返回用户的所有信息。
+func userAllInfo(ctx *gin.Context) {
+	resp.Ok(ctx, "获取成功", config.User)
+}
+
 // completeConfig 完成配置，将配置保存到本地文件中
 func completeConfig(ctx *gin.Context) {
 

@@ -2,6 +2,7 @@ package configRouters
 
 import (
 	"github.com/gin-gonic/gin"
+	"h2blog_server/env"
 )
 
 func Routers(e *gin.Engine) {
@@ -134,4 +135,13 @@ func Routers(e *gin.Engine) {
 
 	// 完成配置并保存接口
 	configGroup.GET("/complete-config", completeConfig)
+
+	// 只有在 runtime 环境下才开放以下接口
+	if env.CurrentEnv == env.RuntimeEnv {
+		// 获取用户基本信息
+		configGroup.GET("/user-basic-info", userBasicInfo)
+
+		// 获取用户所有信息
+		configGroup.GET("/user-all-info", userAllInfo)
+	}
 }

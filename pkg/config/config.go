@@ -55,7 +55,7 @@ func (pc *ProjectConfig) Store() error {
 
 // UserConfigData 用户配置
 type UserConfigData struct {
-	Username        string `yaml:"username"`         // 用户名
+	Username        string `yaml:"user_name"`        // 用户名
 	UserEmail       string `yaml:"user_email"`       // 用户邮箱
 	SmtpAccount     string `yaml:"smtp_account"`     // 邮箱 SMTP 账号
 	SmtpAddress     string `yaml:"smtp_address"`     // 邮箱 SMTP 服务器地址
