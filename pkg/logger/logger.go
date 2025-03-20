@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
+	"h2blog_server/env"
 	"h2blog_server/pkg/config"
 	"os"
 	"strings"
@@ -42,9 +43,12 @@ func initLogger() error {
 		return fmt.Errorf("日志配置路径为空，请检查配置文件是否有误")
 	}
 
+	// 创建日志文件写入器
+	var writers = make([]zapcore.WriteSyncer, 0)
 	// 创建日志写入器
-	// TODO: 后面根据运行环境，需要对输出进行判断，现在暂时不动
-	writers := []zapcore.WriteSyncer{zapcore.AddSync(os.Stdout)}
+	if env.CurrentEnv == env.DebugEnv {
+		writers = append(writers, zapcore.AddSync(os.Stdout))
+	}
 
 	// 添加文件输出
 	if loggerConf.Path != "" {

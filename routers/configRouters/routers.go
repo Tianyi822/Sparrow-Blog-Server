@@ -137,7 +137,7 @@ func Routers(e *gin.Engine) {
 	configGroup.GET("/complete-config", completeConfig)
 
 	// 只有在 runtime 环境下才开放以下接口
-	if env.CurrentEnv == env.RuntimeEnv {
+	if env.CurrentEnv != env.InitializedEnv {
 		// 获取用户基本信息
 		configGroup.GET("/user-basic-info", userBasicInfo)
 

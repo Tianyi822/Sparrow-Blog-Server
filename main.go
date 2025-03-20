@@ -23,8 +23,12 @@ import (
 	"time"
 )
 
+var Args map[string]string
+
 // loadComponent 加载基础组件
 func loadComponent(ctx context.Context) {
+	// 设置当前环境
+	env.CurrentEnv = Args["env"]
 	// 初始化日志组件
 	err := logger.InitLogger(ctx)
 	if err != nil {
@@ -54,7 +58,6 @@ func runServer() *http.Server {
 	logger.Info("路由信息加载完成")
 
 	logger.Info("配置路由")
-	env.CurrentEnv = env.RuntimeEnv
 	r := routers.InitRouter()
 	logger.Info("路由配置完成")
 
@@ -109,17 +112,19 @@ func closeWebServer(srv *http.Server) {
 	logger.Info("服务已退出")
 }
 
-func startInitiateConfigServer(port string) *http.Server {
+func startInitiateConfigServer() *http.Server {
 	// 加载配置接口
 	routers.IncludeOpts(configRouters.Routers, emailRouters.Routers, webRouters.Routers)
 
-	// 初始化路由
+	// 将当前环境设置为初始化环境
 	env.CurrentEnv = env.InitializedEnv
+
+	// 初始化路由
 	r := routers.InitRouter()
 
 	// 配置 HTTP 服务
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%v", port),
+		Addr:    fmt.Sprintf(":%v", Args["config-server-port"]),
 		Handler: r,
 	}
 
@@ -153,18 +158,15 @@ func closeInitiateConfigServer(srv *http.Server) {
 }
 
 // checkConfigOrStartInitiateConfigServer 检查配置文件，若未找到配置文件，则开启配置服务
-func checkConfigOrStartInitiateConfigServer(port string) {
+func checkConfigOrStartInitiateConfigServer() {
 	// 优先去本地默认路径加载配置文件
 	err := config.LoadConfig()
 	if err != nil {
 		var configErr *config.Err
 		errors.As(err, &configErr)
 		if configErr.IsNoConfigFileErr() {
-			if len(port) == 0 {
-				port = "2234"
-			}
 			// 若未找到配置文件，则单独开启配置服务，与业务端口分开使用
-			server := startInitiateConfigServer(port)
+			server := startInitiateConfigServer()
 			// 等待配置服务关闭
 			closeInitiateConfigServer(server)
 		}
@@ -172,23 +174,32 @@ func checkConfigOrStartInitiateConfigServer(port string) {
 }
 
 // getArgsFromTerminal 从终端获取参数
-func getArgsFromTerminal() map[string]string {
-	var result = make(map[string]string)
+func getArgsFromTerminal() {
+	Args = make(map[string]string)
 
 	for i := 0; i < len(os.Args); i++ {
-		if os.Args[i] == "--config-server-port" || os.Args[i] == "-csp" {
-			result["config-server-port"] = os.Args[i+1]
+		if os.Args[i] == "--config-server-port" {
+			Args["config-server-port"] = os.Args[i+1]
+			i++
+		} else if os.Args[i] == "--env" {
+			Args["env"] = os.Args[i+1]
 			i++
 		}
 	}
 
-	return result
+	if _, ok := Args["config-server-port"]; !ok {
+		Args["config-server-port"] = "2234"
+	}
+
+	if _, ok := Args["env"]; !ok {
+		Args["env"] = env.ProvEnv
+	}
 }
 
 func main() {
-	args := getArgsFromTerminal()
+	getArgsFromTerminal()
 
-	checkConfigOrStartInitiateConfigServer(args["config-server-port"])
+	checkConfigOrStartInitiateConfigServer()
 
 	// 加载基础组件
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)

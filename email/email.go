@@ -43,7 +43,7 @@ func SendVerificationCodeEmail(ctx context.Context, email string) error {
 			// 如果环境变量中已有验证代码，则使用它
 			code = env.VerificationCode
 		}
-	case env.RuntimeEnv:
+	case env.ProvEnv, env.DebugEnv:
 		// 在运行时环境中，尝试从缓存中获取验证代码
 		c, err := storage.Storage.Cache.GetString(ctx, env.VerificationCodeKey)
 		if err != nil {

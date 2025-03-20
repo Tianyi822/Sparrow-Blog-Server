@@ -2,8 +2,9 @@ package env
 
 // Env 运行时的环境名称
 const (
-	RuntimeEnv     = "RUNTIME_ENV"
-	InitializedEnv = "INITIATE_ENV"
+	DebugEnv       = "debug"
+	ProvEnv        = "prov"
+	InitializedEnv = "init"
 )
 
 // CurrentEnv 全局环境变量
