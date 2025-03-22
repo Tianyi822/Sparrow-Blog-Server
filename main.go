@@ -10,6 +10,7 @@ import (
 	"h2blog_server/pkg/markdown"
 	"h2blog_server/pkg/webp"
 	"h2blog_server/routers"
+	"h2blog_server/routers/adminRouters"
 	"h2blog_server/routers/blogRouters"
 	"h2blog_server/routers/configRouters"
 	"h2blog_server/routers/emailRouters"
@@ -53,7 +54,13 @@ func loadComponent(ctx context.Context) {
 // runServer 启动服务
 func runServer() *http.Server {
 	logger.Info("加载路由信息")
-	routers.IncludeOpts(blogRouters.Routers, imgRouters.Routers, configRouters.Routers, emailRouters.Routers)
+	routers.IncludeOpts(
+		blogRouters.Routers,
+		imgRouters.Routers,
+		configRouters.Routers,
+		emailRouters.Routers,
+		adminRouters.Routers,
+	)
 	logger.Info("路由信息加载完成")
 
 	logger.Info("配置路由")
@@ -191,7 +198,7 @@ func getArgsFromTerminal() {
 	}
 
 	if _, ok := Args["env"]; !ok {
-		Args["env"] = env.ProvEnv
+		Args["env"] = env.DebugEnv
 	}
 }
 
