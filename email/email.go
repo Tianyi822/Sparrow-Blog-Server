@@ -53,8 +53,9 @@ func SendVerificationCodeEmail(ctx context.Context, email string) error {
 				msg := fmt.Sprintf("缓存验证码失败: %v", err)
 				return errors.New(msg)
 			}
+		} else {
+			code = c
 		}
-		code = c
 	}
 
 	// 创建邮件内容
