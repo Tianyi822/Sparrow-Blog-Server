@@ -17,46 +17,28 @@ import (
 	"time"
 )
 
-// Error types for Cache operations
-var (
-	// ErrTypeMismatch is returned when type conversion fails
-	ErrTypeMismatch = errors.New("type mismatch")
-
-	// ErrOutOfRange is returned when a numeric value exceeds the target type's range
-	ErrOutOfRange = errors.New("value out of range")
-
-	// ErrPointerNotAllowed is returned when attempting to store pointer values
-	ErrPointerNotAllowed = errors.New("pointer values are not allowed")
-
-	// ErrNotFound is returned when an entry doesn't exist or has expired
-	ErrNotFound = errors.New("entry not found")
-
-	// ErrEmptyKey is returned when the key is empty or contains only whitespace
-	ErrEmptyKey = errors.New("key is empty")
-)
-
-// cacheItem represents a single entry in the Cache
+// cacheItem 表示缓存中的单个条目
 type cacheItem struct {
-	value    any              // The actual stored value
-	vt       common.ValueType // Type information for the stored value
-	expireAt time.Time        // Expiration timestamp (zero means never expire)
+	value    any              // 实际存储的值
+	vt       common.ValueType // 存储值的类型信息
+	expireAt time.Time        // 过期时间戳（零值表示永不过期）
 }
 
-// Cache implements a thread-safe in-memory Cache system with sharded locks
-// for improved concurrent performance.
+// Cache 实现了一个带分片锁的线程安全内存缓存系统
+// 用于提高并发性能。
 //
-// Fields:
-// - items: Map storing Cache entries with string keys (recommended format: "type:id")
-// - mu: RWMutex for thread-safe operations
-// - aof: Append-Only File for persistence support
+// 字段:
+// - items: 存储缓存条目的映射，使用字符串键（推荐格式："type:id"）
+// - mu: 用于线程安全操作的读写锁
+// - aof: 用于持久化支持的追加文件
 type Cache struct {
 	items map[string]cacheItem
 	mu    sync.RWMutex
 	aof   *aof.Aof
 }
 
-// NewCache creates and initializes a new Cache instance with the given context
-// It enables AOF persistence if configured in Cache-config.yaml
+// NewCache 创建并初始化一个新的缓存实例，使用给定的上下文
+// 如果在Cache-config.yaml中配置了AOF，则启用持久化
 func NewCache(ctx context.Context) (*Cache, error) {
 	select {
 	case <-ctx.Done():
@@ -68,12 +50,12 @@ func NewCache(ctx context.Context) (*Cache, error) {
 		items: make(map[string]cacheItem),
 	}
 
-	// Enable AOF if configured
+	// 如果配置了AOF，则启用
 	if config.Cache.Aof.Enable {
 		c.aof = aof.NewAof()
-		// Load data from AOF file
+		// 从AOF文件加载数据
 		if err := c.loadAof(ctx); err != nil {
-			// AOF loading failure is critical
+			// AOF加载失败是致命的
 			panic(err)
 		}
 	}
@@ -81,8 +63,8 @@ func NewCache(ctx context.Context) (*Cache, error) {
 	return c, nil
 }
 
-// loadAof loads and replays commands from the AOF file to restore Cache state
-// It processes SET, DELETE, and CLEANUP commands in chronological order
+// loadAof 从AOF文件加载并重放命令以恢复缓存状态
+// 它按时间顺序处理SET、DELETE和CLEANUP命令
 func (c *Cache) loadAof(ctx context.Context) error {
 	if c.aof == nil {
 		return nil
@@ -93,14 +75,14 @@ func (c *Cache) loadAof(ctx context.Context) error {
 		return err
 	}
 
-	// Check context before processing commands
+	// 处理命令前检查上下文
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
 	default:
-		// Replay all commands
+		// 重放所有命令
 		for _, cmd := range commands {
-			// Periodically check context
+			// 定期检查上下文
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -110,7 +92,7 @@ func (c *Cache) loadAof(ctx context.Context) error {
 					if len(cmd) != 5 {
 						continue
 					}
-					// Parse expiration time
+					// 解析过期时间
 					var expireAt time.Time
 					if cmd[4] != "0" {
 						expireTs, err := strconv.ParseInt(cmd[4], 10, 64)
@@ -120,16 +102,16 @@ func (c *Cache) loadAof(ctx context.Context) error {
 						expireAt = time.Unix(expireTs, 0)
 					}
 
-					// Parse value type
+					// 解析值类型
 					vt, err := strconv.ParseUint(cmd[3], 10, 8)
 					if err != nil {
 						continue
 					}
 
-					// Create Cache item
+					// 创建缓存项
 					item := cacheItem{
-						value:    cmd[2],               // Value
-						vt:       common.ValueType(vt), // Convert to ValueType
+						value:    cmd[2],               // 值
+						vt:       common.ValueType(vt), // 转换为ValueType
 						expireAt: expireAt,
 					}
 					c.items[cmd[1]] = item
@@ -338,7 +320,7 @@ func (c *Cache) Get(ctx context.Context, key string) (any, error) {
 		c.mu.RUnlock()
 
 		if !exists {
-			return nil, ErrNotFound
+			return nil, NewNotFoundError("键不存在：" + key)
 		}
 
 		if item.expireAt.IsZero() {
@@ -368,17 +350,17 @@ func (c *Cache) GetInt(ctx context.Context, key string) (int, error) {
 		return int(v.(int32)), nil // Type assertion and conversion
 	case int64: // 64-bit integers need range check
 		if v > math.MaxInt || v < math.MinInt {
-			return 0, ErrOutOfRange // Value out of int range
+			return 0, NewOutOfRangeError("值超出int范围")
 		}
 		return int(v), nil
 	case uint, uint8, uint16, uint32, uint64:
 		u := reflect.ValueOf(v).Uint()
 		if u > math.MaxInt {
-			return 0, ErrOutOfRange
+			return 0, NewOutOfRangeError("值超出int范围")
 		}
 		return int(u), nil
 	default:
-		return 0, ErrTypeMismatch
+		return 0, NewTypeMismatchError("无法将类型转换为int")
 	}
 }
 
