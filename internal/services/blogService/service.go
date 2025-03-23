@@ -1,30 +1,46 @@
 package blogService
 
 import (
-	"github.com/gin-gonic/gin"
-	"h2blog_server/internal/model/vo"
-	"h2blog_server/internal/repository/blogInfoRepo"
+	"context"
+	"h2blog_server/internal/model/dto"
+	"h2blog_server/internal/repository/blogRepo"
+	"h2blog_server/internal/repository/categoryRepo"
+	"h2blog_server/internal/repository/tagRepo"
 )
 
-// GetH2BlogInfoById 用于获取指定博客信息
-//   - ctx 是 Gin 框架的上下文对象，用于处理 HTTP 请求和响应
-//   - blogId 是要获取的博客的唯一标识符
-//
-// 返回值
-//   - *dto.BlogInfoDto 表示获取到的博客信息
-//   - error 表示获取过程中可能发生的错误
-func GetH2BlogInfoById(ctx *gin.Context, blogId string) (*vo.BlogInfoVo, error) {
-	// 先查询是否有该数据
-	blogInfoPo, err := blogInfoRepo.FindBlogById(ctx, blogId)
-	// 检查是否有错误发生
+func GetBlogsInPage(ctx context.Context, page, pageSize int) ([]*dto.BlogDto, error) {
+	blogDtos, err := blogRepo.FindBlogsInPage(ctx, page, pageSize)
 	if err != nil {
-		// 如果有错误，直接返回当前num值和错误信息
 		return nil, err
-	} else {
-		return &vo.BlogInfoVo{
-			BlogId: blogInfoPo.BId,
-			Title:  blogInfoPo.Title,
-			Brief:  blogInfoPo.Brief,
-		}, nil
 	}
+
+	// 获取 Tag 数据
+	for _, blogDto := range blogDtos {
+		tags, err := tagRepo.FindTagsByBlogId(ctx, blogDto.BId)
+		if err != nil {
+			return nil, err
+		}
+
+		tagDtos := make([]dto.TagDto, len(tags))
+		for i, tag := range tags {
+			tagDtos[i] = dto.TagDto{
+				TName: tag.TName,
+			}
+		}
+
+		blogDto.Tags = tagDtos
+	}
+
+	// 获取分类数据
+	for _, blogDto := range blogDtos {
+		category, err := categoryRepo.FindCategoryById(ctx, blogDto.CategoryId)
+		if err != nil {
+			return nil, err
+		}
+		blogDto.Category = dto.CategoryDto{
+			CName: category.CName,
+		}
+	}
+
+	return blogDtos, nil
 }

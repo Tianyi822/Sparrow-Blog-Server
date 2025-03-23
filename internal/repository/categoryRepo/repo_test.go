@@ -1,10 +1,11 @@
-package blogInfoRepo
+package categoryRepo
 
 import (
 	"context"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
 	"h2blog_server/storage"
+	"testing"
 )
 
 func init() {
@@ -17,4 +18,13 @@ func init() {
 	}
 	// 初始化数据库组件
 	_ = storage.InitStorage(context.Background())
+}
+
+func TestFindCategoryById(t *testing.T) {
+	cate, err := FindCategoryById(context.Background(), "cat005")
+	if err != nil {
+		t.Error(err)
+	} else {
+		t.Log(cate)
+	}
 }
