@@ -9,21 +9,44 @@ type Dto interface {
 	Name() string
 }
 
-// BlogInfoDto 用于表示博客信息的传输对象
-type BlogInfoDto struct {
-	BlogId string `json:"blog_id,omitempty"`
-	Title  string `json:"title,omitempty"`
-	Brief  string `json:"brief,omitempty"`
+type BlogDto struct {
+	BId        string      `json:"b_id,omitempty"`
+	Title      string      `json:"title,omitempty"`
+	Brief      string      `json:"brief,omitempty"`
+	CategoryId string      `json:"category_id,omitempty"`
+	Category   CategoryDto `json:"category,omitempty"`
+	Tags       []TagDto    `json:"tags,omitempty"`
+	State      bool        `json:"state,omitempty"`
+	WordsNum   uint16      `json:"words_num,omitempty"`
+	IsTop      bool        `json:"is_top,omitempty"`
+	CreateTime string      `json:"create_time,omitempty"`
+	UpdateTime string      `json:"update_time,omitempty"`
 }
 
-// DtoFlag 方法返回 BlogInfoDto 的标识字符串
-func (bid *BlogInfoDto) DtoFlag() string {
-	return "BlogInfoDto"
+type TagDto struct {
+	TId   string
+	TName string
 }
 
-// Name 方法返回 BlogInfoDto 的名称
-func (bid *BlogInfoDto) Name() string {
-	return bid.Title
+func (ht *TagDto) DtoFlag() string {
+	return "TagDto"
+}
+
+func (ht *TagDto) Name() string {
+	return ht.TName
+}
+
+type CategoryDto struct {
+	CId   string `json:"c_id,omitempty"`
+	CName string `json:"c_name,omitempty"`
+}
+
+func (hc *CategoryDto) DtoFlag() string {
+	return "CategoryDto"
+}
+
+func (hc *CategoryDto) Name() string {
+	return hc.CName
 }
 
 // ImgDto 图片数据
