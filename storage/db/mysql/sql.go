@@ -22,19 +22,64 @@ const createLoginRecordTable = `
 `
 
 // 创建一个名为 H2_BLOG_INFO 的表，如果该表不存在则创建
-const createH2BlogInfoTableSQL = `
-	CREATE TABLE H2_BLOG_INFO
+const createH2BlogTableSQL = `
+	CREATE TABLE IF NOT EXISTS H2_BLOG
 	(
-	    blog_id    		VARCHAR(16) 	PRIMARY KEY NOT NULL 														COMMENT '博客ID',
-	    title      		VARCHAR(50) 				NOT NULL UNIQUE													COMMENT '博客标题',
-	    brief      		VARCHAR(255)				NOT NULL 														COMMENT '博客简介',
-	    create_time		TIMESTAMP					NOT NULL DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
-	    update_time		TIMESTAMP					NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
-	    INDEX (blog_id),
-	    INDEX (title),
-	    INDEX (create_time)
+	    b_id         	VARCHAR(16)      	PRIMARY KEY NOT NULL  											COMMENT '博客ID',
+	    b_title    	 	VARCHAR(50)      	NOT NULL UNIQUE       											COMMENT '博客标题',
+	    b_brief    	 	VARCHAR(255)     	NOT NULL              											COMMENT '博客简介',
+	    category_id     VARCHAR(16)      	NOT NULL              											COMMENT '分类ID（逻辑外键）',
+	    b_state        	TINYINT(1)       	NOT NULL              											COMMENT '博客状态（0-禁用 1-启用）',
+	    b_words_num  	SMALLINT UNSIGNED 	NOT NULL             									 		COMMENT '博客字数',
+	    is_top          TINYINT(1)       	NOT NULL              											COMMENT '是否置顶（0-否 1-是）',
+	    create_time     TIMESTAMP        	NOT NULL DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
+	    update_time     TIMESTAMP        	NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
+	    INDEX (b_id),
+	    INDEX (b_title),
+	    INDEX (create_time),
+	    INDEX (category_id) -- 为逻辑外键添加索引
 	) COMMENT = '博客信息表'
 	  ENGINE = InnoDB
+	  DEFAULT CHARSET = utf8mb4
+	  COLLATE = utf8mb4_unicode_ci;
+`
+
+const createH2CategoryTableSQL = `
+	CREATE TABLE IF NOT EXISTS H2_CATEGORY
+	(
+	    c_id   			VARCHAR(16)  PRIMARY KEY NOT NULL 											COMMENT '分类ID',
+	    c_name 			VARCHAR(50)  NOT NULL UNIQUE 												COMMENT '分类名称',
+	    create_time   	TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP 							COMMENT '创建时间',
+	    update_time   	TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+	    INDEX (c_name)
+	) ENGINE = InnoDB
+	  DEFAULT CHARSET = utf8mb4
+	  COLLATE = utf8mb4_unicode_ci;
+`
+
+const createH2TagTableSQL = `
+	CREATE TABLE IF NOT EXISTS H2_TAG
+	(
+	    t_id      	VARCHAR(16)  PRIMARY KEY NOT NULL 											COMMENT '标签ID',
+	    t_name    	VARCHAR(50)  NOT NULL UNIQUE 												COMMENT '标签名称',
+	    create_time TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP 							COMMENT '创建时间',
+	    update_time TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+	    INDEX (t_name)
+	) ENGINE = InnoDB
+	  DEFAULT CHARSET = utf8mb4
+	  COLLATE = utf8mb4_unicode_ci;
+`
+
+// 多对多关联表
+const createH2BlogTagTableSQL = `
+	CREATE TABLE IF NOT EXISTS H2_BLOG_TAG
+	(
+	    b_id         VARCHAR(16) NOT NULL COMMENT '博客ID',
+	    t_id         VARCHAR(16) NOT NULL COMMENT '标签ID',
+	    PRIMARY KEY (b_id, t_id), -- 联合主键 [[3]]
+	    FOREIGN KEY (b_id) REFERENCES H2_BLOG(b_id) 	ON DELETE CASCADE,
+	    FOREIGN KEY (t_id) REFERENCES H2_TAG(t_id) 	ON DELETE CASCADE
+	) ENGINE = InnoDB
 	  DEFAULT CHARSET = utf8mb4
 	  COLLATE = utf8mb4_unicode_ci;
 `

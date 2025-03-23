@@ -2,16 +2,44 @@ package po
 
 import "time"
 
-type BlogInfo struct {
-	BlogId     string    `gorm:"column:blog_id;primaryKey;"`                                  // 博客ID
-	Title      string    `gorm:"column:title;unique"`                                         // 博客标题
-	Brief      string    `gorm:"column:brief"`                                                // 博客简介
+type HBlog struct {
+	BId        string    `gorm:"column:b_id;primaryKey"`                                                                    // 博客 ID
+	Title      string    `gorm:"column:title;unique"`                                                                       // 博客标题
+	Brief      string    `gorm:"column:brief"`                                                                              // 博客简介
+	CategoryId string    `gorm:"column:category_id"`                                                                        // 逻辑外键字段（无约束）
+	Category   Category  `gorm:"foreignKey:CategoryId;references:CId"`                                                      // 关联 Category
+	Tags       []Tag     `gorm:"many2many:H2_BLOG_TAG;foreignKey:BId;joinForeignKey:BId;references:TId;joinReferences:TId"` // 多对多关联
+	State      bool      `gorm:"column:state"`                                                                              // 博客状态
+	WordsNum   uint16    `gorm:"column:words_num"`                                                                          // 博客字数
+	IsTop      bool      `gorm:"column:is_top"`                                                                             // 是否置顶
+	CreateTime time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                                              // 创建时间
+	UpdateTime time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"`                               // 更新时间
+}
+
+func (hb *HBlog) TableName() string {
+	return "H2_BLOG"
+}
+
+type Category struct {
+	CId        string    `gorm:"column:category_id;primaryKey"`                               // 分类 ID
+	CName      string    `gorm:"column:category_name;unique"`                                 // 分类名称
 	CreateTime time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
 	UpdateTime time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
 }
 
-func (hbi *BlogInfo) TableName() string {
-	return "H2_BLOG_INFO"
+func (c *Category) TableName() string {
+	return "H2_CATEGORY"
+}
+
+type Tag struct {
+	TId        string    `gorm:"column:tag_id;primaryKey"`                                    // 标签 ID
+	TName      string    `gorm:"column:tag_name;unique"`                                      // 标签名称
+	CreateTime time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
+	UpdateTime time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
+}
+
+func (t *Tag) TableName() string {
+	return "H2_TAG"
 }
 
 type ImgInfo struct {

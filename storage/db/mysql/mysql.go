@@ -98,11 +98,29 @@ func ConnectMysql(ctx context.Context) (*gorm.DB, error) {
 			handleError("创建 H2_LOGIN_RECORD 表失败", err)
 		}
 	}
-	if !tableExists(db, "H2_BLOG_INFO") {
-		// 创建 H2_BLOG_INFO 表
-		err = db.Exec(createH2BlogInfoTableSQL).Error
+	if !tableExists(db, "H2_BLOG") {
+		// 创建 H2_BLOG 表
+		err = db.Exec(createH2BlogTableSQL).Error
 		if err != nil {
-			handleError("创建 H2_BLOG_INFO 表失败", err)
+			handleError("创建 H2_BLOG 表失败", err)
+		}
+	}
+	if !tableExists(db, "H2_CATEGORY") {
+		err = db.Exec(createH2CategoryTableSQL).Error
+		if err != nil {
+			handleError("创建 H2_CATEGORY 表失败", err)
+		}
+	}
+	if !tableExists(db, "H2_TAG") {
+		err = db.Exec(createH2TagTableSQL).Error
+		if err != nil {
+			handleError("创建 H2_TAG 表失败", err)
+		}
+	}
+	if !tableExists(db, "H2_BLOG_TAG") {
+		err = db.Exec(createH2BlogTagTableSQL).Error
+		if err != nil {
+			handleError("创建 H2_BLOG_TAG 表失败", err)
 		}
 	}
 	if !tableExists(db, "H2_IMG_INFO") {
