@@ -2,7 +2,7 @@ package po
 
 import "time"
 
-type HBlog struct {
+type Blog struct {
 	BId        string    `gorm:"column:b_id;primaryKey"`                                      // 博客 ID
 	Title      string    `gorm:"column:b_title;unique"`                                       // 博客标题
 	Brief      string    `gorm:"column:b_brief"`                                              // 博客简介
@@ -14,7 +14,7 @@ type HBlog struct {
 	UpdateTime time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
 }
 
-func (hb *HBlog) TableName() string {
+func (hb *Blog) TableName() string {
 	return "H2_BLOG"
 }
 
@@ -38,6 +38,15 @@ type Tag struct {
 
 func (t *Tag) TableName() string {
 	return "H2_TAG"
+}
+
+type BlogTag struct {
+	BId string `gorm:"column:b_id"`
+	TId string `gorm:"column:t_id"`
+}
+
+func (hb *BlogTag) TableName() string {
+	return "H2_BLOG_TAG"
 }
 
 type ImgInfo struct {
