@@ -7,10 +7,4 @@ func Routers(e *gin.Engine) {
 	blogGroup := e.Group("/blog")
 
 	blogGroup.GET("/:blog_id", getBlogById)
-
-	blogGroup.PUT("/modify", modifyBlog)
-
-	blogGroup.DELETE("/:blog_id", deleteBlogById)
-
-	blogGroup.POST("/add", addBlogInfo)
 }

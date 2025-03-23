@@ -1,17 +1,9 @@
 package blogService
 
 import (
-	"errors"
 	"github.com/gin-gonic/gin"
-	"h2blog_server/internal/model/dto"
-	"h2blog_server/internal/model/po"
 	"h2blog_server/internal/model/vo"
 	"h2blog_server/internal/repository/blogInfoRepo"
-	"h2blog_server/pkg/logger"
-	"h2blog_server/pkg/markdown"
-	"h2blog_server/pkg/utils"
-	"h2blog_server/storage"
-	"h2blog_server/storage/oss"
 )
 
 // GetH2BlogInfoById 用于获取指定博客信息
@@ -30,141 +22,9 @@ func GetH2BlogInfoById(ctx *gin.Context, blogId string) (*vo.BlogInfoVo, error) 
 		return nil, err
 	} else {
 		return &vo.BlogInfoVo{
-			BlogId: blogInfoPo.BlogId,
+			BlogId: blogInfoPo.BId,
 			Title:  blogInfoPo.Title,
 			Brief:  blogInfoPo.Brief,
 		}, nil
-	}
-}
-
-// AddH2BlogInfo 用于添加新的博客信息
-//   - ctx 是 Gin 框架的上下文对象，用于处理 HTTP 请求和响应
-//   - blogInfoDto 是包含博客信息的 BlogInfoDto 对象
-//
-// 返回值
-//   - int64 表示添加操作影响的行数
-//   - error 表示添加过程中可能发生的错误
-func AddH2BlogInfo(ctx *gin.Context, blogInfoDto *dto.BlogInfoDto) (int64, error) {
-	// 从 dto 中获取到博客信息
-	// 加载博客的原始 markdown 文件成字符串
-	mdStr, err := storage.Storage.GetContentFromOss(ctx, oss.GenOssSavePath(blogInfoDto.Name(), oss.MarkDown))
-	if err != nil {
-		return 0, err
-	}
-
-	// 将 markdown 文件内容解析成 html
-	htmlStr, err := markdown.Parse(mdStr)
-	if err != nil {
-		return 0, err
-	}
-
-	// 将 html 内容保存到 oss 中，保存路径与 md 文件同目录
-	savePath := oss.GenOssSavePath(blogInfoDto.Name(), oss.HTML)
-	err = storage.Storage.PutContentToOss(ctx, htmlStr, savePath)
-	if err != nil {
-		return 0, err
-	}
-
-	// 将博客信息保存到数据库中
-	logger.Info("准备保存博客信息")
-	// 先查询是否有该数据
-	blogId, err := utils.GenId(blogInfoDto.Title)
-	if err != nil {
-		return 0, err
-	}
-
-	blogInfoPo, err := blogInfoRepo.FindBlogById(ctx, blogId)
-	// 根据错误情况决定是添加一条新的博客信息还是更新已有的博客信息
-	if err != nil {
-		msg := "博客信息已存在"
-		logger.Warn(msg)
-		return 0, errors.New(msg)
-	} else {
-		blogInfoPo = &po.BlogInfo{
-			BlogId: blogId,
-			Title:  blogInfoDto.Title,
-			Brief:  blogInfoDto.Brief,
-		}
-		logger.Info("保存博客信息成功")
-		return blogInfoRepo.CreateBlogInfo(ctx, blogInfoPo)
-	}
-}
-
-// ModifyH2BlogInfo 用于修改指定博客信息
-//   - ctx 是 Gin 框架的上下文对象，用于处理 HTTP 请求和响应
-//   - dto 是包含修改信息的 BlogInfoDto 对象
-//
-// 返回值
-//   - int64 表示修改操作影响的行数
-//   - error 表示修改过程中可能发生的错误
-func ModifyH2BlogInfo(ctx *gin.Context, dto *dto.BlogInfoDto) (int64, error) {
-	// TODO: 后续会添加标签、分类等信息的修改
-
-	logger.Info("准备修改博客信息")
-
-	// 先查询是否有该数据
-	blogInfoPo, err := blogInfoRepo.FindBlogById(ctx, dto.BlogId)
-	// 根据错误情况决定是添加一条新的博客信息还是更新已有的博客信息
-	if err != nil {
-		return 0, errors.New("没有找到要修改的博客")
-	} else {
-		// 1. 重新解析 Markdown 文件内容并保存到 Oss 中
-		// 从OSS存储中获取新Markdown文件内容
-		mdStr, err := storage.Storage.GetContentFromOss(ctx, oss.GenOssSavePath(dto.Name(), oss.MarkDown))
-		if err != nil {
-			return 0, err
-		}
-		// 将Markdown内容解析为新HTML
-		htmlStr, err := markdown.Parse(mdStr)
-		if err != nil {
-			return 0, err
-		}
-		// 将生成的HTML内容上传到新的HTML文件路径
-		err = storage.Storage.PutContentToOss(ctx, htmlStr, oss.GenOssSavePath(dto.Name(), oss.HTML))
-		if err != nil {
-			return 0, err
-		}
-
-		// 2. 删除旧的 HTML 文件
-		err = storage.Storage.DeleteObject(ctx, oss.GenOssSavePath(blogInfoPo.Title, oss.HTML))
-		if err != nil {
-			return 0, err
-		}
-
-		// 3. 修改数据库中的数据
-		blogInfoPo.Title = dto.Title
-		blogInfoPo.Brief = dto.Brief
-
-		return blogInfoRepo.UpdateById(ctx, blogInfoPo)
-	}
-}
-
-// DeleteH2BlogInfo 用于删除指定博客信息
-//   - ctx 是 Gin 框架的上下文对象，用于处理 HTTP 请求和响应
-//   - blogId 是要删除的博客的唯一标识符
-//
-// 返回值
-//   - int64 表示删除操作影响的行数
-//   - error 表示删除过程中可能发生的错误
-func DeleteH2BlogInfo(ctx *gin.Context, dto *dto.BlogInfoDto) (int64, error) {
-	logger.Info("准备删除博客信息")
-	// 先查询是否有该数据
-	blogInfoPo, err := blogInfoRepo.FindBlogById(ctx, dto.BlogId)
-	// 检查是否有错误发生
-	if err != nil {
-		return 0, errors.New("没有找到要删除的博客")
-	} else {
-		// 如果num大于0，表示需要删除一条记录
-		// 1. 先删除 Oss 中的 HTML 文件和 Markdown 文件
-		err = storage.Storage.DeleteObject(ctx, oss.GenOssSavePath(blogInfoPo.Title, oss.HTML))
-		if err != nil {
-			return 0, err
-		}
-		err = storage.Storage.DeleteObject(ctx, oss.GenOssSavePath(blogInfoPo.Title, oss.MarkDown))
-		if err != nil {
-			return 0, err
-		}
-		// 2. 删除数据库中的记录
-		return blogInfoRepo.DeleteById(ctx, blogInfoPo.BlogId)
 	}
 }
