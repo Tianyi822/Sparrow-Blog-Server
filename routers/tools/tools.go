@@ -49,21 +49,6 @@ func GetMapFromRawData(ctx *gin.Context) (map[string]any, error) {
 	return reqData, nil
 }
 
-// GetBlogDto 从请求中获取 BlogInfoDto 对象
-func GetBlogDto(ctx *gin.Context) (*dto.BlogInfoDto, error) {
-	// 初始化一个BlogInfoDto对象
-	blogDto := &dto.BlogInfoDto{}
-
-	// 解析失败就不再继续处理
-	err := rowDataToDto(ctx, blogDto)
-	if err != nil {
-		resp.BadRequest(ctx, err.Error(), -1)
-		return nil, err
-	}
-
-	return blogDto, nil
-}
-
 // GetImgDto 从请求中获取 ImgDto 对象
 func GetImgDto(ctx *gin.Context) (*dto.ImgDto, error) {
 	// 初始化一个ImgDto对象
@@ -116,18 +101,6 @@ func rowDataToDto(ctx *gin.Context, dto dto.Dto) error {
 	}
 
 	return nil
-}
-
-func GetIntFromPostForm(c *gin.Context, key string) (int, error) {
-	value := c.PostForm(key)
-	if value == "" {
-		return 0, fmt.Errorf("'%s' 为空", key)
-	}
-	num, err := strconv.Atoi(value)
-	if err != nil {
-		return 0, fmt.Errorf("不可使用的整型值 '%s': %w", key, err)
-	}
-	return num, nil
 }
 
 // GetUInt16FromRawData 从原始数据中提取指定键的值并将其转换为 uint16 类型。
