@@ -2,6 +2,7 @@ package blogService
 
 import (
 	"context"
+	"h2blog_server/internal/model/dto"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
 	"h2blog_server/pkg/webp"
@@ -32,5 +33,27 @@ func TestGetBlogsInPage(t *testing.T) {
 
 	for _, blogDto := range blogDtos {
 		t.Log(blogDto)
+	}
+}
+
+func TestUpdateBlogData(t *testing.T) {
+	blogDto := &dto.BlogDto{
+		BId:        "blog00006",
+		Title:      "test6",
+		Brief:      "test",
+		Category:   dto.CategoryDto{CName: "测试分类 6"},
+		CategoryId: "",
+		IsTop:      false,
+		State:      true,
+		Tags: []dto.TagDto{
+			{TId: "e7c039f52925c96f", TName: "tag00001"},
+			{TName: "tag00006"},
+		},
+	}
+
+	err := UpdateBlogData(context.Background(), blogDto)
+
+	if err != nil {
+		t.Error(err)
 	}
 }

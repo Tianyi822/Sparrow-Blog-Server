@@ -35,6 +35,7 @@ func AddCategory(ctx context.Context, cateDto *dto.CategoryDto) error {
 		logger.Warn(msg)
 		return errors.New(msg)
 	}
+	cateDto.CId = cId
 
 	logger.Info("创建播客分类")
 	// 将生成的分类信息保存到数据库中。如果保存失败，记录警告日志并返回错误。

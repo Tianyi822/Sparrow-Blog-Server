@@ -61,6 +61,45 @@ func FindBlogsInPage(ctx context.Context, page, pageSize int) ([]*dto.BlogDto, e
 	return blogDtos, nil
 }
 
+// UpdateBlog 更新博客信息。
+// 该函数接收一个上下文和一个博客DTO对象，用于更新数据库中的博客信息。
+// 参数:
+//   - ctx: 上下文，用于数据库操作的上下文管理。
+//   - blogDto: 包含要更新的博客信息的DTO对象。
+//
+// 返回值:
+//   - 如果更新过程中发生错误，则返回错误。
+func UpdateBlog(ctx context.Context, blogDto *dto.BlogDto) error {
+	// 开始一个数据库事务。
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	// 使用defer和recover来处理可能的panic，确保在出现panic时回滚事务。
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("更新博客数据失败: %v", r)
+			tx.Rollback()
+		}
+	}()
+
+	// 更新博客信息。
+	if err := tx.Model(&po.Blog{}).Where("b_id = ?", blogDto.BId).Updates(po.Blog{
+		Brief:      blogDto.Brief,
+		CategoryId: blogDto.CategoryId,
+		Title:      blogDto.Title,
+		IsTop:      blogDto.IsTop,
+		State:      blogDto.State,
+		WordsNum:   blogDto.WordsNum,
+	}).Error; err != nil {
+		tx.Rollback()
+		msg := fmt.Sprintf("更新博客数据失败: %v", err)
+		logger.Error(msg)
+		return errors.New(msg)
+	}
+	// 提交事务。
+	tx.Commit()
+
+	return nil
+}
+
 // DeleteBlogById 根据博客ID删除对应的博客数据。
 // 参数:
 //   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
