@@ -30,3 +30,11 @@ func TestFindBlogsInPage(t *testing.T) {
 		t.Log(v)
 	}
 }
+
+func TestDeleteBlogById(t *testing.T) {
+	err := DeleteBlogById(context.Background(), "blog00002")
+
+	if err != nil {
+		t.Error(err)
+	}
+}
