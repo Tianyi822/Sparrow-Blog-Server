@@ -66,30 +66,32 @@ func UpdateBlogData(ctx context.Context, blogDto *dto.BlogDto) error {
 	return nil
 }
 
+// GetBlogsInPage 获取指定分页条件下的博客列表，并为每个博客补充标签和分类信息。
+// 参数:
+// - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
+// - page: 分页页码，表示当前请求的页数。
+// - pageSize: 每页显示的博客数量。
+//
+// 返回值:
+// - []*dto.BlogDto: 包含博客信息的 DTO 列表，每个 DTO 包含博客的基本信息、标签和分类。
+// - error: 如果在查询过程中发生错误，则返回错误信息；否则返回 nil。
 func GetBlogsInPage(ctx context.Context, page, pageSize int) ([]*dto.BlogDto, error) {
 	blogDtos, err := blogRepo.FindBlogsInPage(ctx, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
 
-	// 获取 Tag 数据
+	// 遍历博客列表，为每个博客获取其关联的标签数据。
 	for _, blogDto := range blogDtos {
 		tags, err := tagRepo.FindTagsByBlogId(ctx, blogDto.BId)
 		if err != nil {
 			return nil, err
 		}
 
-		tagDtos := make([]dto.TagDto, len(tags))
-		for i, tag := range tags {
-			tagDtos[i] = dto.TagDto{
-				TName: tag.TName,
-			}
-		}
-
-		blogDto.Tags = tagDtos
+		blogDto.Tags = tags
 	}
 
-	// 获取分类数据
+	// 遍历博客列表，为每个博客获取其关联的分类数据。
 	for _, blogDto := range blogDtos {
 		category, err := categoryRepo.FindCategoryById(ctx, blogDto.CategoryId)
 		if err != nil {

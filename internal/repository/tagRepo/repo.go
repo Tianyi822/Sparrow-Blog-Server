@@ -20,9 +20,9 @@ import (
 //
 // 返回值:
 //
-//	[]*po.Tag - 与博客关联的标签列表。
+//	[]dto.TagDto - 与博客关联的标签列表。
 //	error - 如果查询过程中发生错误，则返回该错误。
-func FindTagsByBlogId(ctx context.Context, blogId string) ([]*po.Tag, error) {
+func FindTagsByBlogId(ctx context.Context, blogId string) ([]dto.TagDto, error) {
 	// 查询中间表 BlogTag，获取与博客 ID 关联的标签 ID。
 	var bt []po.BlogTag
 
@@ -52,8 +52,16 @@ func FindTagsByBlogId(ctx context.Context, blogId string) ([]*po.Tag, error) {
 		return nil, errors.New(msg)
 	}
 
+	tagsDto := make([]dto.TagDto, len(tags))
+	for i, tag := range tags {
+		tagsDto[i] = dto.TagDto{
+			TId:   tag.TId,
+			TName: tag.TName,
+		}
+	}
+
 	// 返回查询到的标签列表。
-	return tags, nil
+	return tagsDto, nil
 }
 
 // AddTags 批量添加标签到数据库。
