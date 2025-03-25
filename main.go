@@ -7,7 +7,6 @@ import (
 	"h2blog_server/env"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
-	"h2blog_server/pkg/markdown"
 	"h2blog_server/pkg/webp"
 	"h2blog_server/routers"
 	"h2blog_server/routers/adminRouters"
@@ -38,11 +37,6 @@ func loadComponent(ctx context.Context) {
 	err = storage.InitStorage(ctx)
 	if err != nil {
 		panic("数据层初始化失败，请检查配置文件是否有误")
-	}
-	// 初始化 Markdown 渲染器
-	err = markdown.InitRenderer(ctx)
-	if err != nil {
-		panic("Markdown 渲染器初始化失败，请检查配置文件是否有误")
 	}
 	// 初始化图片转换器
 	err = webp.InitConverter(ctx)
