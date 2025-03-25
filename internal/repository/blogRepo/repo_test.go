@@ -38,3 +38,17 @@ func TestDeleteBlogById(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestChangeBlogStateById(t *testing.T) {
+	err := ChangeBlogStateById(context.Background(), "blog00003")
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestSetTopById(t *testing.T) {
+	err := SetTopById(context.Background(), "blog00003")
+	if err != nil {
+		t.Error(err)
+	}
+}
