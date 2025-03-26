@@ -4,3 +4,4 @@ go.sum
 /resources/config/test
 /temp
 **/*.log
+**/*.DS_Store
