@@ -14,38 +14,35 @@ import (
 	"time"
 )
 
-// FileOp Core file operation structure responsible for managing file lifecycle,
-// buffered writing, automatic splitting and compression operations.
-// It provides thread-safe file operations with features like:
-// - Buffered writing for better performance
-// - Automatic file rotation when size limit is reached
-// - Optional compression of rotated files
-// - Concurrent access protection
+// FileOp 核心文件操作结构，负责管理文件生命周期，
+// 缓冲写入，自动分割和压缩操作。
+// 它提供线程安全的文件操作，具有以下特性：
+// - 使用缓冲写入提高性能
+// - 在达到大小限制时自动轮转文件
+// - 可选的轮转文件压缩
+// - 并发访问保护
 type FileOp struct {
-	rwMu           sync.RWMutex  // RWMutex to protect concurrent access
-	file           *os.File      // Underlying file handle (nil if not opened)
-	writer         *bufio.Writer // Buffered writer (32KB buffer)
-	isOpen         bool          // File writable status flag
-	needCompress   bool          // Whether to compress files after rotation
-	maxSize        uint16        // Maximum file size before rotation (in MB)
-	path           string        // Current active file absolute path
-	filePrefixName string        // Base filename without extension
-	fileSuffixName string        // File extension without dot
+	rwMu           sync.RWMutex  // 用于保护并发访问的读写锁
+	file           *os.File      // 底层文件句柄（未打开时为 nil）
+	writer         *bufio.Writer // 缓冲写入器（32KB 缓冲区）
+	isOpen         bool          // 文件可写状态标志
+	needCompress   bool          // 是否在轮转后压缩文件
+	maxSize        uint16        // 轮转前的最大文件大小（单位：MB）
+	path           string        // 当前活动文件的绝对路径
+	filePrefixName string        // 不带扩展名的基本文件名
+	fileSuffixName string        // 不带点的文件扩展名
 }
 
-// CreateFileOp initializes a new FileOp instance with the given configuration.
-// It validates the configuration and sets up the file operation structure.
-// The actual file is not opened until the first write operation.
+// CreateFileOp 使用给定的配置初始化一个新的 FileOp 实例。
+// 它验证配置并设置文件操作结构。
+// 在第一次写入操作之前，实际文件不会被打开。
 func CreateFileOp() (*FileOp, error) {
-	// Validate required configuration
+	// 验证必需的配置
 	if config.Cache.Aof.Path == "" {
 		return nil, fmt.Errorf("file path cannot be empty")
 	}
-	if config.Cache.Aof.MaxSize < 0 {
-		return nil, fmt.Errorf("max size cannot be negative")
-	}
 
-	// Split the file path into components
+	// 将文件路径拆分为组件
 	baseName := filepath.Base(config.Cache.Aof.Path)
 	ext := filepath.Ext(baseName)
 	prefix := strings.TrimSuffix(baseName, ext)
@@ -59,9 +56,9 @@ func CreateFileOp() (*FileOp, error) {
 	}, nil
 }
 
-// GetScanner returns a bufio.Scanner for reading the file contents.
-// If the file doesn't exist, returns a scanner with empty content.
-// The scanner is configured with a 512KB buffer for handling long lines.
+// GetScanner 返回用于读取文件内容的 bufio.Scanner。
+// 如果文件不存在，则返回带有空内容的扫描器。
+// 扫描器配置了 512KB 缓冲区以处理长行。
 func (fop *FileOp) GetScanner() (*bufio.Scanner, error) {
 	if fop == nil {
 		return nil, fmt.Errorf("FileOp is nil")
@@ -79,31 +76,31 @@ func (fop *FileOp) GetScanner() (*bufio.Scanner, error) {
 	}
 	defer func(f *os.File) {
 		_ = f.Close()
-	}(f) // Close file after scanner is created
+	}(f) // 创建扫描器后关闭文件
 
 	scanner := bufio.NewScanner(f)
-	const maxCapacity = 512 * 1024 // 512KB buffer for long lines
+	const maxCapacity = 512 * 1024 // 用于长行的 512KB 缓冲区
 	buf := make([]byte, 0, maxCapacity)
 	scanner.Buffer(buf, maxCapacity)
 
 	return scanner, nil
 }
 
-// ready prepares the file for write operations.
-// It creates the directory if needed, opens or creates the file,
-// and initializes the buffered writer.
+// ready 为写入操作准备文件。
+// 如果需要，它会创建目录，打开或创建文件，
+// 并初始化缓冲写入器。
 func (fop *FileOp) ready() error {
 	if fop.file != nil {
-		return nil // File is already open
+		return nil // 文件已经打开
 	}
 
-	// Ensure directory exists
+	// 确保目录存在
 	dir := filepath.Dir(fop.path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	// Open existing file or create new one
+	// 打开现有文件或创建新文件
 	var err error
 	if fileTool.IsExist(fop.path) {
 		fop.file, err = fileTool.MustOpenFile(fop.path)
@@ -114,37 +111,37 @@ func (fop *FileOp) ready() error {
 		return fmt.Errorf("failed to open/create file: %w", err)
 	}
 
-	// Initialize buffered writer with 32KB buffer
+	// 使用 32KB 缓冲区初始化缓冲写入器
 	fop.writer = bufio.NewWriterSize(fop.file, 32*1024)
 	fop.isOpen = true
 	return nil
 }
 
-// Close flushes any buffered data and closes the file.
-// It's safe to call Close multiple times.
+// Close 刷新所有缓冲数据并关闭文件。
+// 多次调用 Close 是安全的。
 func (fop *FileOp) Close() error {
 	if !fop.isOpen {
 		return nil
 	}
 
-	// Flush buffered data
+	// 刷新缓冲数据
 	if fop.writer != nil {
 		if err := fop.writer.Flush(); err != nil {
 			return fmt.Errorf("flush failed: %w", err)
 		}
 	}
 
-	// Ensure data is written to disk
+	// 确保数据写入磁盘
 	if err := fop.file.Sync(); err != nil {
 		return fmt.Errorf("sync failed: %w", err)
 	}
 
-	// Close file handle
+	// 关闭文件句柄
 	if err := fop.file.Close(); err != nil {
 		return fmt.Errorf("close failed: %w", err)
 	}
 
-	// Reset file operation state
+	// 重置文件操作状态
 	fop.isOpen = false
 	fop.writer = nil
 	fop.file = nil
@@ -152,27 +149,27 @@ func (fop *FileOp) Close() error {
 	return nil
 }
 
-// needSplit checks if the current file size exceeds the configured maximum size.
-// Returns true if the file should be rotated.
+// needSplit 检查当前文件大小是否超过配置的最大大小。
+// 如果应该轮转文件，则返回 true。
 func (fop *FileOp) needSplit() bool {
-	// Skip if rotation is disabled
+	// 如果禁用了轮转则跳过
 	if fop.maxSize <= 0 {
 		return false
 	}
 
-	// Get current file size
+	// 获取当前文件大小
 	fileInfo, err := fop.file.Stat()
 	if err != nil {
 		return false
 	}
 
-	// Compare with max size (converting MB to bytes)
+	// 与最大大小比较（将 MB 转换为字节）
 	return fileInfo.Size() > int64(fop.maxSize*1024*1024)
 }
 
-// Write appends data to the file with a newline character.
-// It handles file rotation automatically if the size limit is reached.
-// The operation is thread-safe and buffered for better performance.
+// Write 在文件中追加数据，并带有换行符。
+// 如果达到大小限制，它会自动处理文件轮转。
+// 该操作是线程安全的，并且使用缓冲提高性能。
 func (fop *FileOp) Write(context []byte) error {
 	if fop == nil {
 		return fmt.Errorf("FileOp is nil")
@@ -184,31 +181,31 @@ func (fop *FileOp) Write(context []byte) error {
 	fop.rwMu.Lock()
 	defer fop.rwMu.Unlock()
 
-	// Ensure file is ready for writing
+	// 确保文件准备好写入
 	if !fop.isOpen {
 		if err := fop.ready(); err != nil {
 			return err
 		}
 	}
 
-	// Check if rotation is needed before writing
+	// 写入前检查是否需要轮转
 	if fop.needSplit() {
 		if err := fop.checkAndRotate(); err != nil {
 			return fmt.Errorf("rotation failed: %w", err)
 		}
 	}
 
-	// Prepare data with newline
+	// 准备带有换行符的数据
 	buf := make([]byte, len(context)+1)
 	copy(buf, context)
 	buf[len(context)] = '\n'
 
-	// Write data
+	// 写入数据
 	if _, err := fop.writer.Write(buf); err != nil {
 		return fmt.Errorf("write failed: %w", err)
 	}
 
-	// Always flush after write to ensure data is written
+	// 写入后始终刷新以确保数据被写入
 	if err := fop.writer.Flush(); err != nil {
 		return fmt.Errorf("flush failed: %w", err)
 	}
@@ -216,61 +213,61 @@ func (fop *FileOp) Write(context []byte) error {
 	return nil
 }
 
-// checkAndRotate handles the file rotation logic when size limit is reached.
+// checkAndRotate 处理达到大小限制时的文件轮转逻辑。
 func (fop *FileOp) checkAndRotate() error {
 	if !fop.needSplit() {
 		return nil
 	}
 
-	// Flush buffered data before closing
+	// 关闭前刷新缓冲数据
 	if err := fop.writer.Flush(); err != nil {
 		return fmt.Errorf("failed to flush buffer before rotation: %w", err)
 	}
 
-	// Sync to disk
+	// 同步到磁盘
 	if err := fop.file.Sync(); err != nil {
 		return fmt.Errorf("failed to sync file before rotation: %w", err)
 	}
 
-	// Close current file
+	// 关闭当前文件
 	if err := fop.Close(); err != nil {
 		return err
 	}
 
-	// Generate rotated filename
+	// 生成轮转后的文件名
 	rotatedName := fmt.Sprintf("%v.aof", fop.filePrefixName)
 	destPath := filepath.Join(filepath.Dir(fop.path), rotatedName)
 
-	// Rename current file
+	// 重命名当前文件
 	if err := os.Rename(fop.path, destPath); err != nil {
 		return fmt.Errorf("failed to rename file: %w", err)
 	}
 
-	// Handle compression if enabled
+	// 如果启用，则处理压缩
 	if fop.needCompress {
 		timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 		compressedPath := fmt.Sprintf("%v_%v.aof.tar.gz", fop.filePrefixName, timestamp)
 		compressedPath = filepath.Join(filepath.Dir(fop.path), compressedPath)
 
-		// Compress file
+		// 压缩文件
 		if err := fileTool.CompressFileToTarGz(destPath, compressedPath); err != nil {
-			// If compression fails, try to restore the original file
+			// 如果压缩失败，尝试恢复原始文件
 			_ = os.Rename(destPath, fop.path)
 			return fmt.Errorf("compression failed: %w", err)
 		}
 
-		// Verify compressed file exists before removing original
+		// 在删除原始文件前验证压缩文件是否存在
 		if !fileTool.IsExist(compressedPath) {
 			_ = os.Rename(destPath, fop.path)
 			return fmt.Errorf("compressed file not found after compression")
 		}
 
-		// Remove original file only after successful compression
+		// 仅在成功压缩后删除原始文件
 		if err := os.RemoveAll(destPath); err != nil {
 			logger.Warn("failed to remove rotated file after compression: %v", err)
 		}
 	}
 
-	// Create new file for writing
+	// 创建新的写入文件
 	return fop.ready()
 }

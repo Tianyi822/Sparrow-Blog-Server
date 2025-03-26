@@ -5,8 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
-	"gorm.io/gorm"
 	"h2blog_server/cache"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
@@ -15,6 +13,9 @@ import (
 	"io"
 	"sync"
 	"time"
+
+	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
+	"gorm.io/gorm"
 )
 
 var Storage *storage
@@ -249,26 +250,36 @@ func (s *storage) PreSignUrl(ctx context.Context, objectName string) (*oss.Presi
 	return result, nil
 }
 
-// CloseDbConnect 关闭数据库连接
+// Close 关闭所有存储相关连接，包括数据库和缓存
 // - ctx 上下文对象，用于控制请求的截止时间、取消信号等
-func (s *storage) CloseDbConnect(ctx context.Context) {
-	// 检查数据库连接是否为空
+func (s *storage) Close(ctx context.Context) {
+	// 关闭数据库连接
 	if s.Db != nil {
 		// 使用上下文获取数据库实例
 		sqlDB, err := s.Db.WithContext(ctx).DB()
 		// 如果获取实例失败，记录错误并返回
 		if err != nil {
-			logger.Error("获取实例失败: " + err.Error())
-			return
+			logger.Error("获取数据库实例失败: " + err.Error())
+		} else {
+			// 关闭数据库连接
+			err = sqlDB.Close()
+			// 如果关闭连接失败，记录错误
+			if err != nil {
+				logger.Error("关闭数据库连接失败: " + err.Error())
+			} else {
+				// 记录数据库连接已关闭的信息
+				logger.Info("MySQL 数据库连接已关闭")
+			}
 		}
-		// 关闭数据库连接
-		err = sqlDB.Close()
-		// 如果关闭连接失败，记录错误并返回
+	}
+
+	// 关闭缓存连接
+	if s.Cache != nil {
+		err := s.Cache.Close()
 		if err != nil {
-			logger.Error("关闭数据库连接失败: " + err.Error())
-			return
+			logger.Error("关闭缓存失败: " + err.Error())
+		} else {
+			logger.Info("缓存已安全关闭")
 		}
-		// 记录数据库连接已关闭的信息
-		logger.Info("MySQL 数据库连接已关闭")
 	}
 }

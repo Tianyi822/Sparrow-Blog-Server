@@ -94,10 +94,10 @@ func closeWebServer(srv *http.Server) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// 先关闭数据层连接
-	logger.Info("关闭数据库连接")
-	storage.Storage.CloseDbConnect(ctx)
-	logger.Info("数据库连接已关闭")
+	// 先关闭数据层
+	logger.Info("关闭数据层")
+	storage.Storage.Close(ctx)
+	logger.Info("数据层已关闭")
 
 	// 关闭图片压缩器
 	logger.Info("关闭图片压缩器")
