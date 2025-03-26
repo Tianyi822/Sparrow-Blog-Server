@@ -76,37 +76,41 @@ func NewAof() *Aof {
 func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 	select {
 	case <-ctx.Done():
-		logger.Warn("AOF file loading cancelled")
+		// 如果上下文被取消，记录警告日志并返回上下文错误。
+		logger.Warn("AOF 文件加载已取消")
 		return nil, ctx.Err()
 	default:
+		// 加锁以确保线程安全，防止并发访问。
 		aof.mu.Lock()
 		defer aof.mu.Unlock()
 
+		// 获取 AOF 文件所在的目录和文件前缀名。
 		dir := filepath.Dir(aof.file.path)
 		prefix := aof.file.filePrefixName
 
-		// 首先创建临时目录
+		// 创建临时目录用于解压和处理文件。
 		tempDir := filepath.Join(dir, "temp_aof")
 		if err := os.MkdirAll(tempDir, 0755); err != nil {
-			return nil, fmt.Errorf("failed to create temp directory: %w", err)
+			return nil, fmt.Errorf("无法创建临时目录: %w", err)
 		}
 
+		// 确保函数结束时删除临时目录。
 		defer func() {
 			if err := os.RemoveAll(tempDir); err != nil {
-				logger.Warn("failed to remove temp directory %s: %v", tempDir, err)
+				logger.Warn("无法删除临时目录 %s: %v", tempDir, err)
 			}
 		}()
 
 		var files []string
 		var err error
 
-		// 首先，获取所有压缩文件
+		// 如果启用了压缩功能，获取所有压缩文件并按时间戳排序。
 		if aof.file.needCompress {
 			files, err = filepath.Glob(filepath.Join(dir, prefix+"_*.aof.tar.gz"))
 			if err != nil {
-				return nil, fmt.Errorf("failed to list compressed AOF files: %w", err)
+				return nil, fmt.Errorf("无法列出压缩的 AOF 文件: %w", err)
 			}
-			// 按时间戳排序压缩文件
+			// 按文件名中的时间戳对压缩文件进行排序。
 			sort.Slice(files, func(i, j int) bool {
 				tsI := extractTimestamp(files[i])
 				tsJ := extractTimestamp(files[j])
@@ -114,39 +118,40 @@ func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 			})
 		}
 
-		// 然后检查当前的 AOF 文件
+		// 检查当前的 AOF 文件是否存在，并将其加入文件列表。
 		currentFile := filepath.Join(dir, prefix+".aof")
 		if fileTool.IsExist(currentFile) {
 			files = append(files, currentFile)
 		}
 
 		var allCommands [][]string
-		logger.Info("Processing %d files", len(files))
+		logger.Info("正在处理 %d 个文件", len(files))
 
-		// 处理每个文件
+		// 按顺序处理每个文件。
 		for i, f := range files {
-			logger.Info("Processing file %d/%d: %s", i+1, len(files), f)
+			logger.Info("正在处理文件 %d/%d: %s", i+1, len(files), f)
 			commands, err := processFile(f, tempDir)
 			if err != nil {
-				return nil, fmt.Errorf("failed to process file %s: %w", f, err)
+				return nil, fmt.Errorf("无法处理文件 %s: %w", f, err)
 			}
-			logger.Info("File %s: loaded %d commands", f, len(commands))
+			logger.Info("文件 %s: 已加载 %d 条命令", f, len(commands))
 			allCommands = append(allCommands, commands...)
 		}
 
-		// 清理已处理的文件
+		// 清理已处理的文件。
 		for _, f := range files {
 			if err := os.Remove(f); err != nil {
-				logger.Warn("failed to remove processed AOF file %s: %v", f, err)
+				logger.Warn("无法删除已处理的 AOF 文件 %s: %v", f, err)
 			}
 		}
 
-		// 创建新的 AOF 文件
+		// 创建新的 AOF 文件以准备后续写入。
 		if err := aof.file.ready(); err != nil {
-			return nil, fmt.Errorf("failed to create new AOF file: %w", err)
+			return nil, fmt.Errorf("无法创建新的 AOF 文件: %w", err)
 		}
 
-		logger.Info("AOF files loading completed: processed %d files, %d commands",
+		// 记录加载完成的日志。
+		logger.Info("AOF 文件加载完成: 处理了 %d 个文件，%d 条命令",
 			len(files), len(allCommands))
 		return allCommands, nil
 	}
@@ -175,14 +180,21 @@ func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 // - 参数数量无效
 // - 不支持的命令类型
 // - 写入操作失败
+//
+// 返回值：
+// - error: 如果上下文被取消、命令参数无效或写入文件失败，则返回相应的错误；否则返回 nil。
 func (aof *Aof) Store(ctx context.Context, cmd string, args ...string) error {
+	// 加锁以确保线程安全，防止并发写入问题。
 	aof.mu.Lock()
 	defer aof.mu.Unlock()
 
+	// 检查上下文是否已取消。
 	select {
 	case <-ctx.Done():
+		// 如果上下文被取消，返回上下文的错误信息。
 		return ctx.Err()
 	default:
+		// 调用内部方法 storeCommand 执行实际的命令存储逻辑。
 		return aof.storeCommand(cmd, args...)
 	}
 }
@@ -225,72 +237,101 @@ func (aof *Aof) Close() error {
 // 如果出现以下情况则返回错误:
 // - 参数数量无效
 // - 写入操作失败
+//
+// 参数：
+// - cmd: 表示要执行的命令类型，例如 SET、DELETE、INCR 或 CLEANUP。
+// - args: 表示命令的参数列表，具体内容取决于命令类型。
+//
+// 返回值：
+// - error: 如果命令参数不合法或写入文件失败，则返回错误；否则返回 nil。
 func (aof *Aof) storeCommand(cmd string, args ...string) error {
 	switch cmd {
 	case common.SET:
+		// 检查 SET 命令的参数数量是否正确，SET 命令需要 4 个参数：key、value、type 和 expired。
 		if len(args) != 4 {
 			return fmt.Errorf("SET command requires 4 args (key=%s, value=%s, type=%s, expired=%s), got %d",
 				safeGet(args, 0), safeGet(args, 1), safeGet(args, 2), safeGet(args, 3), len(args))
 		}
+		// 将 SET 命令及其参数格式化为字符串并写入 AOF 文件。
 		return aof.file.Write([]byte(fmt.Sprintf("%s;;%s;;%s;;%s;;%s", cmd, args[0], args[1], args[2], args[3])))
 
 	case common.DELETE:
+		// 检查 DELETE 命令的参数数量是否正确，DELETE 命令需要 1 个参数：key。
 		if len(args) != 1 {
 			return fmt.Errorf("DELETE command requires 1 arg (key=%s), got %d",
 				safeGet(args, 0), len(args))
 		}
+		// 将 DELETE 命令及其参数格式化为字符串并写入 AOF 文件。
 		return aof.file.Write([]byte(fmt.Sprintf("%s;;%s", cmd, args[0])))
 
 	case common.INCR:
+		// 检查 INCR 命令的参数数量是否正确，INCR 命令需要 2 个参数：key 和 type。
 		if len(args) != 2 {
 			return fmt.Errorf("INCR command requires 2 args (key=%s, type=%s), got %d",
 				safeGet(args, 0), safeGet(args, 1), len(args))
 		}
+		// 将 INCR 命令及其参数格式化为字符串并写入 AOF 文件。
 		return aof.file.Write([]byte(fmt.Sprintf("%s;;%s;;%s", cmd, args[0], args[1])))
 
 	case common.CLEANUP:
+		// 检查 CLEANUP 命令的参数数量是否正确，CLEANUP 命令不需要任何参数。
 		if len(args) != 0 {
 			return fmt.Errorf("CLEANUP command requires no args, got %d", len(args))
 		}
+		// 将 CLEANUP 命令直接写入 AOF 文件。
 		return aof.file.Write([]byte(cmd))
 
 	default:
+		// 如果命令类型不被支持，则返回错误。
 		return fmt.Errorf("unsupported command type: %s", cmd)
 	}
 }
 
-// processFile 根据压缩设置处理 AOF 文件
+// processFile 处理指定路径的文件，支持常规文件和 .tar.gz 压缩文件。
+// 参数:
+// - path: 文件路径，可以是常规文件或 .tar.gz 压缩文件。
+// - tempDir: 临时目录路径，用于解压 .tar.gz 文件。
+//
+// 返回值:
+// - [][]string: 处理后的文件内容，以二维字符串切片形式返回。
+// - error: 如果处理过程中发生错误，则返回具体的错误信息。
 func processFile(path string, tempDir string) ([][]string, error) {
 	var file *os.File
 	var err error
 
+	// 如果文件是 .tar.gz 压缩文件，则先解压到临时目录
 	if strings.HasSuffix(path, ".tar.gz") {
-		// 处理压缩文件
+		// 创建临时目录用于存放解压后的文件
 		if err := os.MkdirAll(tempDir, 0755); err != nil {
 			return nil, fmt.Errorf("failed to create temp directory: %w", err)
 		}
 
+		// 解压 .tar.gz 文件到临时目录
 		decompressedPath := filepath.Join(tempDir, strings.TrimSuffix(filepath.Base(path), ".tar.gz"))
 		if err := fileTool.DecompressTarGz(path, decompressedPath); err != nil {
 			return nil, fmt.Errorf("failed to decompress %s: %w", path, err)
 		}
 
+		// 打开解压后的文件
 		file, err = os.Open(decompressedPath)
 	} else {
-		// 处理常规文件
+		// 如果是常规文件，直接打开文件
 		file, err = os.Open(path)
 	}
 
+	// 检查文件打开是否成功
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %s: %w", path, err)
 	}
 
+	// 确保函数结束时关闭文件，并记录可能的关闭错误
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
 			logger.Warn("failed to close file %s: %v", path, closeErr)
 		}
 	}()
 
+	// 使用 bufio.Scanner 逐行读取文件内容
 	scanner := bufio.NewScanner(file)
 	return processAOFFile(scanner)
 }
@@ -304,18 +345,28 @@ func processFile(path string, tempDir string) ([][]string, error) {
 // 返回:
 // - int64: 从文件名中提取的 Unix 时间戳
 // - 如果文件名格式无效则返回 0
+//
+// 函数逻辑:
+// 1. 使用 filepath.Base 获取文件名部分，并通过 "_" 分割文件名。
+// 2. 如果分割后的部分少于两部分，则认为文件名格式不符合预期，返回 0。
+// 3. 从分割结果的第二部分中提取时间戳字符串，并尝试将其转换为 int64 类型。
 func extractTimestamp(filename string) int64 {
+	// 将文件名按 "_" 分割，获取文件名的组成部分。
 	parts := strings.Split(filepath.Base(filename), "_")
 	if len(parts) < 2 {
+		// 如果分割结果少于两部分，说明文件名格式不正确，返回 0。
 		return 0
 	}
+
+	// 从分割结果的第二部分中提取时间戳字符串，并去掉可能存在的文件扩展名。
 	ts := strings.Split(parts[1], ".")[0]
+
+	// 将时间戳字符串转换为 int64 类型，忽略转换错误。
 	timestamp, _ := strconv.ParseInt(ts, 10, 64)
 	return timestamp
 }
 
-// processAOFFile 处理 AOF 文件的内容并返回命令。
-// 它逐行读取文件并根据格式解析每个命令。
+// processAOFFile 处理 AOF 文件的内容，逐行读取文件并根据格式解析每个命令。
 //
 // 命令验证:
 // - 检查命令格式和参数数量
@@ -329,20 +380,30 @@ func extractTimestamp(filename string) int64 {
 // 返回:
 // - [][]string: 有效命令的切片
 // - error: 处理过程中遇到的任何错误
+//
+// 函数逻辑:
+// 1. 逐行读取文件内容，并根据 ";;" 分隔符将每行拆分为命令和参数。
+// 2. 根据命令类型（SET、DELETE、INCR、CLEANUP）验证参数数量和格式。
+// 3. 对于无效命令或格式错误的命令，记录警告日志并跳过该行。
+// 4. 如果扫描器在读取过程中遇到错误，则返回错误信息。
 func processAOFFile(scanner *bufio.Scanner) ([][]string, error) {
 	var commands [][]string
 	lineNum := 0
 
+	// 逐行扫描文件内容
 	for scanner.Scan() {
 		lineNum++
 		command := strings.Split(scanner.Text(), ";;")
 
+		// 根据命令类型处理不同的逻辑
 		switch strings.TrimSpace(command[0]) {
 		case common.SET:
+			// 验证 SET 命令的参数数量是否为 5
 			if len(command) != 5 {
-				logger.Warn("line %d: invalid SET command format, skipping: %v", lineNum, command)
+				logger.Warn("第 %d 行: SET 命令格式无效，跳过: %v", lineNum, command)
 				continue
 			}
+			// 将 SET 命令及其参数添加到结果中
 			commands = append(commands, []string{
 				strings.TrimSpace(command[0]),
 				strings.TrimSpace(command[1]), // key
@@ -351,37 +412,45 @@ func processAOFFile(scanner *bufio.Scanner) ([][]string, error) {
 				strings.TrimSpace(command[4]), // expiry
 			})
 		case common.DELETE:
+			// 验证 DELETE 命令的参数数量是否为 2
 			if len(command) != 2 {
-				logger.Warn("line %d: invalid DELETE command format, skipping: %v", lineNum, command)
+				logger.Warn("第 %d 行: DELETE 命令格式无效，跳过: %v", lineNum, command)
 				continue
 			}
+			// 将 DELETE 命令及其参数添加到结果中
 			commands = append(commands, []string{
 				strings.TrimSpace(command[0]),
 				strings.TrimSpace(command[1]), // key
 			})
 		case common.INCR:
+			// 验证 INCR 命令的参数数量是否为 3
 			if len(command) != 3 {
-				logger.Warn("line %d: invalid INCR command format, skipping: %v", lineNum, command)
+				logger.Warn("第 %d 行: INCR 命令格式无效，跳过: %v", lineNum, command)
 				continue
 			}
+			// 将 INCR 命令及其参数添加到结果中
 			commands = append(commands, []string{
 				strings.TrimSpace(command[0]),
 				strings.TrimSpace(command[1]), // key
 				strings.TrimSpace(command[2]), // type
 			})
 		case common.CLEANUP:
+			// CLEANUP 命令不需要参数，直接添加到结果中
 			commands = append(commands, []string{
 				strings.TrimSpace(command[0]),
 			})
 		default:
-			logger.Warn("line %d: unknown command, skipping: %v", lineNum, command[0])
+			// 记录未知命令的警告日志并跳过
+			logger.Warn("第 %d 行: 未知命令，跳过: %v", lineNum, command[0])
 		}
 	}
 
+	// 检查扫描器是否在读取过程中遇到错误
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error scanning file: %w", err)
+		return nil, fmt.Errorf("扫描文件时出错: %w", err)
 	}
 
+	// 返回解析后的命令和 nil 错误
 	return commands, nil
 }
 
@@ -396,7 +465,7 @@ func processAOFFile(scanner *bufio.Scanner) ([][]string, error) {
 // - string: 索引处的元素，如果索引无效则返回 "<nil>"
 func safeGet(slice []string, index int) string {
 	if index < 0 || index >= len(slice) {
-		return "<nil>"
+		return "<nil>" // 索引无效时返回默认值 "<nil>"
 	}
-	return slice[index]
+	return slice[index] // 返回索引处的有效元素
 }
