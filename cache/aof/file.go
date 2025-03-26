@@ -36,17 +36,22 @@ type FileOp struct {
 // CreateFileOp 使用给定的配置初始化一个新的 FileOp 实例。
 // 它验证配置并设置文件操作结构。
 // 在第一次写入操作之前，实际文件不会被打开。
+//
+// 返回值：
+//   - *FileOp: 初始化完成的 FileOp 实例，包含文件路径、前缀、后缀、压缩需求等信息。
+//   - error: 如果文件路径为空或配置无效，则返回错误信息。
 func CreateFileOp() (*FileOp, error) {
-	// 验证必需的配置
+	// 验证必需的配置，确保文件路径不为空
 	if config.Cache.Aof.Path == "" {
 		return nil, fmt.Errorf("file path cannot be empty")
 	}
 
-	// 将文件路径拆分为组件
+	// 将文件路径拆分为文件名和扩展名，用于后续初始化
 	baseName := filepath.Base(config.Cache.Aof.Path)
 	ext := filepath.Ext(baseName)
 	prefix := strings.TrimSuffix(baseName, ext)
 
+	// 返回初始化的 FileOp 实例
 	return &FileOp{
 		filePrefixName: prefix,
 		fileSuffixName: strings.TrimPrefix(ext, "."),
@@ -54,36 +59,6 @@ func CreateFileOp() (*FileOp, error) {
 		needCompress:   config.Cache.Aof.Compress,
 		maxSize:        config.Cache.Aof.MaxSize,
 	}, nil
-}
-
-// GetScanner 返回用于读取文件内容的 bufio.Scanner。
-// 如果文件不存在，则返回带有空内容的扫描器。
-// 扫描器配置了 512KB 缓冲区以处理长行。
-func (fop *FileOp) GetScanner() (*bufio.Scanner, error) {
-	if fop == nil {
-		return nil, fmt.Errorf("FileOp is nil")
-	}
-
-	fop.rwMu.RLock()
-	defer fop.rwMu.RUnlock()
-
-	f, err := os.OpenFile(fop.path, os.O_RDONLY, 0644)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return bufio.NewScanner(strings.NewReader("")), nil
-		}
-		return nil, fmt.Errorf("failed to open file: %w", err)
-	}
-	defer func(f *os.File) {
-		_ = f.Close()
-	}(f) // 创建扫描器后关闭文件
-
-	scanner := bufio.NewScanner(f)
-	const maxCapacity = 512 * 1024 // 用于长行的 512KB 缓冲区
-	buf := make([]byte, 0, maxCapacity)
-	scanner.Buffer(buf, maxCapacity)
-
-	return scanner, nil
 }
 
 // ready 为写入操作准备文件。
