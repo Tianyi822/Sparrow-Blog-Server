@@ -3,15 +3,15 @@ package po
 import "time"
 
 type Blog struct {
-	BId        string    `gorm:"column:b_id;primaryKey"`                                      // 博客 ID
-	Title      string    `gorm:"column:b_title;unique"`                                       // 博客标题
-	Brief      string    `gorm:"column:b_brief"`                                              // 博客简介
-	CategoryId string    `gorm:"column:category_id"`                                          // 逻辑外键字段（无约束）
-	State      bool      `gorm:"column:b_state"`                                              // 博客状态
-	WordsNum   uint16    `gorm:"column:b_words_num"`                                          // 博客字数
-	IsTop      bool      `gorm:"column:is_top"`                                               // 是否置顶
-	CreateTime time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
-	UpdateTime time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
+	BlogId       string    `gorm:"column:blog_id;primaryKey"`                                   // 博客 ID
+	BlogTitle    string    `gorm:"column:blog_title;unique"`                                    // 博客标题
+	BlogBrief    string    `gorm:"column:blog_brief"`                                           // 博客简介
+	CategoryId   string    `gorm:"column:category_id"`                                          // 逻辑外键字段（无约束）
+	BlogState    bool      `gorm:"column:blog_state"`                                           // 博客状态
+	BlogWordsNum uint16    `gorm:"column:blog_words_num"`                                       // 博客字数
+	BlogIsTop    bool      `gorm:"column:blog_is_top"`                                          // 是否置顶
+	CreateTime   time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
+	UpdateTime   time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
 }
 
 func (hb *Blog) TableName() string {
@@ -19,10 +19,10 @@ func (hb *Blog) TableName() string {
 }
 
 type Category struct {
-	CId        string    `gorm:"column:c_id;primaryKey"`                                      // 分类 ID
-	CName      string    `gorm:"column:c_name;unique"`                                        // 分类名称
-	CreateTime time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
-	UpdateTime time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
+	CategoryId   string    `gorm:"column:category_id;primaryKey"`                               // 分类 ID
+	CategoryName string    `gorm:"column:category_name;unique"`                                 // 分类名称
+	CreateTime   time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
+	UpdateTime   time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
 }
 
 func (c *Category) TableName() string {
@@ -30,8 +30,8 @@ func (c *Category) TableName() string {
 }
 
 type Tag struct {
-	TId        string    `gorm:"column:t_id;primaryKey"`                                      // 标签 ID
-	TName      string    `gorm:"column:t_name;unique"`                                        // 标签名称
+	TagId      string    `gorm:"column:tag_id;primaryKey"`                                    // 标签 ID
+	TagName    string    `gorm:"column:tag_name;unique"`                                      // 标签名称
 	CreateTime time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
 	UpdateTime time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
 }
@@ -41,8 +41,8 @@ func (t *Tag) TableName() string {
 }
 
 type BlogTag struct {
-	BId string `gorm:"column:b_id"`
-	TId string `gorm:"column:t_id"`
+	BlogId string `gorm:"column:blog_id"`
+	TagId  string `gorm:"column:tag_id"`
 }
 
 func (hb *BlogTag) TableName() string {
