@@ -28,14 +28,33 @@ func FindAllBlogs(ctx context.Context, needBrief bool) ([]*dto.BlogDto, error) {
 	// 根据需要返回简要信息，使用 Select 函数来选择特定的列。
 	if needBrief {
 		result = storage.Storage.Db.Model(&po.Blog{}).
-			Select("blog_id", "blog_title", "blog_brief", "category_id", "blog_state", "blog_words_num", "blog_is_top").
+			Select(
+				"blog_id",
+				"blog_title",
+				"blog_brief",
+				"category_id",
+				"blog_state",
+				"blog_words_num",
+				"blog_is_top",
+				"create_time",
+				"update_time",
+			).
 			WithContext(ctx).
 			Order("blog_is_top DESC").
 			Order("create_time DESC").
 			Find(&blogs)
 	} else {
 		result = storage.Storage.Db.Model(&po.Blog{}).
-			Select("blog_id", "blog_title", "category_id", "blog_state", "blog_words_num", "blog_is_top").
+			Select(
+				"blog_id",
+				"blog_title",
+				"category_id",
+				"blog_state",
+				"blog_words_num",
+				"blog_is_top",
+				"create_time",
+				"update_time",
+			).
 			WithContext(ctx).
 			Order("blog_is_top DESC").
 			Order("create_time DESC").
