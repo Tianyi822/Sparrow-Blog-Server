@@ -7,14 +7,39 @@ type Vo interface {
 	VoFlag() string
 }
 
-type BlogInfoVo struct {
-	BlogId string `json:"blog_id,omitempty"`
-	Title  string `json:"title,omitempty"`
-	Brief  string `json:"brief,omitempty"`
+type BlogVo struct {
+	BlogId       string     `json:"blog_id,omitempty"`
+	BlogTitle    string     `json:"blog_title,omitempty"`
+	BlogBrief    string     `json:"blog_brief,omitempty"`
+	Category     CategoryVo `json:"category,omitempty"`
+	Tags         []TagVo    `json:"tags,omitempty"`
+	BlogState    bool       `json:"blog_state,omitempty"`
+	BlogWordsNum uint16     `json:"blog_words_num,omitempty"`
+	BlogIsTop    bool       `json:"blog_is_top,omitempty"`
+	CreateTime   time.Time  `json:"create_time,omitempty"`
+	UpdateTime   time.Time  `json:"update_time,omitempty"`
 }
 
-func (bv *BlogInfoVo) VoFlag() string {
-	return "BlogInfoVo"
+func (bv *BlogVo) VoFlag() string {
+	return "BlogVo"
+}
+
+type TagVo struct {
+	TagId   string `json:"tag_id,omitempty"`
+	TagName string `json:"tag_name,omitempty"`
+}
+
+func (tv *TagVo) VoFlag() string {
+	return "TagVo"
+}
+
+type CategoryVo struct {
+	CategoryId   string `json:"category_id,omitempty"`
+	CategoryName string `json:"category_name,omitempty"`
+}
+
+func (cv *CategoryVo) VoFlag() string {
+	return "CategoryVo"
 }
 
 type ImgInfoVo struct {
