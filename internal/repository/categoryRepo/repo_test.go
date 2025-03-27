@@ -32,8 +32,8 @@ func TestFindCategoryById(t *testing.T) {
 
 func TestAddCategory(t *testing.T) {
 	err := AddCategory(context.Background(), &dto.CategoryDto{
-		CId:   "cat006",
-		CName: "测试分类",
+		CategoryId:   "cat006",
+		CategoryName: "测试分类",
 	})
 
 	if err != nil {

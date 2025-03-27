@@ -26,7 +26,7 @@ func FindTagsByBlogId(ctx context.Context, blogId string) ([]dto.TagDto, error) 
 	// 查询中间表 BlogTag，获取与博客 ID 关联的标签 ID。
 	var bt []po.BlogTag
 
-	result := storage.Storage.Db.WithContext(ctx).Model(&po.BlogTag{}).Where("b_id = ?", blogId).Find(&bt)
+	result := storage.Storage.Db.WithContext(ctx).Model(&po.BlogTag{}).Where("blog_id = ?", blogId).Find(&bt)
 
 	// 检查查询过程中是否有错误发生。
 	if result.Error != nil {
@@ -38,12 +38,12 @@ func FindTagsByBlogId(ctx context.Context, blogId string) ([]dto.TagDto, error) 
 	// 提取查询结果中的标签 ID。
 	var tagIds []string
 	for _, tag := range bt {
-		tagIds = append(tagIds, tag.TId)
+		tagIds = append(tagIds, tag.TagId)
 	}
 
 	// 根据提取的标签 ID 查询标签表，获取标签详细信息。
 	var tags []*po.Tag
-	result = storage.Storage.Db.WithContext(ctx).Model(&po.Tag{}).Where("t_id IN ?", tagIds).Find(&tags)
+	result = storage.Storage.Db.WithContext(ctx).Model(&po.Tag{}).Where("tag_id IN ?", tagIds).Find(&tags)
 
 	// 再次检查查询过程中是否有错误发生。
 	if result.Error != nil {
@@ -55,8 +55,8 @@ func FindTagsByBlogId(ctx context.Context, blogId string) ([]dto.TagDto, error) 
 	tagsDto := make([]dto.TagDto, len(tags))
 	for i, tag := range tags {
 		tagsDto[i] = dto.TagDto{
-			TId:   tag.TId,
-			TName: tag.TName,
+			TagId:   tag.TagId,
+			TagName: tag.TagName,
 		}
 	}
 
@@ -67,7 +67,7 @@ func FindTagsByBlogId(ctx context.Context, blogId string) ([]dto.TagDto, error) 
 // AddTags 批量添加标签到数据库。
 // 参数:
 // - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
-// - tags: 包含标签信息的 DTO 列表，每个 DTO 包含标签名称 (TName)。
+// - tags: 包含标签信息的 DTO 列表，每个 DTO 包含标签名称 (TagName)。
 //
 // 返回值:
 // - error: 如果操作成功则返回 nil，否则返回包含错误信息的 error 对象。
@@ -83,7 +83,7 @@ func AddTags(ctx context.Context, tags []dto.TagDto) ([]dto.TagDto, error) {
 	var newTags []dto.TagDto
 	for _, tag := range tags {
 		// 为每个标签生成唯一 ID
-		tId, err := utils.GenId(tag.TName)
+		tId, err := utils.GenId(tag.TagName)
 		if err != nil {
 			msg := fmt.Sprintf("生成标签 ID 失败: %v", err)
 			logger.Warn(msg)
@@ -92,14 +92,14 @@ func AddTags(ctx context.Context, tags []dto.TagDto) ([]dto.TagDto, error) {
 
 		// 将生成的标签信息转换为持久化对象并存储到切片中
 		tagPos = append(tagPos, po.Tag{
-			TId:   tId,
-			TName: tag.TName,
+			TagId:   tId,
+			TagName: tag.TagName,
 		})
 
 		// 将生成的标签信息转换为 DTO 并添加到新标签列表中
 		newTags = append(newTags, dto.TagDto{
-			TId:   tId,
-			TName: tag.TName,
+			TagId:   tId,
+			TagName: tag.TagName,
 		})
 	}
 
@@ -138,8 +138,8 @@ func AddBlogTagAssociation(ctx context.Context, blogId string, tags []dto.TagDto
 	for _, tag := range tags {
 		// 将标签 DTO 转换为 BlogTag 模型对象，并构建批量插入的数据。
 		blogTags = append(blogTags, po.BlogTag{
-			BId: blogId,
-			TId: tag.TId,
+			BlogId: blogId,
+			TagId:  tag.TagId,
 		})
 	}
 

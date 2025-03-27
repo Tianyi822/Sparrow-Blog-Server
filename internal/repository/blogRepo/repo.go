@@ -4,32 +4,43 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"h2blog_server/internal/model/dto"
 	"h2blog_server/internal/model/po"
 	"h2blog_server/pkg/logger"
 	"h2blog_server/storage"
 )
 
-// FindBlogsInPage 查询指定页码的博客列表，并返回分页后的博客数据。
+// FindAllBlogs 查询所有博客信息，并根据需要返回简要信息。
 // 参数:
-//   - ctx: 上下文对象，用于控制请求的生命周期和取消操作。
-//   - page: 当前页码，从1开始计数。
-//   - pageSize: 每页显示的博客数量。
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
+//   - needBrief: 布尔值，指示是否需要包含博客的简要信息。
 //
 // 返回值:
-//   - []*dto.BlogDto: 包含博客信息的DTO（数据传输对象）列表。
+//   - []*dto.BlogDto: 包含博客数据的DTO列表，每个DTO表示一个博客的基本信息。
 //   - error: 如果查询过程中发生错误，则返回错误信息；否则返回nil。
-func FindBlogsInPage(ctx context.Context, page, pageSize int) ([]*dto.BlogDto, error) {
+func FindAllBlogs(ctx context.Context, needBrief bool) ([]*dto.BlogDto, error) {
 	blogs := make([]*po.Blog, 0)
 
-	// 查询博客信息数据，按置顶优先和创建时间倒序排序，并进行分页处理。
-	result := storage.Storage.Db.Model(&po.Blog{}).
-		WithContext(ctx).
-		Order("is_top DESC").
-		Order("create_time DESC").
-		Find(&blogs).
-		Offset((page - 1) * pageSize).
-		Limit(pageSize)
+	// 使用GORM查询博客数据，按置顶优先级和创建时间排序。
+	var result *gorm.DB
+
+	// 根据需要返回简要信息，使用 Select 函数来选择特定的列。
+	if needBrief {
+		result = storage.Storage.Db.Model(&po.Blog{}).
+			Select("blog_id", "blog_title", "blog_brief", "category_id", "blog_state", "blog_words_num", "blog_is_top").
+			WithContext(ctx).
+			Order("blog_is_top DESC").
+			Order("create_time DESC").
+			Find(&blogs)
+	} else {
+		result = storage.Storage.Db.Model(&po.Blog{}).
+			Select("blog_id", "blog_title", "category_id", "blog_state", "blog_words_num", "blog_is_top").
+			WithContext(ctx).
+			Order("blog_is_top DESC").
+			Order("create_time DESC").
+			Find(&blogs)
+	}
 
 	// 如果查询过程中发生错误，记录错误日志并返回错误信息。
 	if result.Error != nil {
@@ -44,15 +55,17 @@ func FindBlogsInPage(ctx context.Context, page, pageSize int) ([]*dto.BlogDto, e
 	// 遍历查询到的博客数据，将其转换为DTO格式并添加到结果列表中。
 	for _, blog := range blogs {
 		blogDto := &dto.BlogDto{
-			BId:        blog.BId,
-			Brief:      blog.Brief,
-			Title:      blog.Title,
-			IsTop:      blog.IsTop,
-			State:      blog.State,
-			WordsNum:   blog.WordsNum,
-			CategoryId: blog.CategoryId,
-			CreateTime: blog.CreateTime.Format("2006-01-02 15:04:05"),
-			UpdateTime: blog.UpdateTime.Format("2006-01-02 15:04:05"),
+			BlogId:       blog.BlogId,
+			BlogTitle:    blog.BlogTitle,
+			BlogIsTop:    blog.BlogIsTop,
+			BlogState:    blog.BlogState,
+			BlogWordsNum: blog.BlogWordsNum,
+			CategoryId:   blog.CategoryId,
+			CreateTime:   blog.CreateTime,
+			UpdateTime:   blog.UpdateTime,
+		}
+		if needBrief {
+			blogDto.BlogBrief = blog.BlogBrief
 		}
 		blogDtos = append(blogDtos, blogDto)
 	}
@@ -81,13 +94,13 @@ func UpdateBlog(ctx context.Context, blogDto *dto.BlogDto) error {
 	}()
 
 	// 更新博客信息。
-	if err := tx.Model(&po.Blog{}).Where("b_id = ?", blogDto.BId).Updates(po.Blog{
-		Brief:      blogDto.Brief,
-		CategoryId: blogDto.CategoryId,
-		Title:      blogDto.Title,
-		IsTop:      blogDto.IsTop,
-		State:      blogDto.State,
-		WordsNum:   blogDto.WordsNum,
+	if err := tx.Model(&po.Blog{}).Where("b_id = ?", blogDto.BlogId).Updates(po.Blog{
+		BlogBrief:    blogDto.BlogBrief,
+		CategoryId:   blogDto.CategoryId,
+		BlogTitle:    blogDto.BlogTitle,
+		BlogIsTop:    blogDto.BlogIsTop,
+		BlogState:    blogDto.BlogState,
+		BlogWordsNum: blogDto.BlogWordsNum,
 	}).Error; err != nil {
 		tx.Rollback()
 		msg := fmt.Sprintf("更新博客数据失败: %v", err)
@@ -165,16 +178,16 @@ func ChangeBlogStateById(ctx context.Context, id string) error {
 	}
 
 	// 根据当前状态切换博客的显示/隐藏状态，并记录操作日志。
-	if blog.State {
+	if blog.BlogState {
 		logger.Info("设置 ID 为 %v 的博客状态为隐藏", id)
-		blog.State = false
+		blog.BlogState = false
 	} else {
 		logger.Info("设置 ID 为 %v 的博客状态为显示", id)
-		blog.State = true
+		blog.BlogState = true
 	}
 
 	// 更新博客状态到数据库。
-	if err := tx.Model(blog).Update("b_state", blog.State).Where("b_id = ?", id).Error; err != nil {
+	if err := tx.Model(blog).Update("b_state", blog.BlogState).Where("b_id = ?", id).Error; err != nil {
 		// 如果更新失败，记录错误日志并回滚事务。
 		tx.Rollback()
 		msg := fmt.Sprintf("设置博客状态失败: %v", err)
@@ -218,16 +231,16 @@ func SetTopById(ctx context.Context, id string) error {
 	}
 
 	// 根据当前的置顶状态来更新博客的置顶状态
-	if blog.IsTop {
+	if blog.BlogIsTop {
 		logger.Info("取消 ID 为 %v 的播客置顶", id)
-		blog.IsTop = false
+		blog.BlogIsTop = false
 	} else {
 		logger.Info("设置 ID 为 %v 的播客置顶", id)
-		blog.IsTop = true
+		blog.BlogIsTop = true
 	}
 
 	// 更新数据库中的博客置顶状态
-	if err := tx.Model(blog).Update("is_top", blog.IsTop).Where("b_id = ?", id).Error; err != nil {
+	if err := tx.Model(blog).Update("is_top", blog.BlogIsTop).Where("b_id = ?", id).Error; err != nil {
 		tx.Rollback()
 		msg := fmt.Sprintf("设置博客置顶失败: %v", err)
 		logger.Error(msg)

@@ -21,7 +21,7 @@ func init() {
 }
 
 func TestFindBlogsInPage(t *testing.T) {
-	page, err := FindBlogsInPage(context.Background(), 1, 10)
+	page, err := FindAllBlogs(context.Background(), false)
 	if err != nil {
 		t.Error(err)
 	}

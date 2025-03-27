@@ -1,5 +1,7 @@
 package dto
 
+import "time"
+
 // Dto 是一个接口，定义了所有数据传输对象（DTO）必须实现的方法
 type Dto interface {
 	// DtoFlag 方法返回一个字符串，用于标识 Dto 的某种特性或状态
@@ -10,22 +12,22 @@ type Dto interface {
 }
 
 type BlogDto struct {
-	BId        string      `json:"b_id,omitempty"`
-	Title      string      `json:"title,omitempty"`
-	Brief      string      `json:"brief,omitempty"`
-	CategoryId string      `json:"category_id,omitempty"`
-	Category   CategoryDto `json:"category,omitempty"`
-	Tags       []TagDto    `json:"tags,omitempty"`
-	State      bool        `json:"state,omitempty"`
-	WordsNum   uint16      `json:"words_num,omitempty"`
-	IsTop      bool        `json:"is_top,omitempty"`
-	CreateTime string      `json:"create_time,omitempty"`
-	UpdateTime string      `json:"update_time,omitempty"`
+	BlogId       string      `json:"blog_id,omitempty"`
+	BlogTitle    string      `json:"blog_title,omitempty"`
+	BlogBrief    string      `json:"blog_brief,omitempty"`
+	CategoryId   string      `json:"category_id,omitempty"`
+	Category     CategoryDto `json:"category,omitempty"`
+	Tags         []TagDto    `json:"tags,omitempty"`
+	BlogState    bool        `json:"blog_state,omitempty"`
+	BlogWordsNum uint16      `json:"blog_words_num,omitempty"`
+	BlogIsTop    bool        `json:"blog_is_top,omitempty"`
+	CreateTime   time.Time   `json:"create_time,omitempty"`
+	UpdateTime   time.Time   `json:"update_time,omitempty"`
 }
 
 type TagDto struct {
-	TId   string
-	TName string
+	TagId   string `json:"tag_id,omitempty"`
+	TagName string `json:"tag_name,omitempty"`
 }
 
 func (ht *TagDto) DtoFlag() string {
@@ -33,12 +35,12 @@ func (ht *TagDto) DtoFlag() string {
 }
 
 func (ht *TagDto) Name() string {
-	return ht.TName
+	return ht.TagName
 }
 
 type CategoryDto struct {
-	CId   string `json:"c_id,omitempty"`
-	CName string `json:"c_name,omitempty"`
+	CategoryId   string `json:"category_id,omitempty"`
+	CategoryName string `json:"category_name,omitempty"`
 }
 
 func (hc *CategoryDto) DtoFlag() string {
@@ -46,7 +48,7 @@ func (hc *CategoryDto) DtoFlag() string {
 }
 
 func (hc *CategoryDto) Name() string {
-	return hc.CName
+	return hc.CategoryName
 }
 
 // ImgDto 图片数据

@@ -25,7 +25,7 @@ func init() {
 }
 
 func TestGetBlogsInPage(t *testing.T) {
-	blogDtos, err := GetBlogsInPage(context.Background(), 1, 10)
+	blogDtos, err := GetBlogsToPosts(context.Background())
 
 	if err != nil {
 		t.Error(err)
@@ -38,16 +38,16 @@ func TestGetBlogsInPage(t *testing.T) {
 
 func TestUpdateBlogData(t *testing.T) {
 	blogDto := &dto.BlogDto{
-		BId:        "blog00006",
-		Title:      "test6",
-		Brief:      "test",
-		Category:   dto.CategoryDto{CName: "测试分类 6"},
+		BlogId:     "blog00006",
+		BlogTitle:  "test6",
+		BlogBrief:  "test",
+		Category:   dto.CategoryDto{CategoryName: "测试分类 6"},
 		CategoryId: "",
-		IsTop:      false,
-		State:      true,
+		BlogIsTop:  false,
+		BlogState:  true,
 		Tags: []dto.TagDto{
-			{TId: "e7c039f52925c96f", TName: "tag00001"},
-			{TName: "tag00006"},
+			{TagId: "e7c039f52925c96f", TagName: "tag00001"},
+			{TagName: "tag00006"},
 		},
 	}
 

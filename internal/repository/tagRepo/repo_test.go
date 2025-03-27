@@ -41,10 +41,10 @@ func TestAddTags(t *testing.T) {
 
 	tags := []dto.TagDto{
 		{
-			TName: "tag00001",
+			TagName: "tag00001",
 		},
 		{
-			TName: "tag00002",
+			TagName: "tag00002",
 		},
 	}
 
@@ -60,10 +60,10 @@ func TestAddBlogTagAssociation(t *testing.T) {
 
 	err := AddBlogTagAssociation(ctx, "blog00003", []dto.TagDto{
 		{
-			TId: "e7c039f52925c96f",
+			TagId: "e7c039f52925c96f",
 		},
 		{
-			TId: "b30fd680a54768d7",
+			TagId: "b30fd680a54768d7",
 		},
 	})
 

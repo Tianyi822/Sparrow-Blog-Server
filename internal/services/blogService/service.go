@@ -19,13 +19,13 @@ func UpdateBlogData(ctx context.Context, blogDto *dto.BlogDto) error {
 	// 如果 blogDto 中没有 CategoryId，则表示该分类是新的，需要新建分类。
 	if len(blogDto.CategoryId) == 0 {
 		categoryDto := dto.CategoryDto{
-			CName: blogDto.Category.CName,
+			CategoryName: blogDto.Category.CategoryName,
 		}
 		err := categoryRepo.AddCategory(ctx, &categoryDto)
 		if err != nil {
 			return err
 		}
-		blogDto.CategoryId = categoryDto.CId
+		blogDto.CategoryId = categoryDto.CategoryId
 	}
 
 	// 检查 blogDto 中的标签 ID，如果标签没有 ID，则需要创建新的标签。
@@ -35,7 +35,7 @@ func UpdateBlogData(ctx context.Context, blogDto *dto.BlogDto) error {
 		var tagsWithoutId []dto.TagDto
 
 		for _, tag := range blogDto.Tags {
-			if tag.TId != "" {
+			if tag.TagId != "" {
 				tagsWithId = append(tagsWithId, tag)
 			} else {
 				tagsWithoutId = append(tagsWithoutId, tag)
@@ -54,7 +54,7 @@ func UpdateBlogData(ctx context.Context, blogDto *dto.BlogDto) error {
 	}
 
 	// 建立标签与博客的关联关系。
-	if err := tagRepo.AddBlogTagAssociation(ctx, blogDto.BId, blogDto.Tags); err != nil {
+	if err := tagRepo.AddBlogTagAssociation(ctx, blogDto.BlogId, blogDto.Tags); err != nil {
 		return err
 	}
 
@@ -66,24 +66,22 @@ func UpdateBlogData(ctx context.Context, blogDto *dto.BlogDto) error {
 	return nil
 }
 
-// GetBlogsInPage 获取指定分页条件下的博客列表，并为每个博客补充标签和分类信息。
+// GetBlogsToPosts 获取所有博客及其关联的标签和分类信息。
 // 参数:
-// - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
-// - page: 分页页码，表示当前请求的页数。
-// - pageSize: 每页显示的博客数量。
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据。
 //
 // 返回值:
-// - []*dto.BlogDto: 包含博客信息的 DTO 列表，每个 DTO 包含博客的基本信息、标签和分类。
-// - error: 如果在查询过程中发生错误，则返回错误信息；否则返回 nil。
-func GetBlogsInPage(ctx context.Context, page, pageSize int) ([]*dto.BlogDto, error) {
-	blogDtos, err := blogRepo.FindBlogsInPage(ctx, page, pageSize)
+//   - []*dto.BlogDto: 包含博客及其关联标签和分类信息的 DTO 列表。
+//   - error: 如果在查询博客、标签或分类时发生错误，则返回该错误。
+func GetBlogsToPosts(ctx context.Context) ([]*dto.BlogDto, error) {
+	blogDtos, err := blogRepo.FindAllBlogs(ctx, false)
 	if err != nil {
 		return nil, err
 	}
 
 	// 遍历博客列表，为每个博客获取其关联的标签数据。
 	for _, blogDto := range blogDtos {
-		tags, err := tagRepo.FindTagsByBlogId(ctx, blogDto.BId)
+		tags, err := tagRepo.FindTagsByBlogId(ctx, blogDto.BlogId)
 		if err != nil {
 			return nil, err
 		}
@@ -98,7 +96,8 @@ func GetBlogsInPage(ctx context.Context, page, pageSize int) ([]*dto.BlogDto, er
 			return nil, err
 		}
 		blogDto.Category = dto.CategoryDto{
-			CName: category.CName,
+			CategoryId:   category.CategoryId,
+			CategoryName: category.CategoryName,
 		}
 	}
 
