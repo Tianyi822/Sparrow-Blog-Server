@@ -8,4 +8,6 @@ func Routers(e *gin.Engine) {
 	adminGroup.POST("/verification-code", sendVerificationCode)
 
 	adminGroup.POST("/login", login)
+
+	adminGroup.GET("/all-blogs", getAllBlogs)
 }

@@ -6,6 +6,8 @@ import (
 	"h2blog_server/cache"
 	"h2blog_server/email"
 	"h2blog_server/env"
+	"h2blog_server/internal/model/vo"
+	"h2blog_server/internal/services/blogService"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/resp"
 	"h2blog_server/routers/tools"
@@ -94,4 +96,53 @@ func login(ctx *gin.Context) {
 
 	// TODO: 这里应该返回一个 Token，但现在是开发状态，暂时不实现
 	resp.Ok(ctx, "登录成功", nil)
+}
+
+// getAllBlogs 是一个处理函数，用于获取所有博客数据并将其转换为视图对象（VO）格式后返回。
+// 参数:
+//   - ctx: Gin 框架的上下文对象，用于处理 HTTP 请求和响应。
+func getAllBlogs(ctx *gin.Context) {
+	// 调用 blogService.GetBlogsToPosts 获取博客数据的 DTO 列表。
+	// 如果发生错误，则返回错误响应。
+	blogDtos, err := blogService.GetBlogsToPosts(ctx)
+	if err != nil {
+		resp.Err(ctx, "获取博客失败", err.Error())
+		return
+	}
+
+	// 将 DTO 列表转换为 VO 列表，以便前端使用。
+	blogVos := make([]vo.BlogVo, 0, len(blogDtos))
+	for _, blogDto := range blogDtos {
+		// 构造分类信息的 VO 对象。
+		category := vo.CategoryVo{
+			CategoryId:   blogDto.Category.CategoryId,
+			CategoryName: blogDto.Category.CategoryName,
+		}
+
+		// 构造标签信息的 VO 列表。
+		tags := make([]vo.TagVo, 0, len(blogDto.Tags))
+		for _, tag := range blogDto.Tags {
+			tags = append(tags, vo.TagVo{
+				TagId:   tag.TagId,
+				TagName: tag.TagName,
+			})
+		}
+
+		// 构造博客信息的 VO 对象，并将其添加到结果列表中。
+		blogVo := vo.BlogVo{
+			BlogId:       blogDto.BlogId,
+			BlogTitle:    blogDto.BlogTitle,
+			Category:     category,
+			Tags:         tags,
+			BlogState:    blogDto.BlogState,
+			BlogWordsNum: blogDto.BlogWordsNum,
+			BlogIsTop:    blogDto.BlogIsTop,
+			CreateTime:   blogDto.CreateTime,
+			UpdateTime:   blogDto.UpdateTime,
+		}
+		blogVos = append(blogVos, blogVo)
+	}
+
+	// 返回成功响应，包含转换后的博客 VO 列表。
+	resp.Ok(ctx, "获取博客成功", blogVos)
 }
