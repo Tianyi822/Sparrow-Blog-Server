@@ -66,14 +66,14 @@ func UpdateBlogData(ctx context.Context, blogDto *dto.BlogDto) error {
 	return nil
 }
 
-// GetBlogsToPosts 获取所有博客及其关联的标签和分类信息。
+// GetBlogsToAdminPosts 获取所有博客及其关联的标签和分类信息。
 // 参数:
 //   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据。
 //
 // 返回值:
 //   - []*dto.BlogDto: 包含博客及其关联标签和分类信息的 DTO 列表。
 //   - error: 如果在查询博客、标签或分类时发生错误，则返回该错误。
-func GetBlogsToPosts(ctx context.Context) ([]*dto.BlogDto, error) {
+func GetBlogsToAdminPosts(ctx context.Context) ([]*dto.BlogDto, error) {
 	blogDtos, err := blogRepo.FindAllBlogs(ctx, false)
 	if err != nil {
 		return nil, err

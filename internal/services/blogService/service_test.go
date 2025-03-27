@@ -25,7 +25,7 @@ func init() {
 }
 
 func TestGetBlogsInPage(t *testing.T) {
-	blogDtos, err := GetBlogsToPosts(context.Background())
+	blogDtos, err := GetBlogsToAdminPosts(context.Background())
 
 	if err != nil {
 		t.Error(err)

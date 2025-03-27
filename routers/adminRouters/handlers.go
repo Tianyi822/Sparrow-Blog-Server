@@ -102,9 +102,9 @@ func login(ctx *gin.Context) {
 // 参数:
 //   - ctx: Gin 框架的上下文对象，用于处理 HTTP 请求和响应。
 func getAllBlogs(ctx *gin.Context) {
-	// 调用 blogService.GetBlogsToPosts 获取博客数据的 DTO 列表。
+	// 调用 blogService.GetBlogsToAdminPosts 获取博客数据的 DTO 列表。
 	// 如果发生错误，则返回错误响应。
-	blogDtos, err := blogService.GetBlogsToPosts(ctx)
+	blogDtos, err := blogService.GetBlogsToAdminPosts(ctx)
 	if err != nil {
 		resp.Err(ctx, "获取博客失败", err.Error())
 		return
