@@ -5,9 +5,17 @@ import "github.com/gin-gonic/gin"
 func Routers(e *gin.Engine) {
 	adminGroup := e.Group("/admin")
 
-	adminGroup.POST("/verification-code", sendVerificationCode)
+	{
+		loginGroup := adminGroup.Group("/login")
 
-	adminGroup.POST("/login", login)
+		loginGroup.POST("/verification-code", sendVerificationCode)
 
-	adminGroup.GET("/all-blogs", getAllBlogs)
+		loginGroup.POST("/login", login)
+	}
+
+	{
+		postsGroup := adminGroup.Group("/posts")
+
+		postsGroup.GET("/all-blogs", getAllBlogs)
+	}
 }
