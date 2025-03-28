@@ -270,3 +270,49 @@ func SetTopById(ctx context.Context, id string) error {
 
 	return nil
 }
+
+// CalBlogsCountByCategoryId 根据分类 ID 查询博客数量。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
+//   - categoryId: 分类 ID，用于筛选特定分类下的博客。
+//
+// 返回值:
+//   - int64: 符合条件的博客数量。
+//   - error: 如果查询过程中发生错误，则返回错误信息；否则返回 nil。
+func CalBlogsCountByCategoryId(ctx context.Context, categoryId string) (int64, error) {
+	var num int64
+
+	// 使用 GORM 查询数据库，统计指定分类 ID 下的博客数量。
+	result := storage.Storage.Db.WithContext(ctx).Model(&po.Blog{}).Where("category_id = ?", categoryId).Count(&num)
+	if result.Error != nil {
+		// 如果查询失败，记录错误日志并返回错误信息。
+		msg := fmt.Sprintf("根据分类 ID 查询博客数量失败: %v", result.Error)
+		logger.Warn(msg)
+		return 0, errors.New(msg)
+	}
+
+	// 返回查询到的博客数量和 nil 错误。
+	return num, nil
+}
+
+// GetCategoryIdByBlogId 根据博客 ID 查询对应的分类 ID。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
+//   - blogId: 博客的唯一标识符，用于查询对应的分类 ID。
+//
+// 返回值:
+//   - string: 查询到的分类 ID。如果未找到或发生错误，则返回空字符串。
+//   - error: 如果查询过程中发生错误，则返回包含错误信息的 error 对象；否则返回 nil。
+func GetCategoryIdByBlogId(ctx context.Context, blogId string) (string, error) {
+	var categoryId string
+
+	// 使用数据库查询，根据博客 ID 获取对应的分类 ID。
+	result := storage.Storage.Db.WithContext(ctx).Model(&po.Blog{}).Select("category_id").Where("blog_id = ?", blogId).Find(&categoryId)
+	if result.Error != nil {
+		msg := fmt.Sprintf("根据博客 ID 查询分类 ID 失败: %v", result.Error)
+		logger.Warn(msg)
+		return "", errors.New(msg)
+	}
+
+	return categoryId, nil
+}

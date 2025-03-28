@@ -80,3 +80,43 @@ func FindCategoryById(ctx context.Context, id string) (*po.Category, error) {
 	// 返回找到的分类信息。
 	return &category, nil
 }
+
+// DeleteCategoryById 根据分类 ID 删除对应的分类记录。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
+//   - id: 分类的唯一标识符，用于定位需要删除的分类记录。
+//
+// 返回值:
+//   - error: 如果删除过程中发生错误，则返回错误信息；否则返回 nil。
+func DeleteCategoryById(ctx context.Context, id string) error {
+	// 开启数据库事务，并将上下文绑定到事务中。
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+
+	defer func() {
+		// 捕获可能的 panic，记录错误日志并回滚事务，避免事务未正确关闭。
+		if r := recover(); r != nil {
+			logger.Error("删除分类失败: %v", r)
+			tx.Rollback()
+		}
+	}()
+
+	// 记录删除操作的日志，标明正在删除的分类 ID。
+	logger.Info("删除 ID 为 %v 的分类记录", id)
+
+	// 执行删除操作，根据分类 ID 删除对应的分类记录。
+	if err := tx.Where("category_id = ?", id).Delete(&po.Category{}).Error; err != nil {
+		// 如果删除操作失败，回滚事务并记录错误日志。
+		tx.Rollback()
+		msg := fmt.Sprintf("删除分类数据失败: %v", err)
+		logger.Error(msg)
+		return errors.New(msg)
+	}
+
+	// 提交事务，确保删除操作生效。
+	tx.Commit()
+
+	// 记录删除成功的日志，标明已删除的分类 ID。
+	logger.Info("成功删除 ID 为 %v 的分类记录", id)
+
+	return nil
+}

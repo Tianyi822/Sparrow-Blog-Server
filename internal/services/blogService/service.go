@@ -104,21 +104,63 @@ func GetBlogsToAdminPosts(ctx context.Context) ([]*dto.BlogDto, error) {
 	return blogDtos, nil
 }
 
-// DeleteBlog 根据博客ID删除指定的博客。
+// DeleteBlog 删除指定ID的博客，并根据相关联的数据进行清理操作。
 // 参数:
-// - ctx: 上下文对象，用于控制请求生命周期和传递上下文信息。
-// - id: 要删除的博客的唯一标识符。
+//   - ctx: 上下文对象，用于控制请求生命周期和传递元数据。
+//   - id: 要删除的博客的唯一标识符。
 //
 // 返回值:
-//   - error: 如果删除操作成功，则返回 nil；
-//     如果在删除过程中发生错误，则返回具体的错误信息。
+//   - error: 如果删除过程中发生错误，则返回错误信息；否则返回 nil。
 func DeleteBlog(ctx context.Context, id string) error {
-	err := blogRepo.DeleteBlogById(ctx, id) // 调用仓库方法根据ID删除博客。
+	// 获取与博客关联的分类ID。
+	categoryId, err := blogRepo.GetCategoryIdByBlogId(ctx, id)
 	if err != nil {
-		return err // 如果删除失败，返回错误信息。
+		return err
 	}
 
-	return nil // 删除成功，返回 nil。
+	// 获取与博客关联的所有标签。
+	tags, err := tagRepo.FindTagsByBlogId(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// 调用仓库方法根据ID删除博客。
+	err = blogRepo.DeleteBlogById(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// 统计该分类下剩余的博客数量。
+	num, err := blogRepo.CalBlogsCountByCategoryId(ctx, categoryId)
+	if err != nil {
+		return err
+	}
+
+	// 如果该分类下没有博客，则删除该分类。
+	if num == 0 {
+		err = categoryRepo.DeleteCategoryById(ctx, categoryId)
+		if err != nil {
+			return err
+		}
+	}
+
+	// 遍历所有与博客关联的标签，检查每个标签是否还有其他博客关联。
+	for _, tag := range tags {
+		num, err = tagRepo.CalBlogsCountByTagId(ctx, tag.TagId)
+		if err != nil {
+			return err
+		}
+
+		// 如果某个标签没有其他博客关联，则删除该标签。
+		if num == 0 {
+			err = tagRepo.DeleteTagById(ctx, tag.TagId)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func SetTop(ctx context.Context, id string) error {

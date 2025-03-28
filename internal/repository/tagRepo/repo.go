@@ -156,3 +156,69 @@ func AddBlogTagAssociation(ctx context.Context, blogId string, tags []dto.TagDto
 
 	return nil
 }
+
+// CalBlogsCountByTagId 根据标签 ID 查询关联的博客数量。
+// 参数:
+//   - ctx context.Context: 上下文对象，用于控制请求生命周期和传递上下文信息。
+//   - tagId string: 标签的唯一标识符，用于查询与该标签关联的博客数量。
+//
+// 返回值:
+//   - int64: 与指定标签 ID 关联的博客数量。
+//   - error: 如果查询过程中发生错误，则返回错误信息；否则返回 nil。
+func CalBlogsCountByTagId(ctx context.Context, tagId string) (int64, error) {
+	var count int64
+
+	// 使用 GORM 查询数据库，统计与指定标签 ID 关联的博客数量。
+	result := storage.Storage.Db.WithContext(ctx).Model(&po.BlogTag{}).Where("tag_id = ?", tagId).Count(&count)
+
+	// 如果查询过程中发生错误，记录警告日志并返回错误信息。
+	if result.Error != nil {
+		msg := fmt.Sprintf("根据标签 ID 查询博客数量失败: %v", result.Error)
+		logger.Warn(msg)
+		return 0, errors.New(msg)
+	}
+
+	// 返回查询到的博客数量和 nil 错误。
+	return count, nil
+}
+
+// DeleteTagById 根据标签 ID 删除对应的标签数据。
+// 参数:
+//   - ctx context.Context: 上下文对象，用于控制请求的生命周期和传递元数据。
+//   - tagId string: 要删除的标签的唯一标识符。
+//
+// 返回值:
+//   - error: 如果删除过程中发生错误，则返回错误信息；否则返回 nil。
+func DeleteTagById(ctx context.Context, tagId string) error {
+	// 开启数据库事务，并将上下文绑定到事务中。
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+
+	// 使用 defer 确保在函数结束时回滚事务（如果发生 panic）。
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("删除标签数据失败: %v", r)
+			tx.Rollback()
+		}
+	}()
+
+	// 记录日志，表明开始删除指定标签 ID 的数据。
+	logger.Info("删除标签 ID : %v 数据", tagId)
+
+	// 执行删除操作，根据 tagId 删除对应的标签记录。
+	result := tx.Where("tag_id = ?", tagId).Delete(&po.Tag{})
+	if result.Error != nil {
+		// 如果删除失败，记录警告日志并返回错误信息。
+		msg := fmt.Sprintf("删除标签数据失败: %v", result.Error)
+		logger.Warn(msg)
+		return errors.New(msg)
+	}
+
+	// 提交事务，确保删除操作生效。
+	tx.Commit()
+
+	// 记录日志，表明删除成功。
+	logger.Info("删除标签 ID : %v 数据成功", tagId)
+
+	// 返回 nil 表示删除成功。
+	return nil
+}
