@@ -188,7 +188,7 @@ func ChangeBlogStateById(ctx context.Context, id string) error {
 
 	// 查询指定 ID 的博客状态。
 	var blog po.Blog
-	if err := tx.Select("b_id", "b_state").Where("b_id = ?", id).Find(&blog).Error; err != nil {
+	if err := tx.Select("blog_id", "blog_state").Where("blog_id = ?", id).Find(&blog).Error; err != nil {
 		// 如果查询失败，记录错误日志并回滚事务。
 		tx.Rollback()
 		msg := fmt.Sprintf("获取博客状态失败: %v", err)
@@ -206,7 +206,7 @@ func ChangeBlogStateById(ctx context.Context, id string) error {
 	}
 
 	// 更新博客状态到数据库。
-	if err := tx.Model(blog).Update("b_state", blog.BlogState).Where("b_id = ?", id).Error; err != nil {
+	if err := tx.Model(blog).Update("blog_state", blog.BlogState).Where("blog_id = ?", id).Error; err != nil {
 		// 如果更新失败，记录错误日志并回滚事务。
 		tx.Rollback()
 		msg := fmt.Sprintf("设置博客状态失败: %v", err)
@@ -242,7 +242,7 @@ func SetTopById(ctx context.Context, id string) error {
 
 	// 查询指定 ID 的播客置顶状态
 	var blog po.Blog
-	if err := tx.Select("b_id", "is_top").Where("b_id = ?", id).Find(&blog).Error; err != nil {
+	if err := tx.Select("blog_id", "blog_is_top").Where("blog_id = ?", id).Find(&blog).Error; err != nil {
 		tx.Rollback()
 		msg := fmt.Sprintf("获取博客置顶状态失败: %v", err)
 		logger.Error(msg)
@@ -259,7 +259,7 @@ func SetTopById(ctx context.Context, id string) error {
 	}
 
 	// 更新数据库中的博客置顶状态
-	if err := tx.Model(blog).Update("is_top", blog.BlogIsTop).Where("b_id = ?", id).Error; err != nil {
+	if err := tx.Model(blog).Update("blog_is_top", blog.BlogIsTop).Where("blog_id = ?", id).Error; err != nil {
 		tx.Rollback()
 		msg := fmt.Sprintf("设置博客置顶失败: %v", err)
 		logger.Error(msg)

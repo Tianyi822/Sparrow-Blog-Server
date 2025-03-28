@@ -17,5 +17,9 @@ func Routers(e *gin.Engine) {
 		postsGroup := adminGroup.Group("/posts")
 
 		postsGroup.GET("/all-blogs", getAllBlogs)
+
+		postsGroup.GET("/change-blog-state/:blog_id", changeBlogState)
+
+		postsGroup.GET("/set-top/:blog_id", setTop)
 	}
 }

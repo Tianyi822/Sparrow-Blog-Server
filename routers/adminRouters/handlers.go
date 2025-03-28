@@ -146,3 +146,21 @@ func getAllBlogs(ctx *gin.Context) {
 	// 返回成功响应，包含转换后的博客 VO 列表。
 	resp.Ok(ctx, "获取博客成功", blogVos)
 }
+
+func changeBlogState(ctx *gin.Context) {
+	if err := blogService.ChangeBlogState(ctx, ctx.Param("blog_id")); err != nil {
+		resp.Err(ctx, "修改博客状态失败", err.Error())
+		return
+	}
+
+	resp.Ok(ctx, "修改博客状态成功", nil)
+}
+
+func setTop(ctx *gin.Context) {
+	if err := blogService.SetTop(ctx, ctx.Param("blog_id")); err != nil {
+		resp.Err(ctx, "修改置顶失败", err.Error())
+		return
+	}
+
+	resp.Ok(ctx, "已修改是否置顶", nil)
+}

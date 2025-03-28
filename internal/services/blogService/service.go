@@ -103,3 +103,21 @@ func GetBlogsToAdminPosts(ctx context.Context) ([]*dto.BlogDto, error) {
 
 	return blogDtos, nil
 }
+
+func SetTop(ctx context.Context, id string) error {
+	err := blogRepo.SetTopById(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ChangeBlogState(ctx context.Context, id string) error {
+	err := blogRepo.ChangeBlogStateById(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
