@@ -21,5 +21,7 @@ func Routers(e *gin.Engine) {
 		postsGroup.GET("/change-blog-state/:blog_id", changeBlogState)
 
 		postsGroup.GET("/set-top/:blog_id", setTop)
+
+		postsGroup.DELETE("/delete/:blog_id", deleteBlog)
 	}
 }

@@ -104,6 +104,23 @@ func GetBlogsToAdminPosts(ctx context.Context) ([]*dto.BlogDto, error) {
 	return blogDtos, nil
 }
 
+// DeleteBlog 根据博客ID删除指定的博客。
+// 参数:
+// - ctx: 上下文对象，用于控制请求生命周期和传递上下文信息。
+// - id: 要删除的博客的唯一标识符。
+//
+// 返回值:
+//   - error: 如果删除操作成功，则返回 nil；
+//     如果在删除过程中发生错误，则返回具体的错误信息。
+func DeleteBlog(ctx context.Context, id string) error {
+	err := blogRepo.DeleteBlogById(ctx, id) // 调用仓库方法根据ID删除博客。
+	if err != nil {
+		return err // 如果删除失败，返回错误信息。
+	}
+
+	return nil // 删除成功，返回 nil。
+}
+
 func SetTop(ctx context.Context, id string) error {
 	err := blogRepo.SetTopById(ctx, id)
 	if err != nil {

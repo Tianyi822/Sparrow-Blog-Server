@@ -152,7 +152,7 @@ func DeleteBlogById(ctx context.Context, id string) error {
 
 	logger.Info("删除 ID 为 %v 的博客记录", id)
 	// 根据博客ID删除对应的博客记录
-	if err := tx.Where("b_id = ?", id).Delete(&po.Blog{}).Error; err != nil {
+	if err := tx.Where("blog_id = ?", id).Delete(&po.Blog{}).Error; err != nil {
 		// 如果删除操作失败，回滚事务并记录错误日志。
 		tx.Rollback()
 		msg := fmt.Sprintf("删除博客数据失败: %v", err)

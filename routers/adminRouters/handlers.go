@@ -147,6 +147,15 @@ func getAllBlogs(ctx *gin.Context) {
 	resp.Ok(ctx, "获取博客成功", blogVos)
 }
 
+func deleteBlog(ctx *gin.Context) {
+	if err := blogService.DeleteBlog(ctx, ctx.Param("blog_id")); err != nil {
+		resp.Err(ctx, "删除博客失败", err.Error())
+		return
+	}
+
+	resp.Ok(ctx, "删除成功", nil)
+}
+
 func changeBlogState(ctx *gin.Context) {
 	if err := blogService.ChangeBlogState(ctx, ctx.Param("blog_id")); err != nil {
 		resp.Err(ctx, "修改博客状态失败", err.Error())
