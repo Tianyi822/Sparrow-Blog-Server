@@ -1,7 +1,53 @@
-.vscode
-.idea
-go.sum
-/resources/config/test
-/temp
-**/*.log
-**/*.DS_Store
+# 二进制文件
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# 测试二进制文件
+*.test
+
+# 输出目录
+/bin/
+/dist/
+
+# Go 工作空间
+/pkg/
+
+# 依赖目录
+/vendor/
+
+# IDE 特定文件
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS 特定文件
+.DS_Store
+._*
+
+# 编译输出
+*.out
+
+# 调试文件
+debug
+*.prof
+*.trace
+
+# 环境文件
+.env
+.env.local
+
+# 日志文件
+*.log
+
+# 覆盖文件
+*.cover
+
+# 测试输出
+/testdata/
+
+# 个人编辑器设置
+*.vim
