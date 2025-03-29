@@ -7,7 +7,7 @@ import (
 	"h2blog_server/email"
 	"h2blog_server/env"
 	"h2blog_server/internal/model/vo"
-	"h2blog_server/internal/services/blogService"
+	"h2blog_server/internal/services/adminService"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/resp"
 	"h2blog_server/routers/tools"
@@ -102,9 +102,9 @@ func login(ctx *gin.Context) {
 // 参数:
 //   - ctx: Gin 框架的上下文对象，用于处理 HTTP 请求和响应。
 func getAllBlogs(ctx *gin.Context) {
-	// 调用 blogService.GetBlogsToAdminPosts 获取博客数据的 DTO 列表。
+	// 调用 adminService.GetBlogsToAdminPosts 获取博客数据的 DTO 列表。
 	// 如果发生错误，则返回错误响应。
-	blogDtos, err := blogService.GetBlogsToAdminPosts(ctx)
+	blogDtos, err := adminService.GetBlogsToAdminPosts(ctx)
 	if err != nil {
 		resp.Err(ctx, "获取博客失败", err.Error())
 		return
@@ -148,7 +148,7 @@ func getAllBlogs(ctx *gin.Context) {
 }
 
 func deleteBlog(ctx *gin.Context) {
-	if err := blogService.DeleteBlog(ctx, ctx.Param("blog_id")); err != nil {
+	if err := adminService.DeleteBlog(ctx, ctx.Param("blog_id")); err != nil {
 		resp.Err(ctx, "删除博客失败", err.Error())
 		return
 	}
@@ -157,7 +157,7 @@ func deleteBlog(ctx *gin.Context) {
 }
 
 func changeBlogState(ctx *gin.Context) {
-	if err := blogService.ChangeBlogState(ctx, ctx.Param("blog_id")); err != nil {
+	if err := adminService.ChangeBlogState(ctx, ctx.Param("blog_id")); err != nil {
 		resp.Err(ctx, "修改博客状态失败", err.Error())
 		return
 	}
@@ -166,7 +166,7 @@ func changeBlogState(ctx *gin.Context) {
 }
 
 func setTop(ctx *gin.Context) {
-	if err := blogService.SetTop(ctx, ctx.Param("blog_id")); err != nil {
+	if err := adminService.SetTop(ctx, ctx.Param("blog_id")); err != nil {
 		resp.Err(ctx, "修改置顶失败", err.Error())
 		return
 	}
