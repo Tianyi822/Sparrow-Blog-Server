@@ -41,19 +41,44 @@ func TestUpdateBlogData(t *testing.T) {
 		BlogId:     "blog00006",
 		BlogTitle:  "test6",
 		BlogBrief:  "test",
-		Category:   dto.CategoryDto{CategoryName: "测试分类 6"},
+		Category:   dto.CategoryDto{CategoryName: "测试分类 7"},
 		CategoryId: "",
 		BlogIsTop:  false,
 		BlogState:  true,
 		Tags: []dto.TagDto{
-			{TagId: "e7c039f52925c96f", TagName: "tag00001"},
+			{TagId: "tag001", TagName: "Java"},
 			{TagName: "tag00006"},
 		},
 	}
 
-	err := UpdateBlogData(context.Background(), blogDto)
+	err := UpdateOrAddBlog(context.Background(), blogDto)
 
 	if err != nil {
 		t.Error(err)
 	}
+}
+
+func TestAddBlog(t *testing.T) {
+	blogDto := &dto.BlogDto{
+		BlogTitle: "test6",
+		BlogBrief: "test",
+		Category: dto.CategoryDto{
+			CategoryName: "测试分类 6",
+		},
+		CategoryId: "",
+		BlogIsTop:  false,
+		BlogState:  true,
+		Tags: []dto.TagDto{
+			{TagId: "tag001", TagName: "Java"},
+			{TagName: "TEST_TAG"},
+		},
+	}
+
+	err := UpdateOrAddBlog(context.Background(), blogDto)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(blogDto.BlogId)
 }
