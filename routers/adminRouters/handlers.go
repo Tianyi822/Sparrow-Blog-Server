@@ -173,3 +173,40 @@ func setTop(ctx *gin.Context) {
 
 	resp.Ok(ctx, "已修改是否置顶", nil)
 }
+
+// getAllTagsCategories 获取所有的分类和标签信息，并以结构化的方式返回给客户端。
+// 参数:
+//   - ctx *gin.Context: Gin框架的上下文对象，用于处理HTTP请求和响应。
+func getAllTagsCategories(ctx *gin.Context) {
+	// 调用adminService的GetAllCategoriesAndTags方法获取分类和标签数据。
+	// 如果发生错误，则返回错误信息。
+	categories, tags, err := adminService.GetAllCategoriesAndTags(ctx)
+	if err != nil {
+		resp.Err(ctx, "获取失败", err.Error())
+		return
+	}
+
+	// 将分类数据转换为CategoryVo视图对象列表。
+	categoryVos := make([]vo.Vo, 0, len(categories))
+	for _, category := range categories {
+		categoryVos = append(categoryVos, &vo.CategoryVo{
+			CategoryId:   category.CategoryId,
+			CategoryName: category.CategoryName,
+		})
+	}
+
+	// 将标签数据转换为TagVo视图对象列表。
+	tagVos := make([]vo.Vo, 0, len(tags))
+	for _, tag := range tags {
+		tagVos = append(tagVos, &vo.TagVo{
+			TagId:   tag.TagId,
+			TagName: tag.TagName,
+		})
+	}
+
+	// 将分类和标签的视图对象列表封装为响应数据，并返回成功信息。
+	resp.Ok(ctx, "获取成功", map[string][]vo.Vo{
+		"categories": categoryVos,
+		"tags":       tagVos,
+	})
+}

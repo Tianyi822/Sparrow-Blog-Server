@@ -24,4 +24,10 @@ func Routers(e *gin.Engine) {
 
 		postsGroup.DELETE("/delete/:blog_id", deleteBlog)
 	}
+
+	{
+		editGroup := adminGroup.Group("/edit")
+
+		editGroup.GET("/all-tags-categories", getAllTagsCategories)
+	}
 }
