@@ -42,3 +42,14 @@ func TestAddCategory(t *testing.T) {
 		t.Log("添加分类成功")
 	}
 }
+
+func TestGetAllCategories(t *testing.T) {
+	categories, err := GetAllCategories(context.Background())
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, cate := range categories {
+		t.Log(cate)
+	}
+}

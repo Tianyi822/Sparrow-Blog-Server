@@ -71,3 +71,17 @@ func TestAddBlogTagAssociation(t *testing.T) {
 		t.Errorf("AddBlogTagAssociation() error = %v", err)
 	}
 }
+
+func TestGetAllTags(t *testing.T) {
+	ctx := context.Background()
+
+	tags, err := GetAllTags(ctx)
+
+	if err != nil {
+		t.Errorf("GetAllTags() error = %v", err)
+	}
+
+	for _, tag := range tags {
+		t.Logf("tag: %v", tag)
+	}
+}

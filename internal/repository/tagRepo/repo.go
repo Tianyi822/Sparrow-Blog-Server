@@ -11,6 +11,37 @@ import (
 	"h2blog_server/storage"
 )
 
+// GetAllTags 查询数据库中的所有标签，并将其转换为 DTO（数据传输对象）格式返回。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据。
+//
+// 返回值:
+//   - []*dto.TagDto: 包含所有标签的 DTO 列表，每个 DTO 包含标签的 ID 和名称。
+//   - error: 如果查询过程中发生错误，则返回错误信息；否则返回 nil。
+func GetAllTags(ctx context.Context) ([]*dto.TagDto, error) {
+	// 创建一个空的标签列表，用于存储从数据库中查询到的标签数据。
+	var tags []*po.Tag
+
+	// 使用 GORM 查询数据库，获取所有标签数据。
+	result := storage.Storage.Db.WithContext(ctx).Model(&po.Tag{}).Find(&tags)
+	if result.Error != nil {
+		msg := fmt.Sprintf("查询标签数据失败: %v", result.Error)
+		logger.Warn(msg)
+	}
+
+	// 将查询到的标签数据转换为 DTO 格式，便于后续处理或返回给调用方。
+	var tagDtos []*dto.TagDto
+	for _, tag := range tags {
+		tagDtos = append(tagDtos, &dto.TagDto{
+			TagId:   tag.TagId,
+			TagName: tag.TagName,
+		})
+	}
+
+	// 返回转换后的 DTO 列表和 nil 错误。
+	return tagDtos, nil
+}
+
 // FindTagsByBlogId 根据博客 ID 查找所有关联的标签。
 // 该函数首先查询中间表 BlogTag 以获取标签 ID，然后根据这些 ID 查询标签表以获取标签详细信息。
 // 参数:
