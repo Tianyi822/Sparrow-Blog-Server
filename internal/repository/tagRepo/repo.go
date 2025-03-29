@@ -188,6 +188,42 @@ func AddBlogTagAssociation(ctx context.Context, blogId string, tags []dto.TagDto
 	return nil
 }
 
+// UpdateBlogTagAssociation 更新博客与标签的关联关系。
+// 参数：
+//   - ctx context.Context: 上下文对象，用于控制请求生命周期和传递元数据。
+//   - blogId string: 博客的唯一标识符，用于定位需要更新标签关联的博客。
+//   - newTags []dto.TagDto: 新的标签列表，表示需要与博客建立关联的标签数据。
+//
+// 返回值：
+//   - error: 如果操作失败，返回错误信息；如果成功，返回 nil。
+func UpdateBlogTagAssociation(ctx context.Context, blogId string, newTags []dto.TagDto) error {
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			// 捕获异常并记录警告日志，同时回滚事务以确保数据一致性。
+			logger.Warn("更新博客标签关联数据失败: %v", r)
+			tx.Rollback()
+		}
+	}()
+
+	// 删除指定博客的所有旧标签关联数据。
+	if err := tx.Delete(&po.BlogTag{}).Where("blog_id = ?", blogId).Error; err != nil {
+		msg := fmt.Sprintf("删除博客标签关联数据失败: %v", err)
+		logger.Warn(msg)
+		return errors.New(msg)
+	}
+
+	// 添加新的博客标签关联数据。
+	if err := AddBlogTagAssociation(ctx, blogId, newTags); err != nil {
+		msg := fmt.Sprintf("更新博客标签关联数据失败: %v", err)
+		logger.Warn(msg)
+		return errors.New(msg)
+	}
+
+	// 如果所有操作成功，返回 nil 表示成功。
+	return nil
+}
+
 // CalBlogsCountByTagId 根据标签 ID 查询关联的博客数量。
 // 参数:
 //   - ctx context.Context: 上下文对象，用于控制请求生命周期和传递上下文信息。
