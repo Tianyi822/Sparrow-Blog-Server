@@ -2,6 +2,7 @@ package blogRepo
 
 import (
 	"context"
+	"h2blog_server/internal/model/dto"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
 	"h2blog_server/storage"
@@ -18,6 +19,24 @@ func init() {
 	}
 	// 初始化数据库组件
 	_ = storage.InitStorage(context.Background())
+}
+
+func TestAddBlog(t *testing.T) {
+	blogDto := dto.BlogDto{
+		BlogTitle:    "测试博客",
+		BlogBrief:    "测试博客",
+		CategoryId:   "category00001",
+		BlogWordsNum: 100,
+		BlogState:    true,
+		BlogIsTop:    false,
+	}
+	err := AddBlog(context.Background(), &blogDto)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(blogDto.BlogId)
 }
 
 func TestFindBlogsInPage(t *testing.T) {

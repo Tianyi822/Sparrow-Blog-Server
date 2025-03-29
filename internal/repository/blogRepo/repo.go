@@ -8,8 +8,60 @@ import (
 	"h2blog_server/internal/model/dto"
 	"h2blog_server/internal/model/po"
 	"h2blog_server/pkg/logger"
+	"h2blog_server/pkg/utils"
 	"h2blog_server/storage"
 )
+
+// AddBlog 创建一篇新的博客并将其存储到数据库中。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据。
+//   - blogDto: 包含博客相关信息的数据传输对象，包括标题、简介、分类ID等。
+//
+// 返回值:
+//   - error: 如果操作成功则返回nil，否则返回包含错误信息的error对象。
+func AddBlog(ctx context.Context, blogDto *dto.BlogDto) error {
+	// 开启数据库事务，并在函数结束时根据情况提交或回滚事务。
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			// 捕获异常并回滚事务，防止数据库处于不一致状态。
+			tx.Rollback()
+		}
+	}()
+
+	// 生成博客的唯一ID，如果生成失败则记录警告日志并返回错误。
+	bid, err := utils.GenId(blogDto.BlogTitle)
+	if err != nil {
+		msg := fmt.Sprintf("生成博客ID失败: %v", err)
+		logger.Warn(msg)
+		return errors.New(msg)
+	}
+	// 将 id 保存在 dto 中
+	blogDto.BlogId = bid
+
+	logger.Info("创建博客")
+
+	// 将博客信息插入数据库，如果插入失败则记录警告日志并返回错误。
+	if err := tx.WithContext(ctx).Create(&po.Blog{
+		BlogId:       bid,
+		BlogTitle:    blogDto.BlogTitle,
+		BlogBrief:    blogDto.BlogBrief,
+		CategoryId:   blogDto.CategoryId,
+		BlogState:    blogDto.BlogState,
+		BlogWordsNum: blogDto.BlogWordsNum,
+		BlogIsTop:    blogDto.BlogIsTop,
+	}).Error; err != nil {
+		msg := fmt.Sprintf("创建博客失败: %v", err)
+		logger.Warn(msg)
+		return errors.New(msg)
+	}
+
+	// 提交事务并记录成功日志。
+	tx.Commit()
+	logger.Info("创建博客成功")
+
+	return nil
+}
 
 // FindAllBlogs 查询所有博客信息，并根据需要返回简要信息。
 // 参数:
