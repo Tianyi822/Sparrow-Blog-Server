@@ -160,9 +160,6 @@ func AddTags(tx *gorm.DB, tags []dto.TagDto) ([]dto.TagDto, error) {
 		logger.Warn(msg)
 		return nil, errors.New(msg)
 	}
-	// 提交事务以完成数据库写入
-	tx.Commit()
-
 	logger.Info("批量保存标签数据成功")
 
 	return tags, nil
@@ -191,9 +188,6 @@ func DeleteTags(tx *gorm.DB, tags []dto.TagDto) error {
 		logger.Warn(msg)
 		return errors.New(msg)
 	}
-
-	// 提交事务
-	tx.Commit()
 	logger.Info("批量删除标签数据成功")
 
 	// 返回无错误
@@ -225,8 +219,6 @@ func AddBlogTagAssociation(tx *gorm.DB, blogId string, tags []dto.TagDto) error 
 		logger.Warn(msg)
 		return errors.New(msg)
 	}
-	// 提交事物
-	tx.Commit()
 	logger.Info("批量保存博客标签关联数据成功")
 
 	return nil
