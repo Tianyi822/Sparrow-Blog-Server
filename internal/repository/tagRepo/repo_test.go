@@ -39,6 +39,7 @@ func TestFindTagsByBlogId(t *testing.T) {
 func TestAddTags(t *testing.T) {
 	ctx := context.Background()
 
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
 	tags := []dto.TagDto{
 		{
 			TagName: "tag00001",
@@ -48,7 +49,8 @@ func TestAddTags(t *testing.T) {
 		},
 	}
 
-	newTags, err := AddTags(ctx, tags)
+	newTags, err := AddTags(tx, tags)
+	tx.Commit()
 
 	if err != nil {
 		t.Errorf("AddTags() error = %v", err)
@@ -59,10 +61,34 @@ func TestAddTags(t *testing.T) {
 	}
 }
 
+func TestDeleteTags(t *testing.T) {
+	ctx := context.Background()
+
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	tags := []dto.TagDto{
+		{
+			TagId:   "e7c039f52925c96f",
+			TagName: "tag00001",
+		},
+		{
+			TagId:   "b30fd680a54768d7",
+			TagName: "tag00002",
+		},
+	}
+	err := DeleteTags(tx, tags)
+	tx.Commit()
+
+	if err != nil {
+		t.Errorf("DeleteTags() error = %v", err)
+	}
+}
+
 func TestAddBlogTagAssociation(t *testing.T) {
 	ctx := context.Background()
 
-	err := AddBlogTagAssociation(ctx, "blog00003", []dto.TagDto{
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+
+	err := AddBlogTagAssociation(tx, "blog00003", []dto.TagDto{
 		{
 			TagId: "e7c039f52925c96f",
 		},
@@ -70,6 +96,8 @@ func TestAddBlogTagAssociation(t *testing.T) {
 			TagId: "b30fd680a54768d7",
 		},
 	})
+
+	tx.Commit()
 
 	if err != nil {
 		t.Errorf("AddBlogTagAssociation() error = %v", err)
