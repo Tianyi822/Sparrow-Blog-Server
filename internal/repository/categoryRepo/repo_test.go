@@ -31,14 +31,19 @@ func TestFindCategoryById(t *testing.T) {
 }
 
 func TestAddCategory(t *testing.T) {
-	err := AddCategory(context.Background(), &dto.CategoryDto{
+	ctx := context.Background()
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+
+	err := AddCategory(tx, &dto.CategoryDto{
 		CategoryId:   "cat006",
 		CategoryName: "测试分类",
 	})
 
 	if err != nil {
+		tx.Rollback()
 		t.Error(err)
 	} else {
+		tx.Commit()
 		t.Log("添加分类成功")
 	}
 }
