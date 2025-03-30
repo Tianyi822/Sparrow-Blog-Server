@@ -22,6 +22,8 @@ func init() {
 }
 
 func TestAddBlog(t *testing.T) {
+	tx := storage.Storage.Db.WithContext(context.Background()).Begin()
+
 	blogDto := dto.BlogDto{
 		BlogTitle:    "测试博客",
 		BlogBrief:    "测试博客",
@@ -30,11 +32,13 @@ func TestAddBlog(t *testing.T) {
 		BlogState:    true,
 		BlogIsTop:    false,
 	}
-	err := AddBlog(context.Background(), &blogDto)
+	err := AddBlog(tx, &blogDto)
 
 	if err != nil {
+		tx.Rollback()
 		t.Error(err)
 	}
+	tx.Commit()
 
 	t.Log(blogDto.BlogId)
 }
@@ -51,23 +55,34 @@ func TestFindBlogsInPage(t *testing.T) {
 }
 
 func TestDeleteBlogById(t *testing.T) {
-	err := DeleteBlogById(context.Background(), "blog00002")
+	tx := storage.Storage.Db.WithContext(context.Background()).Begin()
+	err := DeleteBlogById(tx, "9810076e28f4e75d")
 
 	if err != nil {
+		tx.Rollback()
 		t.Error(err)
 	}
+	tx.Commit()
 }
 
 func TestChangeBlogStateById(t *testing.T) {
-	err := ChangeBlogStateById(context.Background(), "blog00003")
+	tx := storage.Storage.Db.WithContext(context.Background()).Begin()
+	err := ChangeBlogStateById(tx, "9810076e28f4e75d")
+
 	if err != nil {
+		tx.Rollback()
 		t.Error(err)
 	}
+	tx.Commit()
 }
 
 func TestSetTopById(t *testing.T) {
-	err := SetTopById(context.Background(), "blog00003")
+	tx := storage.Storage.Db.WithContext(context.Background()).Begin()
+	err := SetTopById(tx, "9810076e28f4e75d")
+
 	if err != nil {
+		tx.Rollback()
 		t.Error(err)
 	}
+	tx.Commit()
 }
