@@ -29,5 +29,7 @@ func Routers(e *gin.Engine) {
 		editGroup := adminGroup.Group("/edit")
 
 		editGroup.GET("/all-tags-categories", getAllTagsCategories)
+
+		editGroup.POST("/update-or-add-blog", updateOrAddBlog)
 	}
 }

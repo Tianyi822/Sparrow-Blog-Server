@@ -25,6 +25,14 @@ type BlogDto struct {
 	UpdateTime   time.Time   `json:"update_time,omitempty"`
 }
 
+func (hb *BlogDto) DtoFlag() string {
+	return "BlogDto"
+}
+
+func (hb *BlogDto) Name() string {
+	return hb.BlogTitle
+}
+
 type TagDto struct {
 	TagId   string `json:"tag_id,omitempty"`
 	TagName string `json:"tag_name,omitempty"`

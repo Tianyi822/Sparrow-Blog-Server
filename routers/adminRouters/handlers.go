@@ -210,3 +210,39 @@ func getAllTagsCategories(ctx *gin.Context) {
 		"tags":       tagVos,
 	})
 }
+
+// updateOrAddBlog 处理博客更新或添加请求
+// 参数:
+//   - ctx *gin.Context: 框架的上下文对象
+func updateOrAddBlog(ctx *gin.Context) {
+	// 从请求中解析博客数据传输对象 (DTO)，如果解析失败则返回错误响应。
+	blogDto, err := tools.GetBlogDto(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
+		return
+	}
+
+	if blogDto.BlogTitle == "" {
+		resp.BadRequest(ctx, "博客标题不能为空", "")
+		return
+	}
+
+	if blogDto.Category.CategoryName == "" {
+		resp.BadRequest(ctx, "博客分类不能为空", "")
+		return
+	}
+
+	if blogDto.BlogWordsNum == 0 {
+		resp.BadRequest(ctx, "博客不能为空", "")
+		return
+	}
+
+	// 调用服务层方法更新或添加博客，如果操作失败则返回错误响应。
+	if err = adminService.UpdateOrAddBlog(ctx, blogDto); err != nil {
+		resp.Err(ctx, "添加或更新失败", err.Error())
+		return
+	}
+
+	// 如果操作成功，返回成功的HTTP响应。
+	resp.Ok(ctx, "操作成功", nil)
+}
