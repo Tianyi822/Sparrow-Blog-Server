@@ -47,6 +47,12 @@ func GetAllCategories(ctx context.Context) ([]*dto.CategoryDto, error) {
 // 返回值：
 // - error: 如果操作成功，返回 nil；如果发生错误，返回包含错误信息的 error 对象。
 func AddCategory(ctx context.Context, cateDto *dto.CategoryDto) error {
+	if len(cateDto.CategoryName) == 0 {
+		msg := "分类名称不能为空"
+		logger.Warn(msg)
+		return errors.New(msg)
+	}
+
 	tx := storage.Storage.Db.WithContext(ctx).Begin()
 	defer func() {
 		// 捕获可能的 panic，记录错误日志并回滚事务，避免事务未正确关闭。

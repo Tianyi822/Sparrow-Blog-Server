@@ -113,6 +113,12 @@ func AddTags(ctx context.Context, tags []dto.TagDto) ([]dto.TagDto, error) {
 	var tagPos []po.Tag
 	var newTags []dto.TagDto
 	for _, tag := range tags {
+		if len(tag.TagName) == 0 {
+			msg := fmt.Sprintf("标签名称不能为空")
+			logger.Warn(msg)
+			return nil, errors.New(msg)
+		}
+
 		// 为每个标签生成唯一 ID
 		tId, err := utils.GenId(tag.TagName)
 		if err != nil {
