@@ -48,10 +48,14 @@ func TestAddTags(t *testing.T) {
 		},
 	}
 
-	_, err := AddTags(ctx, tags)
+	newTags, err := AddTags(ctx, tags)
 
 	if err != nil {
 		t.Errorf("AddTags() error = %v", err)
+	}
+
+	for _, tag := range newTags {
+		t.Logf("tag: %v", tag)
 	}
 }
 

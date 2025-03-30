@@ -111,8 +111,7 @@ func AddTags(ctx context.Context, tags []dto.TagDto) ([]dto.TagDto, error) {
 	}()
 
 	var tagPos []po.Tag
-	var newTags []dto.TagDto
-	for _, tag := range tags {
+	for index, tag := range tags {
 		if len(tag.TagName) == 0 {
 			msg := fmt.Sprintf("标签名称不能为空")
 			logger.Warn(msg)
@@ -126,15 +125,10 @@ func AddTags(ctx context.Context, tags []dto.TagDto) ([]dto.TagDto, error) {
 			logger.Warn(msg)
 			return nil, errors.New(msg)
 		}
+		tags[index].TagId = tId
 
 		// 将生成的标签信息转换为持久化对象并存储到切片中
 		tagPos = append(tagPos, po.Tag{
-			TagId:   tId,
-			TagName: tag.TagName,
-		})
-
-		// 将生成的标签信息转换为 DTO 并添加到新标签列表中
-		newTags = append(newTags, dto.TagDto{
 			TagId:   tId,
 			TagName: tag.TagName,
 		})
@@ -152,7 +146,49 @@ func AddTags(ctx context.Context, tags []dto.TagDto) ([]dto.TagDto, error) {
 
 	logger.Info("批量保存标签数据成功")
 
-	return newTags, nil
+	return tags, nil
+}
+
+// DeleteTags 批量删除标签
+// 该函数接收一个上下文和一个标签DTO列表，尝试从数据库中删除这些标签
+// 参数:
+//   - ctx context.Context: 上下文对象，用于取消操作、超时等
+//   - tags []dto.TagDto: 待删除的标签DTO列表
+//
+// 返回值:
+//   - error: 如果删除操作失败，则返回错误信息；否则返回nil
+func DeleteTags(ctx context.Context, tags []dto.TagDto) error {
+	// 开始数据库事务
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	// 捕获panic，如果发生panic则回滚事务
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Warn("删除标签失败: %v", r)
+			tx.Rollback()
+		}
+	}()
+
+	// 提取标签ID
+	var tagIds []string
+	for _, tag := range tags {
+		tagIds = append(tagIds, tag.TagId)
+	}
+
+	logger.Info("批量删除标签数据")
+	// 批量删除标签数据
+	result := tx.Delete(&po.Tag{}).Where("tag_id IN ?", tagIds)
+	if result.Error != nil {
+		msg := fmt.Sprintf("删除标签数据失败: %v", result.Error)
+		logger.Warn(msg)
+		return errors.New(msg)
+	}
+
+	// 提交事务
+	tx.Commit()
+	logger.Info("批量删除标签数据成功")
+
+	// 返回无错误
+	return nil
 }
 
 // AddBlogTagAssociation 用于将博客与标签的关联数据批量保存到数据库中。
@@ -253,45 +289,4 @@ func CalBlogsCountByTagId(ctx context.Context, tagId string) (int64, error) {
 
 	// 返回查询到的博客数量和 nil 错误。
 	return count, nil
-}
-
-// DeleteTagById 根据标签 ID 删除对应的标签数据。
-// 参数:
-//   - ctx context.Context: 上下文对象，用于控制请求的生命周期和传递元数据。
-//   - tagId string: 要删除的标签的唯一标识符。
-//
-// 返回值:
-//   - error: 如果删除过程中发生错误，则返回错误信息；否则返回 nil。
-func DeleteTagById(ctx context.Context, tagId string) error {
-	// 开启数据库事务，并将上下文绑定到事务中。
-	tx := storage.Storage.Db.WithContext(ctx).Begin()
-
-	// 使用 defer 确保在函数结束时回滚事务（如果发生 panic）。
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Error("删除标签数据失败: %v", r)
-			tx.Rollback()
-		}
-	}()
-
-	// 记录日志，表明开始删除指定标签 ID 的数据。
-	logger.Info("删除标签 ID : %v 数据", tagId)
-
-	// 执行删除操作，根据 tagId 删除对应的标签记录。
-	result := tx.Where("tag_id = ?", tagId).Delete(&po.Tag{})
-	if result.Error != nil {
-		// 如果删除失败，记录警告日志并返回错误信息。
-		msg := fmt.Sprintf("删除标签数据失败: %v", result.Error)
-		logger.Warn(msg)
-		return errors.New(msg)
-	}
-
-	// 提交事务，确保删除操作生效。
-	tx.Commit()
-
-	// 记录日志，表明删除成功。
-	logger.Info("删除标签 ID : %v 数据成功", tagId)
-
-	// 返回 nil 表示删除成功。
-	return nil
 }
