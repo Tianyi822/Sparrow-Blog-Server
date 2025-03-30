@@ -76,9 +76,7 @@ const createH2BlogTagTableSQL = `
 	(
 	    blog_id 	VARCHAR(16) NOT NULL COMMENT '博客ID',
 	    tag_id 		VARCHAR(16) NOT NULL COMMENT '标签ID',
-	    PRIMARY KEY (blog_id, tag_id), -- 联合主键 [[3]]
-	    FOREIGN KEY (blog_id) REFERENCES H2_BLOG(blog_id) 	ON DELETE CASCADE,
-	    FOREIGN KEY (tag_id) REFERENCES H2_TAG(tag_id) 	ON DELETE CASCADE
+	    PRIMARY KEY (blog_id, tag_id) -- 联合主键
 	) ENGINE = InnoDB
 	  DEFAULT CHARSET = utf8mb4
 	  COLLATE = utf8mb4_unicode_ci;
