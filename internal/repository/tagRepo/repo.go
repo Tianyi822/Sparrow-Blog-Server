@@ -96,31 +96,6 @@ func FindTagsByBlogId(ctx context.Context, blogId string) ([]dto.TagDto, error) 
 	return tagsDto, nil
 }
 
-// CalBlogsCountByTagId 根据标签 ID 查询关联的博客数量。
-// 参数:
-//   - ctx context.Context: 上下文对象，用于控制请求生命周期和传递上下文信息。
-//   - tagId string: 标签的唯一标识符，用于查询与该标签关联的博客数量。
-//
-// 返回值:
-//   - int64: 与指定标签 ID 关联的博客数量。
-//   - error: 如果查询过程中发生错误，则返回错误信息；否则返回 nil。
-func CalBlogsCountByTagId(ctx context.Context, tagId string) (int64, error) {
-	var count int64
-
-	// 使用 GORM 查询数据库，统计与指定标签 ID 关联的博客数量。
-	result := storage.Storage.Db.WithContext(ctx).Model(&po.BlogTag{}).Where("tag_id = ?", tagId).Count(&count)
-
-	// 如果查询过程中发生错误，记录警告日志并返回错误信息。
-	if result.Error != nil {
-		msg := fmt.Sprintf("根据标签 ID 查询博客数量失败: %v", result.Error)
-		logger.Warn(msg)
-		return 0, errors.New(msg)
-	}
-
-	// 返回查询到的博客数量和 nil 错误。
-	return count, nil
-}
-
 // AddTags 批量添加标签到数据库。
 // 参数:
 // - tx: 数据库事务对象，用于执行数据库操作。
@@ -272,5 +247,38 @@ func UpdateBlogTagAssociation(tx *gorm.DB, blogId string, newTags []dto.TagDto) 
 	}
 
 	// 如果所有操作成功，返回 nil 表示成功。
+	return nil
+}
+
+// CleanTagsWithoutBlog 删除没有博客关联的标签数据
+// 参数:
+//   - tx *gorm.DB: 数据库事务对象
+//
+// 返回值:
+//   - error: 如果执行过程中发生错误，则返回错误对象；否则返回nil
+func CleanTagsWithoutBlog(tx *gorm.DB) error {
+	// 记录删除操作开始的日志
+	logger.Info("删除没有博客关联的标签数据")
+
+	result := tx.Exec(`
+		DELETE
+		FROM H2_TAG T
+		WHERE NOT EXISTS (
+			SELECT 1
+        	FROM H2_BLOG_TAG BT
+          	WHERE BT.tag_id = T.tag_id
+        );
+	`)
+
+	if result.Error != nil {
+		// 如果删除操作失败，记录错误日志并返回新的错误对象
+		msg := fmt.Sprintf("删除没有博客关联的标签数据失败: %v", result.Error)
+		logger.Warn(msg)
+		return errors.New(msg)
+	}
+
+	logger.Info("删除没有博客关联的标签数据成功，共删除 %v 条数据", result.RowsAffected)
+
+	// 函数执行成功，返回nil
 	return nil
 }

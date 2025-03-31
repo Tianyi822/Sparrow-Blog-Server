@@ -281,7 +281,7 @@ func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) (string, error) 
 	return presign.URL, nil
 }
 
-// DeleteBlogById 删除指定ID的博客，并根据相关联的数据进行清理操作。
+// DeleteBlogById 删除指定ID的博客
 // 参数:
 //   - ctx: 上下文对象，用于控制请求生命周期和传递元数据。
 //   - id: 要删除的博客的唯一标识符。
@@ -289,18 +289,6 @@ func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) (string, error) 
 // 返回值:
 //   - error: 如果删除过程中发生错误，则返回错误信息；否则返回 nil。
 func DeleteBlogById(ctx context.Context, id string) error {
-	// 获取与博客关联的分类ID。
-	categoryId, err := blogRepo.GetCategoryIdByBlogId(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	// 获取与博客关联的所有标签。
-	tags, err := tagRepo.FindTagsByBlogId(ctx, id)
-	if err != nil {
-		return err
-	}
-
 	// 获取博客标题
 	blogTitle, err := blogRepo.FindBlogTitleById(ctx, id)
 	if err != nil {
@@ -330,47 +318,22 @@ func DeleteBlogById(ctx context.Context, id string) error {
 		return err
 	}
 
-	// 统计该分类下剩余的博客数量。
-	num, err := blogRepo.CalBlogsCountByCategoryId(ctx, categoryId)
-	if err != nil {
+	// 提交事务
+	tx.Commit()
+	logger.Info("删除博客数据成功")
+
+	// 清理无用标签和分类
+	cleanUpTx := storage.Storage.Db.WithContext(ctx).Begin()
+	if err = tagRepo.CleanTagsWithoutBlog(cleanUpTx); err != nil {
+		cleanUpTx.Rollback()
 		return err
 	}
 
-	// 如果该分类下没有博客，则删除该分类。
-	// 这里之所以需要减 1 是因为执行到这里事务还没有提交，博客数据并没有删除，所以需要减 1。
-	if num-1 == 0 {
-		err = categoryRepo.DeleteCategoryById(tx, categoryId)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
+	if err = categoryRepo.CleanCategoriesWithoutBlog(cleanUpTx); err != nil {
+		cleanUpTx.Rollback()
+		return err
 	}
-
-	// 遍历所有与博客关联的标签，检查每个标签是否还有其他博客关联
-	tagsWithoutBlog := make([]dto.TagDto, 0)
-	for _, tag := range tags {
-		num, err = tagRepo.CalBlogsCountByTagId(ctx, tag.TagId)
-		if err != nil {
-			return err
-		}
-
-		// 如果某个标签没有其他博客关联，则删除该标签。
-		// 这里减 1 的逻辑同上
-		if num-1 == 0 {
-			tagsWithoutBlog = append(tagsWithoutBlog, tag)
-		}
-	}
-
-	if len(tagsWithoutBlog) != 0 {
-		err = tagRepo.DeleteTags(tx, tagsWithoutBlog)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-	// 标签和分类数据维护完成，提交事务
-	tx.Commit()
-	logger.Info("删除博客数据成功")
+	cleanUpTx.Commit()
 
 	return nil
 }

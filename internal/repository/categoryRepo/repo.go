@@ -104,28 +104,22 @@ func AddCategory(tx *gorm.DB, cateDto *dto.CategoryDto) error {
 	return nil
 }
 
-// DeleteCategoryById 根据分类 ID 删除对应的分类记录。
+// CleanCategoriesWithoutBlog 删除没有博客关联的分类
 // 参数:
-//   - tx: 数据库事务对象，用于执行数据库操作。
-//   - id: 分类的唯一标识符，用于定位需要删除的分类记录。
+//   - tx *gorm.DB: gorm数据库连接对象，用于执行数据库操作
 //
 // 返回值:
-//   - error: 如果删除过程中发生错误，则返回错误信息；否则返回 nil。
-func DeleteCategoryById(tx *gorm.DB, id string) error {
-	// 记录删除操作的日志，标明正在删除的分类 ID。
-	logger.Info("删除 ID 为 %v 的分类记录", id)
-
-	// 执行删除操作，根据分类 ID 删除对应的分类记录。
-	if err := tx.Where("category_id = ?", id).Delete(&po.Category{}).Error; err != nil {
-		// 如果删除操作失败，回滚事务并记录错误日志。
-		tx.Rollback()
-		msg := fmt.Sprintf("删除分类数据失败: %v", err)
-		logger.Error(msg)
+//   - error: 如果执行数据库操作时发生错误，则返回错误对象；否则返回nil
+func CleanCategoriesWithoutBlog(tx *gorm.DB) error {
+	// 删除没有博客关联的分类
+	result := tx.Where("category_id NOT IN (SELECT category_id FROM H2_Blog)").Delete(&po.Category{})
+	if result.Error != nil {
+		// 如果删除操作失败，记录错误日志并返回新的错误对象
+		msg := fmt.Sprintf("删除没有博客关联的分类失败: %v", result.Error)
+		logger.Warn(msg)
 		return errors.New(msg)
 	}
-
-	// 记录删除成功的日志，标明已删除的分类 ID。
-	logger.Info("成功删除 ID 为 %v 的分类记录", id)
-
+	logger.Info("删除没有博客关联的分类成功, 共删除 %v 条数据", result.RowsAffected)
+	// 如果删除操作成功，返回nil
 	return nil
 }
