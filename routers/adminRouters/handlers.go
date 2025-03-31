@@ -217,3 +217,17 @@ func updateOrAddBlog(ctx *gin.Context) {
 		"presign_url": presignUrl,
 	})
 }
+
+func getBlogData(ctx *gin.Context) {
+	blogId := ctx.Param("blog_id")
+	blogDto, url, err := adminService.GetBlogData(ctx, blogId)
+	if err != nil {
+		resp.Err(ctx, "获取失败", err.Error())
+		return
+	}
+
+	resp.Ok(ctx, "获取成功", map[string]any{
+		"blog_data":   blogDto,
+		"content_url": url,
+	})
+}

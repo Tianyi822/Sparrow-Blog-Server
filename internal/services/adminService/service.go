@@ -134,6 +134,55 @@ func GetAllCategoriesAndTags(ctx context.Context) ([]*dto.CategoryDto, []*dto.Ta
 	return categories, tags, nil
 }
 
+// GetBlogData 根据博客ID获取博客的详细信息，包括关联的标签和分类。
+//
+// 参数:
+//   - ctx: 上下文对象，用于控制请求生命周期和传递元数据。
+//   - id: 要查询的博客的唯一标识符。
+//
+// 返回值:
+//   - *dto.BlogDto: 包含博客详细信息的数据传输对象，包括标签和分类信息。
+//   - string: 预签名 URL，用于读取 OSS 中的文章内容。
+//   - error: 如果查询过程中发生错误，则返回错误信息；否则返回 nil。
+func GetBlogData(ctx context.Context, id string) (*dto.BlogDto, string, error) {
+	// 根据博客ID从仓库中获取博客的基础信息。
+	blogDto, err := blogRepo.FindBlogById(ctx, id)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// 根据博客ID获取与该博客关联的所有标签。
+	tags, err := tagRepo.FindTagsByBlogId(ctx, blogDto.BlogId)
+	if err != nil {
+		return nil, "", err
+	}
+	blogDto.Tags = tags
+
+	// 根据博客的分类ID获取分类信息，并将其映射为 CategoryDto 对象。
+	category, err := categoryRepo.FindCategoryById(ctx, blogDto.CategoryId)
+	if err != nil {
+		return nil, "", err
+	}
+	blogDto.Category = dto.CategoryDto{
+		CategoryId:   category.CategoryId,
+		CategoryName: category.CategoryName,
+	}
+
+	// 获取预签名 URL，用于读取 OSS 中文章内容
+	presignUrl, err := storage.Storage.PreSignUrl(
+		ctx,
+		ossstore.GenOssSavePath(blogDto.BlogTitle, ossstore.MarkDown),
+		ossstore.Get,
+		1*time.Minute,
+	)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// 返回包含完整信息的博客DTO对象。
+	return blogDto, presignUrl.URL, nil
+}
+
 // UpdateOrAddBlog 更新或添加博客信息，并处理相关的分类和标签逻辑。
 // 参数:
 //   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据。

@@ -91,3 +91,14 @@ func TestDeleteBlog(t *testing.T) {
 	}
 	t.Log("success")
 }
+
+func TestGetBlogData(t *testing.T) {
+	blogDto, url, err := GetBlogData(context.Background(), "0e317bad75975c0a")
+	if err != nil {
+		t.Error(err)
+	}
+
+	// 格式化输出
+	t.Logf("%+v", blogDto)
+	t.Log(url)
+}

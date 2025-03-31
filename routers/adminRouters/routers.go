@@ -31,5 +31,7 @@ func Routers(e *gin.Engine) {
 		editGroup.GET("/all-tags-categories", getAllTagsCategories)
 
 		editGroup.POST("/update-or-add-blog", updateOrAddBlog)
+
+		editGroup.GET("/blog-data/:blog_id", getBlogData)
 	}
 }

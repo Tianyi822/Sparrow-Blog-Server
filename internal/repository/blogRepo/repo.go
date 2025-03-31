@@ -35,6 +35,35 @@ func FindBlogTitleById(ctx context.Context, id string) (string, error) {
 	return blog.BlogTitle, nil
 }
 
+// FindBlogById 根据博客ID查询博客信息。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
+//   - id: 博客的唯一标识符，用于查询具体的博客记录。
+//
+// 返回值:
+//   - *dto.BlogDto: 包含博客详细信息的数据传输对象，如果查询失败则返回nil。
+//   - error: 查询过程中发生的错误信息，如果没有错误则返回nil。
+func FindBlogById(ctx context.Context, id string) (*dto.BlogDto, error) {
+	blog := &po.Blog{}
+
+	if err := storage.Storage.Db.WithContext(ctx).Model(&po.Blog{}).
+		Where("blog_id = ?", id).
+		Find(&blog).Error; err != nil {
+		// 如果查询失败，记录警告日志并返回错误信息。
+		msg := fmt.Sprintf("查询博客信息失败: %v", err)
+		logger.Warn(msg)
+		return nil, errors.New(msg)
+	}
+
+	return &dto.BlogDto{
+		BlogId:       blog.BlogId,
+		BlogTitle:    blog.BlogTitle,
+		BlogBrief:    blog.BlogBrief,
+		BlogWordsNum: blog.BlogWordsNum,
+		CategoryId:   blog.CategoryId,
+	}, nil
+}
+
 // FindAllBlogs 查询所有博客信息，并根据需要返回简要信息。
 // 参数:
 //   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
