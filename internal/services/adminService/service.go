@@ -12,6 +12,7 @@ import (
 	"h2blog_server/internal/repository/tagRepo"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
+	"h2blog_server/pkg/webJwt"
 	"h2blog_server/storage"
 )
 
@@ -59,9 +60,15 @@ func Login(ctx context.Context, email, verificationCode string) (string, error) 
 		logger.Warn("删除验证码缓存失败: %v", err)
 	}
 
-	// TODO: 这里应该返回一个 Token，但现在是开发状态，暂时不实现
+	// 使用 JWT 工具生成并返回 Token
+	token, err := webJwt.GenerateJWTToken()
+	if err != nil {
+		msg := fmt.Sprintf("生成 Token 失败: %v", err.Error())
+		logger.Warn(msg)
+		return "", errors.New(msg)
+	}
 
-	return "", nil
+	return token, nil
 }
 
 // GetBlogsToAdminPosts 获取所有博客及其关联的标签和分类信息。
