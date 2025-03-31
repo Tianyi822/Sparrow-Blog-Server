@@ -1,4 +1,4 @@
-package oss
+package ossstore
 
 import (
 	"fmt"
@@ -13,6 +13,11 @@ const (
 	JPG      = "jpg"
 	JPEG     = "jpeg"
 	PNG      = "png"
+)
+
+const (
+	Get = "GET"
+	Put = "PUT"
 )
 
 // GenOssSavePath 用于生成博客保存路径
