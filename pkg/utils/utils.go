@@ -3,8 +3,6 @@ package utils
 import (
 	"encoding/hex"
 	"fmt"
-	"math/rand"
-
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -41,28 +39,34 @@ func GenId(name string) (string, error) {
 	return str, nil
 }
 
-// HashWithLength 对输入字符串进行 BLAKE2b-512 哈希，并返回指定长度的十六进制字符串。
-// - input: 原字符串
-// - length: 要求输出的十六进制长度 (最大 128, 因为 512bit = 64byte = 128 hex chars)
+// HashWithLength 使用 BLAKE2b-512 哈希算法对输入字符串进行哈希计算，并返回指定长度的十六进制编码结果。
+// 参数:
+//   - input: 待哈希的字符串。
+//   - length: 返回的哈希值的十六进制字符长度，范围为 1 到 128。如果超出范围，会被限制在有效范围内。
+//
+// 返回值:
+//   - string: 截断后的十六进制编码哈希值。
+//   - error: 如果在创建哈希对象或写入数据时发生错误，则返回相应的错误信息。
 func HashWithLength(input string, length int) (string, error) {
-	// 1. 创建一个 BLAKE2b-512 哈希对象
-	//    第二个参数可以传密钥(nil表示无密钥, 即纯哈希), 第三个参数可指定hash长度(此处先拿到全量64字节, 再手动截断)
-	hasher, err := blake2b.New512(nil)
+	// 创建一个 BLAKE2b-512 哈希对象，使用无密钥模式。
+	hashEncoder, err := blake2b.New512(nil)
 	if err != nil {
 		return "", err
 	}
-	// 2. 写入原字符串
-	_, err = hasher.Write([]byte(input))
+
+	// 将输入字符串写入哈希对象。
+	_, err = hashEncoder.Write([]byte(input))
 	if err != nil {
 		return "", err
 	}
-	// 3. 拿到 64 字节(512 bit)的哈希值
-	fullSum := hasher.Sum(nil) // []byte, 长度 64
 
-	// 4. Hex 编码 => 最长可得 128 个 hex 字符
-	fullHex := hex.EncodeToString(fullSum) // string, 长度 128
+	// 计算完整的 64 字节哈希值。
+	fullSum := hashEncoder.Sum(nil)
 
-	// 5. 截断输出长度, 避免越界; 如果用户要求太长, 就限制在 128
+	// 将哈希值转换为十六进制编码字符串，最大长度为 128 个字符。
+	fullHex := hex.EncodeToString(fullSum)
+
+	// 根据用户指定的长度截断十六进制字符串，确保长度在有效范围内。
 	if length < 1 {
 		length = 1
 	}
@@ -70,20 +74,4 @@ func HashWithLength(input string, length int) (string, error) {
 		length = 128
 	}
 	return fullHex[:length], nil
-}
-
-// GenRandomString generates a random string of specified length
-// The string contains random ASCII characters (32-126, printable characters)
-func GenRandomString(length int) string {
-	// Create byte slice to store random characters
-	result := make([]byte, length)
-
-	// Get random bytes
-	for i := 0; i < length; i++ {
-		// Generate random number between 32 and 126 (printable ASCII characters)
-		// rand.Int63() generates a non-negative 63-bit integer
-		result[i] = byte(32 + rand.Int63n(95)) // 95 = 126 - 32 + 1
-	}
-
-	return string(result)
 }
