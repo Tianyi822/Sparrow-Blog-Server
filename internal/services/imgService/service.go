@@ -29,7 +29,7 @@ func GetPreSignUrlOfImg(ctx context.Context) (string, error) {
 		return "", err
 	}
 
-	result, err := storage.Storage.PreSignUrl(ctx, ossstore.GenOssSavePath(imgPo.ImgName, imgPo.ImgType), ossstore.Get)
+	result, err := storage.Storage.PreSignUrl(ctx, ossstore.GenOssSavePath(imgPo.ImgName, imgPo.ImgType), ossstore.Get, 10*time.Minute)
 	if err != nil {
 		return "", err
 	}

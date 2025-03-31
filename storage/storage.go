@@ -9,7 +9,8 @@ import (
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
 	"h2blog_server/storage/db/mysql"
-	"h2blog_server/storage/oss/aliyun"
+	"h2blog_server/storage/ossstore"
+	"h2blog_server/storage/ossstore/aliyun"
 	"io"
 	"sync"
 	"time"
@@ -234,19 +235,47 @@ func (s *storage) ListOssDirFiles(ctx context.Context, dir string) ([]string, er
 	return results[1:], nil
 }
 
-// PreSignUrl 生成预签名 URL
-func (s *storage) PreSignUrl(ctx context.Context, objectName string) (*oss.PresignResult, error) {
-	result, err := s.OssClient.Presign(ctx, &oss.GetObjectRequest{
-		Bucket: oss.Ptr(config.Oss.Bucket),
-		Key:    oss.Ptr(objectName),
-	}, oss.PresignExpires(10*time.Minute))
+// PreSignUrl 生成一个预签名的 URL，用于访问或上传指定的对象。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和取消操作。
+//   - objectName: 对象的名称（通常是文件名），用于标识存储桶中的具体对象。
+//   - method: 操作方法，支持 "Get" 或 "Put"，分别表示获取对象和上传对象。
+//
+// 返回值:
+//   - *oss.PresignResult: 包含预签名 URL 和相关元数据的结果对象。
+//   - error: 如果发生错误，返回具体的错误信息。
+func (s *storage) PreSignUrl(ctx context.Context, objectName, method string, duration time.Duration) (*oss.PresignResult, error) {
+	// 根据传入的方法构造对应的请求体
+	var request oss.RequestCommonInterface
+	switch method {
+	case ossstore.Get:
+		// 构造获取对象的请求
+		request = &oss.GetObjectRequest{
+			Bucket: oss.Ptr(config.Oss.Bucket),
+			Key:    oss.Ptr(objectName),
+		}
+	case ossstore.Put:
+		// 构造上传对象的请求
+		request = &oss.PutObjectRequest{
+			Bucket: oss.Ptr(config.Oss.Bucket),
+			Key:    oss.Ptr(objectName),
+		}
+	default:
+		// 如果传入的方法不被支持，返回错误
+		return nil, errors.New("不支持的方法")
+	}
+
+	// 调用 OSS 客户端生成预签名 URL，设置过期时间为 10 分钟
+	result, err := s.OssClient.Presign(ctx, request, oss.PresignExpires(duration))
 
 	if err != nil {
+		// 如果生成预签名 URL 失败，记录错误日志并返回错误信息
 		msg := fmt.Sprintf("生成预签名 URL 失败: %v", err)
 		logger.Error(msg)
 		return nil, errors.New(msg)
 	}
 
+	// 返回生成的预签名结果
 	return result, nil
 }
 
