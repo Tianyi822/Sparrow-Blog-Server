@@ -241,7 +241,7 @@ func AddBlog(tx *gorm.DB, blogDto *dto.BlogDto) error {
 func UpdateBlog(tx *gorm.DB, blogDto *dto.BlogDto) error {
 	logger.Info("开始更新播客数据")
 	// 更新博客信息。
-	if err := tx.Model(&po.Blog{}).Where("b_id = ?", blogDto.BlogId).Updates(po.Blog{
+	if err := tx.Model(&po.Blog{}).Where("blog_id = ?", blogDto.BlogId).Updates(po.Blog{
 		BlogBrief:    blogDto.BlogBrief,
 		CategoryId:   blogDto.CategoryId,
 		BlogTitle:    blogDto.BlogTitle,

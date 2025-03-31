@@ -258,7 +258,7 @@ func AddBlogTagAssociation(tx *gorm.DB, blogId string, tags []dto.TagDto) error 
 //   - error: 如果操作失败，返回错误信息；如果成功，返回 nil。
 func UpdateBlogTagAssociation(tx *gorm.DB, blogId string, newTags []dto.TagDto) error {
 	// 删除指定博客的所有旧标签关联数据。
-	if err := tx.Delete(&po.BlogTag{}).Where("blog_id = ?", blogId).Error; err != nil {
+	if err := tx.Where("blog_id = ?", blogId).Delete(&po.BlogTag{}).Error; err != nil {
 		msg := fmt.Sprintf("删除博客标签关联数据失败: %v", err)
 		logger.Warn(msg)
 		return errors.New(msg)
