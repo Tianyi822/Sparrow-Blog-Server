@@ -213,6 +213,7 @@ func updateOrAddBlog(ctx *gin.Context) {
 
 	// 如果操作成功，返回成功的HTTP响应。
 	resp.Ok(ctx, "操作成功", map[string]string{
+		"blog_id":     blogDto.BlogId,
 		"presign_url": presignUrl,
 	})
 }
