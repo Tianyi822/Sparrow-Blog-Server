@@ -14,6 +14,8 @@ import (
 	"h2blog_server/pkg/logger"
 	"h2blog_server/pkg/webjwt"
 	"h2blog_server/storage"
+	"h2blog_server/storage/ossstore"
+	"time"
 )
 
 // Login 函数用于验证用户登录信息。
@@ -139,7 +141,7 @@ func GetAllCategoriesAndTags(ctx context.Context) ([]*dto.CategoryDto, []*dto.Ta
 //
 // 返回值:
 //   - error: 如果操作过程中发生错误，则返回具体的错误信息；否则返回 nil。
-func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) error {
+func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) (string, error) {
 	// 开启事务
 	tx := storage.Storage.Db.WithContext(ctx).Begin()
 	defer func() {
@@ -157,7 +159,7 @@ func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) error {
 		err := categoryRepo.AddCategory(tx, &categoryDto)
 		if err != nil {
 			tx.Rollback()
-			return err
+			return "", err
 		}
 		blogDto.CategoryId = categoryDto.CategoryId
 	}
@@ -184,7 +186,7 @@ func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) error {
 			newTags, err = tagRepo.AddTags(tx, tagsWithoutId)
 			if err != nil {
 				tx.Rollback()
-				return err
+				return "", err
 			}
 			// 将有 ID 的标签和新创建的标签合并回 blogDto。
 			blogDto.Tags = append(tagsWithId, newTags...)
@@ -195,42 +197,49 @@ func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) error {
 	if len(blogDto.BlogId) == 0 {
 		if err := blogRepo.AddBlog(tx, blogDto); err != nil {
 			tx.Rollback()
-			return err
+			return "", err
 		}
 
 		// 建立标签与博客的关联关系
 		if err := tagRepo.AddBlogTagAssociation(tx, blogDto.BlogId, blogDto.Tags); err != nil {
 			tx.Rollback()
-			return err
+			return "", err
 		}
 	} else {
 		if err := blogRepo.UpdateBlog(tx, blogDto); err != nil {
 			tx.Rollback()
-			return err
+			return "", err
 		}
 
 		// 更新标签与博客的关联关系
 		if err := tagRepo.UpdateBlogTagAssociation(tx, blogDto.BlogId, blogDto.Tags); err != nil {
 			tx.Rollback()
-			return err
+			return "", err
 		}
+	}
+	logger.Info("完成博客的更新或创建操作")
+
+	// 为该博客生成预签名上传 URL
+	presign, err := storage.Storage.PreSignUrl(ctx, ossstore.GenOssSavePath(blogDto.BlogTitle, ossstore.MarkDown), ossstore.Put, 1*time.Minute)
+	if err != nil {
+		tx.Rollback()
+		return "", err
 	}
 
 	// 提交事务
 	tx.Commit()
-	logger.Info("完成博客的更新或创建操作")
 
-	return nil
+	return presign.URL, nil
 }
 
-// DeleteBlog 删除指定ID的博客，并根据相关联的数据进行清理操作。
+// DeleteBlogById 删除指定ID的博客，并根据相关联的数据进行清理操作。
 // 参数:
 //   - ctx: 上下文对象，用于控制请求生命周期和传递元数据。
 //   - id: 要删除的博客的唯一标识符。
 //
 // 返回值:
 //   - error: 如果删除过程中发生错误，则返回错误信息；否则返回 nil。
-func DeleteBlog(ctx context.Context, id string) error {
+func DeleteBlogById(ctx context.Context, id string) error {
 	// 获取与博客关联的分类ID。
 	categoryId, err := blogRepo.GetCategoryIdByBlogId(ctx, id)
 	if err != nil {
