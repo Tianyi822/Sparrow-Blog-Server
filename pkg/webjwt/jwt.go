@@ -1,4 +1,4 @@
-package webJwt
+package webjwt
 
 import (
 	"errors"
@@ -62,7 +62,7 @@ func GenerateJWTToken() (string, error) {
 // 返回值:
 //   - *CustomClaims: 如果解析成功且令牌有效，则返回包含自定义声明的结构体指针。
 //   - error: 如果解析失败、签名验证失败或令牌无效，则返回错误信息。
-func ParseJWTToken(tokenString string, secretKey string) (*CustomClaims, error) {
+func ParseJWTToken(tokenString string) (*CustomClaims, error) {
 	// 使用jwt.ParseWithClaims解析令牌，并提供一个回调函数用于验证签名方法。
 	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		// 验证签名方法是否为HMAC算法，如果不是则返回错误。
@@ -70,7 +70,7 @@ func ParseJWTToken(tokenString string, secretKey string) (*CustomClaims, error) 
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		// 返回密钥以供签名验证使用。
-		return []byte(secretKey), nil
+		return []byte(config.Server.TokenKey), nil
 	})
 	if err != nil {
 		// 如果解析过程中发生错误，直接返回错误信息。

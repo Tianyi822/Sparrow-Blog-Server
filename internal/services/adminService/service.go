@@ -12,7 +12,7 @@ import (
 	"h2blog_server/internal/repository/tagRepo"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
-	"h2blog_server/pkg/webJwt"
+	"h2blog_server/pkg/webjwt"
 	"h2blog_server/storage"
 )
 
@@ -61,7 +61,7 @@ func Login(ctx context.Context, email, verificationCode string) (string, error) 
 	}
 
 	// 使用 JWT 工具生成并返回 Token
-	token, err := webJwt.GenerateJWTToken()
+	token, err := webjwt.GenerateJWTToken()
 	if err != nil {
 		msg := fmt.Sprintf("生成 Token 失败: %v", err.Error())
 		logger.Warn(msg)
