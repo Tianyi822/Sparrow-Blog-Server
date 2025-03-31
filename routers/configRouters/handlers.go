@@ -295,18 +295,18 @@ func configOss(ctx *gin.Context) {
 	}
 
 	// 配置 OSS 基础信息，包括 endpoint、region、access key 等
-	ossConfig.Endpoint = strings.TrimSpace(rawData["oss.endpoint"].(string))
-	ossConfig.Region = strings.TrimSpace(rawData["oss.region"].(string))
-	ossConfig.AccessKeyId = strings.TrimSpace(rawData["oss.access_key_id"].(string))
-	ossConfig.AccessKeySecret = strings.TrimSpace(rawData["oss.access_key_secret"].(string))
-	ossConfig.Bucket = strings.TrimSpace(rawData["oss.bucket"].(string))
+	ossConfig.Endpoint = strings.TrimSpace(rawData["ossstore.endpoint"].(string))
+	ossConfig.Region = strings.TrimSpace(rawData["ossstore.region"].(string))
+	ossConfig.AccessKeyId = strings.TrimSpace(rawData["ossstore.access_key_id"].(string))
+	ossConfig.AccessKeySecret = strings.TrimSpace(rawData["ossstore.access_key_secret"].(string))
+	ossConfig.Bucket = strings.TrimSpace(rawData["ossstore.bucket"].(string))
 	if err = tools.AnalyzeOssConfig(&ossConfig); err != nil {
 		resp.BadRequest(ctx, "OSS 配置错误", err.Error())
 		return
 	}
 
 	// 配置 OSS 图片路径，并验证路径的合法性
-	imageOssPath := strings.TrimSpace(rawData["oss.image_oss_path"].(string))
+	imageOssPath := strings.TrimSpace(rawData["ossstore.image_oss_path"].(string))
 	if err := tools.AnalyzeOssPath(imageOssPath); err != nil {
 		resp.BadRequest(ctx, "图片 OSS 路径配置错误", err.Error())
 		return
@@ -314,7 +314,7 @@ func configOss(ctx *gin.Context) {
 	ossConfig.ImageOssPath = imageOssPath
 
 	// 配置 OSS 博客路径，并验证路径的合法性
-	blogOssPath := strings.TrimSpace(rawData["oss.blog_oss_path"].(string))
+	blogOssPath := strings.TrimSpace(rawData["ossstore.blog_oss_path"].(string))
 	if err := tools.AnalyzeOssPath(blogOssPath); err != nil {
 		resp.BadRequest(ctx, "博客 OSS 路径配置错误", err.Error())
 		return
@@ -322,21 +322,21 @@ func configOss(ctx *gin.Context) {
 	ossConfig.BlogOssPath = blogOssPath
 
 	// 配置 WebP 相关参数，包括启用状态、压缩质量和压缩后大小
-	webpEnable, err := tools.GetUInt16FromRawData(rawData, "oss.webp.enable")
+	webpEnable, err := tools.GetUInt16FromRawData(rawData, "ossstore.webp.enable")
 	if err != nil {
 		resp.BadRequest(ctx, "WebP 启用配置错误", err.Error())
 		return
 	}
 	ossConfig.WebP.Enable = webpEnable == 1
 
-	webpQuality, err := tools.GetFloatFromRawData(rawData, "oss.webp.quality")
+	webpQuality, err := tools.GetFloatFromRawData(rawData, "ossstore.webp.quality")
 	if err != nil {
 		resp.BadRequest(ctx, "WebP 压缩质量配置错误", err.Error())
 		return
 	}
 	ossConfig.WebP.Quality = webpQuality
 
-	webpSize, err := tools.GetFloatFromRawData(rawData, "oss.webp.size")
+	webpSize, err := tools.GetFloatFromRawData(rawData, "ossstore.webp.size")
 	if err != nil {
 		resp.BadRequest(ctx, "WebP 压缩后大小配置错误", err.Error())
 		return

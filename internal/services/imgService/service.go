@@ -13,7 +13,7 @@ import (
 	"h2blog_server/pkg/utils"
 	"h2blog_server/pkg/webp"
 	"h2blog_server/storage"
-	"h2blog_server/storage/oss"
+	"h2blog_server/storage/ossstore"
 	"time"
 )
 
@@ -29,7 +29,7 @@ func GetPreSignUrlOfImg(ctx context.Context) (string, error) {
 		return "", err
 	}
 
-	result, err := storage.Storage.PreSignUrl(ctx, oss.GenOssSavePath(imgPo.ImgName, imgPo.ImgType))
+	result, err := storage.Storage.PreSignUrl(ctx, ossstore.GenOssSavePath(imgPo.ImgName, imgPo.ImgType), ossstore.Get)
 	if err != nil {
 		return "", err
 	}
@@ -147,7 +147,7 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (*vo.ImgInfosVo
 
 				if data.Flag { // 转换成功，存入数据库
 					// 构建 po 对象
-					imgPo.ImgType = oss.Webp
+					imgPo.ImgType = ossstore.Webp
 					// 将转换成功的数据暂存到 imgPos 中
 					imgPos = append(imgPos, imgPo)
 					// 将转换成功的图片信息存入 successImgsVo 中
@@ -234,7 +234,7 @@ func DeleteImgs(ctx context.Context, imgIds []string) (*vo.ImgInfosVo, error) {
 		// 找到了，则执行删除操作
 		if imgPo != nil {
 			// 从 Oss 中删除该图片
-			ossPath := oss.GenOssSavePath(imgPo.ImgName, imgPo.ImgType)
+			ossPath := ossstore.GenOssSavePath(imgPo.ImgName, imgPo.ImgType)
 			err = storage.Storage.DeleteObject(ctx, ossPath)
 
 			if err != nil { // Oss 删除失败
@@ -285,9 +285,9 @@ func RenameImgs(ctx context.Context, imgId string, newName string) (*vo.ImgInfoV
 	// 更新 Oss 中的图片名称
 	if imgPo != nil {
 		// 生成新的 Oss 路径
-		newOssPath := oss.GenOssSavePath(newName, imgPo.ImgType)
+		newOssPath := ossstore.GenOssSavePath(newName, imgPo.ImgType)
 		// 生成旧的 Oss 路径
-		oldOssPath := oss.GenOssSavePath(imgPo.ImgName, imgPo.ImgType)
+		oldOssPath := ossstore.GenOssSavePath(imgPo.ImgName, imgPo.ImgType)
 		// 重命名 Oss 中的图片
 		err = storage.Storage.RenameObject(ctx, oldOssPath, newOssPath)
 	} else {

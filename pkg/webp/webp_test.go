@@ -6,7 +6,7 @@ import (
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
 	"h2blog_server/storage"
-	"h2blog_server/storage/oss"
+	"h2blog_server/storage/ossstore"
 	"strings"
 	"testing"
 	"time"
@@ -45,11 +45,11 @@ func TestConverter(t *testing.T) {
 		}
 		switch imgType {
 		case "jpg":
-			imgDto.ImgType = oss.JPG
+			imgDto.ImgType = ossstore.JPG
 		case "jpeg":
-			imgDto.ImgType = oss.JPEG
+			imgDto.ImgType = ossstore.JPEG
 		case "png":
-			imgDto.ImgType = oss.PNG
+			imgDto.ImgType = ossstore.PNG
 		default:
 			continue
 		}

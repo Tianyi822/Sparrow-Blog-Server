@@ -7,7 +7,7 @@ import (
 	"h2blog_server/pkg/logger"
 	"h2blog_server/pkg/webp"
 	"h2blog_server/storage"
-	"h2blog_server/storage/oss"
+	"h2blog_server/storage/ossstore"
 	"strings"
 	"testing"
 	"time"
@@ -46,11 +46,11 @@ func TestConvertAndAddImg(t *testing.T) {
 		}
 		switch imgType {
 		case "jpg":
-			imgDto.ImgType = oss.JPG
+			imgDto.ImgType = ossstore.JPG
 		case "jpeg":
-			imgDto.ImgType = oss.JPEG
+			imgDto.ImgType = ossstore.JPEG
 		case "png":
-			imgDto.ImgType = oss.PNG
+			imgDto.ImgType = ossstore.PNG
 		default:
 			continue
 		}
@@ -95,11 +95,11 @@ func TestDeleteImgs(t *testing.T) {
 		}
 		switch imgType {
 		case "jpg":
-			imgDto.ImgType = oss.JPG
+			imgDto.ImgType = ossstore.JPG
 		case "jpeg":
-			imgDto.ImgType = oss.JPEG
+			imgDto.ImgType = ossstore.JPEG
 		case "png":
-			imgDto.ImgType = oss.PNG
+			imgDto.ImgType = ossstore.PNG
 		default:
 			continue
 		}
@@ -160,7 +160,7 @@ func TestRenameImgs(t *testing.T) {
 	// First add a test image to have something to rename
 	imgDto := dto.ImgDto{
 		ImgName: "test-image",
-		ImgType: oss.JPG,
+		ImgType: ossstore.JPG,
 	}
 	imgsDto := &dto.ImgsDto{
 		Imgs: []dto.ImgDto{imgDto},

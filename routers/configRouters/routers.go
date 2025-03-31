@@ -74,9 +74,9 @@ func Routers(e *gin.Engine) {
 
 	// 配置 OSS，其配置项如下，保存在 config.yaml 中：
 	//
-	// oss:
+	// ossstore:
 	//   # OSS endpoint
-	//   endpoint: oss-xx-xxxxxx.xxxxxx.com
+	//   endpoint: ossstore-xx-xxxxxx.xxxxxx.com
 	//   # OSS 地域
 	//   region: cn-xxxxxx
 	//   # OSS AccessKey ID
