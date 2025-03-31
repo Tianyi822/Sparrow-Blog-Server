@@ -194,6 +194,30 @@ func DeleteTags(tx *gorm.DB, tags []dto.TagDto) error {
 	return nil
 }
 
+// DeleteBlogTagAssociationByBlogId 根据博客ID删除博客与标签的关联数据。
+// 参数:
+//   - tx: *gorm.DB，数据库事务对象，用于执行删除操作。
+//   - blogId: string，博客的唯一标识符，用于定位需要删除的关联数据。
+//
+// 返回值:
+//   - error: 如果删除过程中发生错误，则返回包含错误信息的error对象；否则返回nil。
+func DeleteBlogTagAssociationByBlogId(tx *gorm.DB, blogId string) error {
+	logger.Info("删除博客标签关联数据")
+
+	// 使用GORM的Where方法根据blogId条件删除关联数据。
+	result := tx.Where("blog_id = ?", blogId).Delete(&po.BlogTag{})
+	if result.Error != nil {
+		// 如果删除操作失败，记录警告日志并返回错误信息。
+		msg := fmt.Sprintf("删除博客标签关联数据失败: %v", result.Error)
+		logger.Warn(msg)
+		return errors.New(msg)
+	}
+
+	logger.Info("删除博客标签关联数据成功")
+
+	return nil
+}
+
 // AddBlogTagAssociation 用于将博客与标签的关联数据批量保存到数据库中。
 // 参数说明：
 //   - tx: 数据库事务对象，用于执行数据库操作。
