@@ -5,19 +5,21 @@ import (
 	"fmt"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
+	"h2blog_server/storage/ossstore"
 	"testing"
+	"time"
 )
 
 func init() {
 	// 加载配置文件
-	config.LoadConfig()
+	_ = config.LoadConfig()
 	// 初始化 Logger 组件
 	err := logger.InitLogger(context.Background())
 	if err != nil {
 		return
 	}
 	// 初始化数据库组件
-	InitStorage(context.Background())
+	_ = InitStorage(context.Background())
 }
 
 func TestStorage_GetContentFromOss(t *testing.T) {
@@ -43,7 +45,17 @@ func TestStorage_ListOssDirFiles(t *testing.T) {
 
 func TestStorage_PreSignUrl(t *testing.T) {
 	ctx := context.Background()
-	url, err := Storage.PreSignUrl(ctx, "images/1714135012409.webp")
+	url, err := Storage.PreSignUrl(ctx, "images/1714135012409.webp", ossstore.Get, 10*time.Minute)
+	if err != nil {
+		fmt.Printf("获取预签名URL失败: %v", err)
+	}
+
+	fmt.Println(url)
+}
+
+func TestStorage_PreSignUrl_Put(t *testing.T) {
+	ctx := context.Background()
+	url, err := Storage.PreSignUrl(ctx, "images/1714135012409.webp", ossstore.Put, 1*time.Minute)
 	if err != nil {
 		fmt.Printf("获取预签名URL失败: %v", err)
 	}
