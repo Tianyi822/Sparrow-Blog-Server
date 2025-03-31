@@ -19,8 +19,8 @@ type CustomClaims struct {
 
 // GenerateJWTToken 生成一个带有自定义声明的 JWT Token。
 // 返回值：
-// - string: 生成的 JWT Token 字符串。
-// - error: 如果在生成随机字符串或签名 Token 时发生错误，则返回相应的错误信息。
+//   - string: 生成的 JWT Token 字符串。
+//   - error: 如果在生成随机字符串或签名 Token 时发生错误，则返回相应的错误信息。
 func GenerateJWTToken() (string, error) {
 	// 生成随机字符串，用于增强 Token 的安全性。
 	randomStr, err := utils.HashWithLength(config.User.UserEmail, 128)
