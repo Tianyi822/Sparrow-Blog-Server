@@ -252,26 +252,35 @@ func DeleteBlogById(ctx context.Context, id string) error {
 		return err
 	}
 
-	// 开启删除博客事务
-	deleteBlogTx := storage.Storage.Db.WithContext(ctx).Begin()
-	// 调用仓库方法根据ID删除博客。
-	err = blogRepo.DeleteBlogById(deleteBlogTx, id)
+	// 获取博客标题
+	blogTitle, err := blogRepo.FindBlogTitleById(ctx, id)
 	if err != nil {
-		deleteBlogTx.Rollback()
+		return err
+	}
+
+	// 开启删除博客事务
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	// 调用仓库方法根据ID删除博客。
+	err = blogRepo.DeleteBlogById(tx, id)
+	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	// 删除博客标签关联数据
-	err = tagRepo.DeleteBlogTagAssociationByBlogId(deleteBlogTx, id)
+	err = tagRepo.DeleteBlogTagAssociationByBlogId(tx, id)
 	if err != nil {
-		deleteBlogTx.Rollback()
+		tx.Rollback()
 		return err
 	}
-	// 博客删除就提交，以便删除后续的标签和分类
-	deleteBlogTx.Commit()
 
-	// 开启维护分类和标签数据的事务
-	catTagTx := storage.Storage.Db.WithContext(ctx).Begin()
+	// 删除博客对应的 Markdown 文件
+	err = storage.Storage.DeleteObject(ctx, ossstore.GenOssSavePath(blogTitle, ossstore.MarkDown))
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	// 统计该分类下剩余的博客数量。
 	num, err := blogRepo.CalBlogsCountByCategoryId(ctx, categoryId)
 	if err != nil {
@@ -279,10 +288,11 @@ func DeleteBlogById(ctx context.Context, id string) error {
 	}
 
 	// 如果该分类下没有博客，则删除该分类。
-	if num == 0 {
-		err = categoryRepo.DeleteCategoryById(catTagTx, categoryId)
+	// 这里之所以需要减 1 是因为执行到这里事务还没有提交，博客数据并没有删除，所以需要减 1。
+	if num-1 == 0 {
+		err = categoryRepo.DeleteCategoryById(tx, categoryId)
 		if err != nil {
-			catTagTx.Rollback()
+			tx.Rollback()
 			return err
 		}
 	}
@@ -296,20 +306,21 @@ func DeleteBlogById(ctx context.Context, id string) error {
 		}
 
 		// 如果某个标签没有其他博客关联，则删除该标签。
-		if num == 0 {
+		// 这里减 1 的逻辑同上
+		if num-1 == 0 {
 			tagsWithoutBlog = append(tagsWithoutBlog, tag)
 		}
 	}
 
 	if len(tagsWithoutBlog) != 0 {
-		err = tagRepo.DeleteTags(catTagTx, tagsWithoutBlog)
+		err = tagRepo.DeleteTags(tx, tagsWithoutBlog)
 		if err != nil {
-			catTagTx.Rollback()
+			tx.Rollback()
 			return err
 		}
 	}
 	// 标签和分类数据维护完成，提交事务
-	catTagTx.Commit()
+	tx.Commit()
 	logger.Info("删除博客数据成功")
 
 	return nil
