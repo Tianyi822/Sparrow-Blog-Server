@@ -12,6 +12,29 @@ import (
 	"h2blog_server/storage"
 )
 
+// FindBlogTitleById 根据博客ID查询博客的标题信息。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
+//   - id: 博客的唯一标识符，用于查询特定博客的信息。
+//
+// 返回值:
+//   - *dto.BlogDto: 包含博客ID和标题的数据传输对象，如果查询失败则返回nil。
+//   - error: 查询过程中发生的错误信息，如果没有错误则返回nil。
+func FindBlogTitleById(ctx context.Context, id string) (string, error) {
+	blog := &po.Blog{}
+
+	if err := storage.Storage.Db.WithContext(ctx).Model(&po.Blog{}).
+		Where("blog_id = ?", id).
+		Select("blog_id", "blog_title").
+		Find(&blog).Error; err != nil {
+		msg := fmt.Sprintf("查询博客信息失败: %v", err)
+		logger.Warn(msg)
+		return "", errors.New(msg)
+	}
+
+	return blog.BlogTitle, nil
+}
+
 // FindAllBlogs 查询所有博客信息，并根据需要返回简要信息。
 // 参数:
 //   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
