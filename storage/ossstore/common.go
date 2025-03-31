@@ -19,6 +19,10 @@ const (
 	Put = "PUT"
 )
 
+const (
+	MarkdownHeader = "text/markdown"
+)
+
 // GenOssSavePath 用于生成博客保存路径
 func GenOssSavePath(name string, fileType string) string {
 	switch fileType {

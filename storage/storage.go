@@ -257,8 +257,9 @@ func (s *storage) PreSignUrl(ctx context.Context, objectName, method string, dur
 	case ossstore.Put:
 		// 构造上传对象的请求
 		request = &oss.PutObjectRequest{
-			Bucket: oss.Ptr(config.Oss.Bucket),
-			Key:    oss.Ptr(objectName),
+			Bucket:      oss.Ptr(config.Oss.Bucket),
+			Key:         oss.Ptr(objectName),
+			ContentType: oss.Ptr(ossstore.MarkdownHeader),
 		}
 	default:
 		// 如果传入的方法不被支持，返回错误
