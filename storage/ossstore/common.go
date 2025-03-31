@@ -8,7 +8,6 @@ import (
 
 const (
 	MarkDown = "markdown"
-	HTML     = "html"
 	Webp     = "webp"
 	JPG      = "jpg"
 	JPEG     = "jpeg"
@@ -25,8 +24,6 @@ func GenOssSavePath(name string, fileType string) string {
 	switch fileType {
 	case MarkDown:
 		return fmt.Sprintf("%s%s.md", config.Oss.BlogOssPath, name)
-	case HTML:
-		return fmt.Sprintf("%s%s.html", config.Oss.BlogOssPath, name)
 	case Webp:
 		return fmt.Sprintf("%s%s.webp", config.Oss.ImageOssPath, name)
 	case JPG:
