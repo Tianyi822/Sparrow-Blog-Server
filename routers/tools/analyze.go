@@ -48,6 +48,10 @@ func AnalyzePort(port string) (uint16, error) {
 // 若 tokenKey 的熵小于3，则认为不安全
 func AnalyzeTokenKey(tokenKey string) error {
 
+	if len(tokenKey) <= 32 {
+		return fmt.Errorf("tokenKey %v 长度小于 32", tokenKey)
+	}
+
 	charCount := make(map[rune]int)
 	for _, char := range tokenKey {
 		charCount[char]++
