@@ -12,9 +12,6 @@
 /bin/
 /dist/
 
-# Go 工作空间
-/pkg/
-
 # 依赖目录
 /vendor/
 
