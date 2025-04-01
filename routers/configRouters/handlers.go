@@ -105,7 +105,7 @@ func configUser(ctx *gin.Context) {
 			return
 		}
 	case env.ProvEnv, env.DebugEnv:
-		c, err := storage.Storage.Cache.GetString(ctx, env.VerificationCodeKey)
+		c, err := storage.Storage.Cache.GetString(ctx, storage.VerificationCodeKey)
 		if err != nil {
 			resp.BadRequest(ctx, "验证码过期", err.Error())
 			return
@@ -124,7 +124,7 @@ func configUser(ctx *gin.Context) {
 	case env.InitializedEnv:
 		env.VerificationCode = ""
 	case env.ProvEnv:
-		err := storage.Storage.Cache.Delete(ctx, env.VerificationCodeKey)
+		err := storage.Storage.Cache.Delete(ctx, storage.VerificationCodeKey)
 		if err != nil {
 			resp.Err(ctx, "验证码缓存清除失败", err.Error())
 			return
