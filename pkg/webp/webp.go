@@ -95,8 +95,8 @@ func InitConverter(ctx context.Context) error {
 	}
 }
 
-// AddBatchTasks 批量添加转换任务
-// 将多个图片转换任务加入处理队列
+// AddBatchTasks 批量添加转换任务，将多个图片转换任务加入处理队列
+//
 // 参数：
 //   - ctx: 上下文
 //   - dtos: 图片信息列表
@@ -105,11 +105,11 @@ func InitConverter(ctx context.Context) error {
 //   - error: 添加失败时返回错误
 func (c *converter) AddBatchTasks(ctx context.Context, dtos []dto.ImgDto) error {
 	if c.isClosed.Load() {
-		return errors.New("converter has been shut down")
+		return errors.New("转换器已经停止运行")
 	}
 
 	if len(dtos) == 0 {
-		return errors.New("empty task list")
+		return nil
 	}
 
 	// 设置总任务数

@@ -16,14 +16,14 @@ import (
 
 func init() {
 	// 加载配置文件
-	config.LoadConfig()
+	_ = config.LoadConfig()
 	// 初始化 Logger 组件
 	err := logger.InitLogger(context.Background())
 	if err != nil {
 		return
 	}
 	// 初始化数据库组件
-	storage.InitStorage(context.Background())
+	_ = storage.InitStorage(context.Background())
 }
 
 func TestGetBackgroundImg(t *testing.T) {
@@ -42,12 +42,12 @@ func TestImgInfo_AddOne(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		imgInfo po.ImgInfo
+		imgInfo po.H2Img
 		wantErr bool
 	}{
 		{
 			name: "正常添加",
-			imgInfo: po.ImgInfo{
+			imgInfo: po.H2Img{
 				ImgName:    "test.jpg",
 				CreateTime: time.Now(),
 				UpdateTime: time.Now(),
@@ -56,7 +56,7 @@ func TestImgInfo_AddOne(t *testing.T) {
 		},
 		{
 			name: "重复数据",
-			imgInfo: po.ImgInfo{
+			imgInfo: po.H2Img{
 				ImgName:    "test.jpg",
 				CreateTime: time.Now(),
 				UpdateTime: time.Now(),
@@ -88,7 +88,7 @@ func TestImgInfo_AddOne(t *testing.T) {
 				assert.Equal(t, int64(1), num)
 
 				// 验证数据是否正确保存
-				var saved po.ImgInfo
+				var saved po.H2Img
 				err = tx.Where("img_name = ?", tt.imgInfo.ImgName).First(&saved).Error
 				assert.NoError(t, err)
 			}
@@ -100,7 +100,7 @@ func TestImgInfo_FindOneById(t *testing.T) {
 	ctx := context.Background()
 
 	// 准备测试数据
-	testImg := po.ImgInfo{
+	testImg := po.H2Img{
 		ImgId:      "test123456789012",
 		ImgName:    "test_find.jpg",
 		CreateTime: time.Now(),
@@ -131,7 +131,7 @@ func TestImgInfo_FindOneById(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ii := &po.ImgInfo{
+			ii := &po.H2Img{
 				ImgId: tt.imgId,
 			}
 
@@ -155,7 +155,7 @@ func TestImgInfo_FindByNameLike(t *testing.T) {
 	defer tx.Rollback()
 
 	// 准备测试数据
-	testImages := []po.ImgInfo{
+	testImages := []po.H2Img{
 		{ImgId: "test111", ImgName: "test_image_1.jpg"},
 		{ImgId: "test222", ImgName: "test_image_2.jpg"},
 		{ImgId: "test333", ImgName: "other_image.jpg"},
@@ -213,13 +213,13 @@ func TestImgInfo_AddBatch(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		images   []po.ImgInfo
+		images   []po.H2Img
 		wantRows int64
 		wantErr  bool
 	}{
 		{
 			name: "正常批量添加",
-			images: []po.ImgInfo{
+			images: []po.H2Img{
 				{
 					ImgId:      "batch_test_1",
 					ImgName:    "batch1.jpg",
@@ -238,13 +238,13 @@ func TestImgInfo_AddBatch(t *testing.T) {
 		},
 		{
 			name:     "空切片添加",
-			images:   []po.ImgInfo{},
+			images:   []po.H2Img{},
 			wantRows: 0,
 			wantErr:  false,
 		},
 		{
 			name: "重复数据添加",
-			images: []po.ImgInfo{
+			images: []po.H2Img{
 				{
 					ImgId:      "batch_test_1",
 					ImgName:    "batch1.jpg",
@@ -275,7 +275,7 @@ func TestImgInfo_AddBatch(t *testing.T) {
 
 				// 验证数据是否正确保存
 				if len(tt.images) > 0 {
-					var saved []po.ImgInfo
+					var saved []po.H2Img
 					err = tx.Where("img_id IN ?", []string{tt.images[0].ImgId}).Find(&saved).Error
 					assert.NoError(t, err)
 					assert.Equal(t, len(saved), 1)
@@ -285,7 +285,7 @@ func TestImgInfo_AddBatch(t *testing.T) {
 
 			// 删除测试数据
 			//for _, img := range tt.images {
-			//	tx.Where("img_id = ?", img.ImgId).Delete(&po.ImgInfo{})
+			//	tx.Where("img_id = ?", img.ImgId).Delete(&po.H2Img{})
 			//}
 			//tx.Commit()
 		})
@@ -296,7 +296,7 @@ func TestImgInfo_DeleteBatch(t *testing.T) {
 	ctx := context.Background()
 
 	// Prepare test data
-	testImages := []po.ImgInfo{
+	testImages := []po.H2Img{
 		{
 			ImgId:      "delete_test_1",
 			ImgName:    "delete1.jpg",
@@ -360,7 +360,7 @@ func TestImgInfo_DeleteBatch(t *testing.T) {
 				// Verify records were deleted
 				if len(tt.ids) > 0 {
 					var count int64
-					tx.Model(&po.ImgInfo{}).Where("img_id IN ?", tt.ids).Count(&count)
+					tx.Model(&po.H2Img{}).Where("img_id IN ?", tt.ids).Count(&count)
 					assert.Equal(t, int64(0), count)
 				}
 			}
@@ -372,7 +372,7 @@ func TestImgInfo_UpdateNameById(t *testing.T) {
 	ctx := context.Background()
 
 	// Prepare test data
-	testImg := po.ImgInfo{
+	testImg := po.H2Img{
 		ImgId:      "update_test_1",
 		ImgName:    "original.jpg",
 		CreateTime: time.Now(),
@@ -424,7 +424,7 @@ func TestImgInfo_UpdateNameById(t *testing.T) {
 
 				// Verify name was updated
 				if tt.wantRows > 0 {
-					var updated po.ImgInfo
+					var updated po.H2Img
 					tx.Where("img_id = ?", tt.id).First(&updated)
 					assert.Equal(t, tt.newName, updated.ImgName)
 				}

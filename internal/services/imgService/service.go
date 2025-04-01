@@ -122,7 +122,7 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (*vo.ImgInfosVo
 	// - 转换成功
 	// - 转换失败
 	// - 上传失败
-	var imgPos []po.ImgInfo
+	var imgPos []po.H2Img
 
 	var successImgsVo []vo.ImgInfoVo
 	var failImgsVo []vo.ImgInfoVo
@@ -140,7 +140,7 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (*vo.ImgInfosVo
 					continue
 				}
 
-				imgPo := po.ImgInfo{
+				imgPo := po.H2Img{
 					ImgId:   imgId,
 					ImgName: data.ImgDto.ImgName,
 				}
@@ -190,7 +190,7 @@ func ConvertAndAddImg(ctx context.Context, imgsDto *dto.ImgsDto) (*vo.ImgInfosVo
 }
 
 // handleConvertedImgsData 处理转换后的图片数据
-func handleConvertedImgsData(ctx context.Context, imgPos []po.ImgInfo, successImgsVo, failImgsVo []vo.ImgInfoVo) (*vo.ImgInfosVo, error) {
+func handleConvertedImgsData(ctx context.Context, imgPos []po.H2Img, successImgsVo, failImgsVo []vo.ImgInfoVo) (*vo.ImgInfosVo, error) {
 	// 图片 vo 对象，包含压缩成功的和未成功的
 	imgInfosVo := &vo.ImgInfosVo{}
 	// 保存数据到数据库

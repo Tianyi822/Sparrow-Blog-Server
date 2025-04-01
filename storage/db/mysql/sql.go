@@ -83,7 +83,7 @@ const createH2BlogTagTableSQL = `
 `
 
 const createH2ImgInfoTableSQL = `
-	CREATE TABLE H2_IMG_INFO 
+	CREATE TABLE H2_IMG
 	(
 	    img_id 			VARCHAR(16) 	PRIMARY KEY NOT NULL															COMMENT '图片ID',
 	    img_name 		VARCHAR(255) 				NOT NULL	UNIQUE 													COMMENT '图片名称',

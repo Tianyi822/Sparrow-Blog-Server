@@ -13,8 +13,8 @@ import (
 // GetBackgroundImg 获取背景图片信息
 // - ctx: 上下文对象
 // 返回值: 图片信息实体指针和错误信息
-func GetBackgroundImg(ctx context.Context) (*po.ImgInfo, error) {
-	var img po.ImgInfo
+func GetBackgroundImg(ctx context.Context) (*po.H2Img, error) {
+	var img po.H2Img
 	result := storage.Storage.Db.Model(img).WithContext(ctx).Where("img_name = ?", config.User.BackgroundImage).First(&img)
 	if result.Error != nil {
 		msg := fmt.Sprintf("查询背景图片数据失败: %v", result.Error)
@@ -29,8 +29,8 @@ func GetBackgroundImg(ctx context.Context) (*po.ImgInfo, error) {
 // - ctx: 上下文对象
 // - imgId: 图片ID
 // 返回值: 图片信息实体指针和错误信息
-func FindImgById(ctx context.Context, imgId string) (*po.ImgInfo, error) {
-	var img po.ImgInfo
+func FindImgById(ctx context.Context, imgId string) (*po.H2Img, error) {
+	var img po.H2Img
 	// 使用GORM查询数据库，根据img_id查找单条记录
 	result := storage.Storage.Db.Model(img).WithContext(ctx).Where("img_id = ?", imgId).First(&img)
 	if result.Error != nil {
@@ -45,10 +45,10 @@ func FindImgById(ctx context.Context, imgId string) (*po.ImgInfo, error) {
 // - ctx: 上下文对象
 // - nameLike: 图片名称模糊匹配字符串
 // 返回值: 图片信息实体切片和错误信息
-func FindImgsByNameLike(ctx context.Context, nameLike string) ([]po.ImgInfo, error) {
-	var images []po.ImgInfo
+func FindImgsByNameLike(ctx context.Context, nameLike string) ([]po.H2Img, error) {
+	var images []po.H2Img
 	// 使用GORM进行模糊查询，查找img_name包含指定字符串的记录
-	result := storage.Storage.Db.Model(&po.ImgInfo{}).WithContext(ctx).Where("img_name LIKE ?", "%"+nameLike+"%").Find(&images)
+	result := storage.Storage.Db.Model(&po.H2Img{}).WithContext(ctx).Where("img_name LIKE ?", "%"+nameLike+"%").Find(&images)
 	if result.Error != nil {
 		msg := fmt.Sprintf("模糊查询图片信息失败: %v", result.Error)
 		logger.Error(msg)
@@ -61,7 +61,7 @@ func FindImgsByNameLike(ctx context.Context, nameLike string) ([]po.ImgInfo, err
 // - ctx: 上下文对象
 // - img: 图片信息实体指针
 // 返回值: 受影响的行数和错误信息
-func AddImgInfo(ctx context.Context, img *po.ImgInfo) (int64, error) {
+func AddImgInfo(ctx context.Context, img *po.H2Img) (int64, error) {
 	tx := storage.Storage.Db.Model(img).WithContext(ctx).Begin()
 	// 使用defer确保在panic时回滚事务
 	defer func() {
@@ -94,12 +94,12 @@ func AddImgInfo(ctx context.Context, img *po.ImgInfo) (int64, error) {
 // 返回值: 受影响的行数和错误信息
 // - int64: 受影响的行数
 // - error: 错误信息
-func AddImgInfoBatch(ctx context.Context, imgs []po.ImgInfo) (int64, error) {
+func AddImgInfoBatch(ctx context.Context, imgs []po.H2Img) (int64, error) {
 	if len(imgs) == 0 {
 		return 0, nil
 	}
 
-	tx := storage.Storage.Db.Model(&po.ImgInfo{}).WithContext(ctx).Begin()
+	tx := storage.Storage.Db.Model(&po.H2Img{}).WithContext(ctx).Begin()
 	// 使用defer确保在panic时回滚事务
 	defer func() {
 		if r := recover(); r != nil {
@@ -137,7 +137,7 @@ func DeleteImgInfoBatch(ctx context.Context, ids []string) (int64, error) {
 		return 0, nil
 	}
 
-	tx := storage.Storage.Db.Model(&po.ImgInfo{}).WithContext(ctx).Begin()
+	tx := storage.Storage.Db.Model(&po.H2Img{}).WithContext(ctx).Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Error("批量删除图片信息数据失败: %v", r)
@@ -148,9 +148,9 @@ func DeleteImgInfoBatch(ctx context.Context, ids []string) (int64, error) {
 	logger.Info("批量删除图片信息数据")
 
 	// 将ID转换为ImgInfo对象
-	var imgs []po.ImgInfo
+	var imgs []po.H2Img
 	for _, id := range ids {
-		imgs = append(imgs, po.ImgInfo{ImgId: id})
+		imgs = append(imgs, po.H2Img{ImgId: id})
 	}
 
 	// 执行删除操作
@@ -177,7 +177,7 @@ func DeleteImgInfoBatch(ctx context.Context, ids []string) (int64, error) {
 // - int64: 受影响的行数
 // - error: 错误信息
 func UpdateImgNameById(ctx context.Context, id string, name string) (int64, error) {
-	tx := storage.Storage.Db.Model(&po.ImgInfo{}).WithContext(ctx).Begin()
+	tx := storage.Storage.Db.Model(&po.H2Img{}).WithContext(ctx).Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Error("更新图片信息数据失败: %v", r)
@@ -186,7 +186,7 @@ func UpdateImgNameById(ctx context.Context, id string, name string) (int64, erro
 	}()
 
 	logger.Info("更新图片信息数据")
-	result := tx.Model(&po.ImgInfo{}).Where("img_id = ?", id).Update("img_name", name)
+	result := tx.Model(&po.H2Img{}).Where("img_id = ?", id).Update("img_name", name)
 	if result.Error != nil {
 		tx.Rollback()
 		msg := fmt.Sprintf("更新图片信息数据失败: %v", result.Error)

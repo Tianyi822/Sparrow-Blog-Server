@@ -49,7 +49,7 @@ func (hb *BlogTag) TableName() string {
 	return "H2_BLOG_TAG"
 }
 
-type ImgInfo struct {
+type H2Img struct {
 	ImgId      string    `gorm:"column:img_id;primaryKey"`                                    // 图片ID
 	ImgName    string    `gorm:"column:img_name;unique"`                                      // 图片名称
 	ImgType    string    `gorm:"column:img_type"`                                             // 图片格式
@@ -57,8 +57,8 @@ type ImgInfo struct {
 	UpdateTime time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
 }
 
-func (ii *ImgInfo) TableName() string {
-	return "H2_IMG_INFO"
+func (ii *H2Img) TableName() string {
+	return "H2_IMG"
 }
 
 type Comment struct {
