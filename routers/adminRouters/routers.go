@@ -34,4 +34,10 @@ func Routers(e *gin.Engine) {
 
 		editGroup.GET("/blog-data/:blog_id", getBlogData)
 	}
+
+	{
+		galleryGroup := adminGroup.Group("/gallery")
+
+		galleryGroup.GET("/all-imgs", getAllImgs)
+	}
 }

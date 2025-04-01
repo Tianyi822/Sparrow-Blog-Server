@@ -251,3 +251,22 @@ func getBlogData(ctx *gin.Context) {
 		"content_url": url,
 	})
 }
+
+func getAllImgs(ctx *gin.Context) {
+	imgDtos, err := adminService.GetAllImgs(ctx)
+	if err != nil {
+		resp.Err(ctx, "获取失败", err.Error())
+		return
+	}
+
+	imgVos := make([]vo.ImgVo, 0, len(imgDtos))
+	for _, imgDto := range imgDtos {
+		imgVos = append(imgVos, vo.ImgVo{
+			ImgId:   imgDto.ImgId,
+			ImgName: imgDto.ImgName,
+			ImgType: imgDto.ImgType,
+		})
+	}
+
+	resp.Ok(ctx, "获取成功", imgVos)
+}
