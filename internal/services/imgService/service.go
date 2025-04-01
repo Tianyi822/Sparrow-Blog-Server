@@ -66,38 +66,6 @@ func FindImgById(ctx context.Context, imgId string) (*vo.ImgInfoVo, error) {
 	}, nil
 }
 
-// FindImgsByNameLike 根据图片名模糊查询图片信息
-// - ctx 是上下文对象，用于控制请求的生命周期
-// - name 是图片名
-//
-// 返回值
-// - vo.ImgInfosVo 是包含查询结果的 VO 对象
-// - error 是可能出现的错误信息
-func FindImgsByNameLike(ctx context.Context, name string) (*vo.ImgInfosVo, error) {
-	if len(name) == 0 {
-		return nil, errors.New("图片名不能为空")
-	}
-
-	imgInfos, err := imgInfoRepo.FindImgsByNameLike(ctx, name)
-	if err != nil {
-		return nil, err
-	}
-
-	// 将 po 对象转换为 vo 对象
-	var imgInfosVo []vo.ImgInfoVo
-	for _, imgInfo := range imgInfos {
-		imgInfosVo = append(imgInfosVo, vo.ImgInfoVo{
-			ImgId:   imgInfo.ImgId,
-			ImgName: imgInfo.ImgName,
-			ImgType: imgInfo.ImgType,
-		})
-	}
-
-	return &vo.ImgInfosVo{
-		Success: imgInfosVo,
-	}, nil
-}
-
 // ConvertAndAddImg 添加图片并转换
 // - ctx 是上下文对象，用于控制请求的生命周期
 // - imgsDto 是包含图片信息的 DTO 对象

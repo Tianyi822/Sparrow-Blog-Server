@@ -12,8 +12,6 @@ func Routers(e *gin.Engine) {
 	imgGroup.DELETE("/delete", deleteImgs)
 	// 图片重命名
 	imgGroup.PUT("/rename", renameImgName)
-	// 图片模糊查询
-	imgGroup.GET("/get_list/:name", getImgsByNameLike)
 	// 根据 ID 获取图片
 	imgGroup.GET("/get/:id", getImgByID)
 	// Get home page background img
