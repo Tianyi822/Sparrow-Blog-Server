@@ -123,10 +123,10 @@ func ConnectMysql(ctx context.Context) (*gorm.DB, error) {
 			handleError("创建 H2_BLOG_TAG 表失败", err)
 		}
 	}
-	if !tableExists(db, "H2_IMG_INFO") {
+	if !tableExists(db, "H2_IMG") {
 		err = db.Exec(createH2ImgInfoTableSQL).Error
 		if err != nil {
-			handleError("创建 H2_IMG_INFO 表失败", err)
+			handleError("创建 H2_IMG 表失败", err)
 		}
 	}
 	if !tableExists(db, "H2_COMMENT") {
