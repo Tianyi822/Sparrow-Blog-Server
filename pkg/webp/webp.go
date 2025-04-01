@@ -219,16 +219,19 @@ func (c *converter) processTask(ctx context.Context, task task) error {
 		return NewWebErr(DownloadError, msg)
 	}
 
-	// 将图片转换为WebP格式
-	converted, err := convertToWebP(imgBytes, c.quality)
-	if err != nil {
-		msg := fmt.Sprintf("转换图片失败: %v", err)
-		logger.Error(msg)
-		return NewWebErr(ConvertError, msg)
+	// 循环处理大图片
+	for len(imgBytes) >= int(config.Oss.WebP.Size)*1024*1024 {
+		// 将图片转换为WebP格式
+		imgBytes, err = convertToWebP(imgBytes, c.quality)
+		if err != nil {
+			msg := fmt.Sprintf("转换图片失败: %v", err)
+			logger.Error(msg)
+			return NewWebErr(ConvertError, msg)
+		}
 	}
 
 	// 将转换后的WebP图片上传到OSS
-	if err := storage.Storage.PutContentToOss(ctx, converted, ossstore.GenOssSavePath(task.imgDto.ImgName, ossstore.Webp)); err != nil {
+	if err := storage.Storage.PutContentToOss(ctx, imgBytes, ossstore.GenOssSavePath(task.imgDto.ImgName, ossstore.Webp)); err != nil {
 		msg := fmt.Sprintf("上传图片失败: %v", err)
 		logger.Error(msg)
 		return NewWebErr(UploadError, msg)
