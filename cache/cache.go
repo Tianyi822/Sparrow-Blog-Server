@@ -105,7 +105,7 @@ func (c *Cache) loadAof(ctx context.Context) error {
 					// 解析值类型
 					vt, err := strconv.ParseUint(cmd[3], 10, 8)
 					if err != nil {
-						continue
+						return err
 					}
 
 					// 创建缓存项
@@ -193,8 +193,14 @@ func (c *Cache) SetWithExpired(ctx context.Context, key string, value any, ttl t
 
 		// 记录到AOF
 		if c.aof != nil {
-			if err := c.aof.Store(ctx, common.SET, key, fmt.Sprint(item.value),
-				string(item.vt), fmt.Sprint(expireTs)); err != nil {
+			if err := c.aof.Store(
+				ctx,
+				common.SET,
+				key,
+				fmt.Sprint(item.value),
+				fmt.Sprint(item.vt),
+				fmt.Sprint(expireTs),
+			); err != nil {
 				return fmt.Errorf("failed to store in AOF: %w", err)
 			}
 		}
