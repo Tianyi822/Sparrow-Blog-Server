@@ -226,8 +226,28 @@ func getBlogData(ctx *gin.Context) {
 		return
 	}
 
+	tagVos := make([]vo.TagVo, 0, len(blogDto.Tags))
+	for _, tag := range blogDto.Tags {
+		tagVos = append(tagVos, vo.TagVo{
+			TagId:   tag.TagId,
+			TagName: tag.TagName,
+		})
+	}
+
+	blogVo := vo.BlogVo{
+		BlogId:    blogDto.BlogId,
+		BlogTitle: blogDto.BlogTitle,
+		Category: vo.CategoryVo{
+			CategoryId:   blogDto.Category.CategoryId,
+			CategoryName: blogDto.Category.CategoryName,
+		},
+		Tags:         tagVos,
+		BlogState:    blogDto.BlogState,
+		BlogWordsNum: blogDto.BlogWordsNum,
+	}
+
 	resp.Ok(ctx, "获取成功", map[string]any{
-		"blog_data":   blogDto,
+		"blog_data":   blogVo,
 		"content_url": url,
 	})
 }
