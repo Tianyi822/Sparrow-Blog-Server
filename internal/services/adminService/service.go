@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"h2blog_server/cache"
-	"h2blog_server/env"
 	"h2blog_server/internal/model/dto"
 	"h2blog_server/internal/repository/blogRepo"
 	"h2blog_server/internal/repository/categoryRepo"
+	"h2blog_server/internal/repository/imgInfoRepo"
 	"h2blog_server/internal/repository/tagRepo"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
@@ -36,7 +36,7 @@ func Login(ctx context.Context, email, verificationCode string) (string, error) 
 	}
 
 	// 从缓存中获取存储的验证码
-	verCodeInCache, err := storage.Storage.Cache.GetString(ctx, env.VerificationCodeKey)
+	verCodeInCache, err := storage.Storage.Cache.GetString(ctx, storage.VerificationCodeKey)
 	if err != nil {
 		if errors.Is(err, cache.ErrNotFound) {
 			// 验证码不存在或已过期
@@ -58,7 +58,7 @@ func Login(ctx context.Context, email, verificationCode string) (string, error) 
 
 	// 尝试删除缓存中的验证码，避免重复使用
 	// 删除失败不会影响系统功能，仅记录日志
-	if err = storage.Storage.Cache.Delete(ctx, env.VerificationCodeKey); err != nil {
+	if err = storage.Storage.Cache.Delete(ctx, storage.VerificationCodeKey); err != nil {
 		logger.Warn("删除验证码缓存失败: %v", err)
 	}
 
@@ -181,6 +181,52 @@ func GetBlogData(ctx context.Context, id string) (*dto.BlogDto, string, error) {
 
 	// 返回包含完整信息的博客DTO对象。
 	return blogDto, presignUrl.URL, nil
+}
+
+// GetAllImgs 获取所有图片的基本信息，并为每张图片生成预签名的访问链接。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
+//
+// 返回值:
+//   - []dto.ImgDto: 包含所有图片信息的切片，每张图片的URL字段已更新为预签名链接。
+//   - error: 如果在获取图片信息、生成预签名链接或缓存操作中发生错误，则返回相应的错误信息。
+func GetAllImgs(ctx context.Context) ([]dto.ImgDto, error) {
+	// 从存储库中获取所有图片的基本信息。
+	imgs, err := imgInfoRepo.GetAllImgs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// 遍历每张图片，为其生成预签名的访问链接并更新图片的URL字段。
+	for _, img := range imgs {
+		// 检查缓存中是否已存在该图片的预签名链接，如果不存在则将其写入缓存。
+		cacheKey := storage.BuildImgCacheKey(img.ImgId)
+		_, err = storage.Storage.Cache.GetString(ctx, cacheKey)
+		if errors.Is(err, cache.ErrNotFound) {
+			// 根据图片名称和类型生成OSS存储路径。
+			path := ossstore.GenOssSavePath(img.ImgName, img.ImgType)
+
+			// 为图片生成预签名的访问链接，有效期为30分钟。
+			presign, err := storage.Storage.PreSignUrl(ctx, path, ossstore.Get, 35*time.Minute)
+			if err != nil {
+				// 如果生成预签名链接失败，记录错误日志并返回错误。
+				msg := fmt.Sprintf("获取图片链接失败: %v", err)
+				logger.Error(msg)
+				return nil, err
+			}
+
+			err = storage.Storage.Cache.SetWithExpired(ctx, cacheKey, presign.URL, 30*time.Minute)
+			if err != nil {
+				// 如果缓存写入失败，记录错误日志并返回错误。
+				msg := fmt.Sprintf("缓存图片链接失败: %v", err)
+				logger.Error(msg)
+				return nil, err
+			}
+		}
+	}
+
+	// 返回包含预签名链接的图片信息切片。
+	return imgs, nil
 }
 
 // UpdateOrAddBlog 更新或添加博客信息，并处理相关的分类和标签逻辑。
