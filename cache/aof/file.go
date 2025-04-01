@@ -139,7 +139,7 @@ func (fop *FileOp) needSplit() bool {
 	}
 
 	// 与最大大小比较（将 MB 转换为字节）
-	return fileInfo.Size() > int64(fop.maxSize*1024*1024)
+	return uint64(fileInfo.Size()) > uint64(fop.maxSize)*1024*1024
 }
 
 // Write 在文件中追加数据，并带有换行符。
