@@ -129,6 +129,20 @@ func (c *Cache) loadAof(ctx context.Context) error {
 		}
 	}
 
+	// 加载完数据后，需要将当前内存中的数据持久化到磁盘，保证缓存启动时，磁盘与内存中的数据一致
+	for k, v := range c.items {
+		if err := c.aof.Store(
+			ctx,
+			common.SET,
+			k,
+			fmt.Sprint(v.value),
+			fmt.Sprint(v.vt),
+			fmt.Sprint(v.expireAt.Unix()),
+		); err != nil {
+			return fmt.Errorf("failed to store in AOF: %w", err)
+		}
+	}
+
 	return nil
 }
 
