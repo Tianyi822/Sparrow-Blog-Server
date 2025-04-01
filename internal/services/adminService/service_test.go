@@ -102,3 +102,20 @@ func TestGetBlogData(t *testing.T) {
 	t.Logf("%+v", blogDto)
 	t.Log(url)
 }
+
+func TestGetAllImgs(t *testing.T) {
+	ctx := context.Background()
+
+	imgs, err := GetAllImgs(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, img := range imgs {
+		url, err := storage.Storage.Cache.GetString(ctx, storage.BuildImgCacheKey(img.ImgId))
+		if err != nil {
+			t.Error(err)
+		}
+		t.Log(url)
+	}
+}

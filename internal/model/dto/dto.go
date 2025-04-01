@@ -74,19 +74,6 @@ func (i *ImgDto) Name() string {
 	return i.ImgName
 }
 
-// ImgsDto 图片数据
-type ImgsDto struct {
-	Imgs []ImgDto `json:"imgs,omitempty"`
-}
-
-func (is *ImgsDto) DtoFlag() string {
-	return "ImgsDto"
-}
-
-func (is *ImgsDto) Name() string {
-	return "ImgsDto"
-}
-
 type FriendLinkDto struct {
 	FriendLinkId   string `json:"friend_link_id,omitempty"`
 	FriendLinkName string `json:"friend_link_name,omitempty"`
