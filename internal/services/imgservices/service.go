@@ -82,8 +82,8 @@ func ConvertAndAddImg(ctx context.Context, imgDtos []dto.ImgDto) (*vo.ImgInfosVo
 	// - 上传失败
 	var imgPos []po.H2Img
 
-	var successImgsVo []vo.ImgInfoVo
-	var failImgsVo []vo.ImgInfoVo
+	var successImgsVo []vo.ImgVo
+	var failImgsVo []vo.ImgVo
 
 	for {
 		select {
@@ -109,7 +109,7 @@ func ConvertAndAddImg(ctx context.Context, imgDtos []dto.ImgDto) (*vo.ImgInfosVo
 					// 将转换成功的数据暂存到 imgPos 中
 					imgPos = append(imgPos, imgPo)
 					// 将转换成功的图片信息存入 successImgsVo 中
-					successImgsVo = append(successImgsVo, vo.ImgInfoVo{
+					successImgsVo = append(successImgsVo, vo.ImgVo{
 						ImgId:   imgId,
 						ImgName: data.ImgDto.ImgName,
 					})
@@ -124,7 +124,7 @@ func ConvertAndAddImg(ctx context.Context, imgDtos []dto.ImgDto) (*vo.ImgInfosVo
 						imgPo.ImgType = data.ImgDto.ImgType
 						imgPos = append(imgPos, imgPo)
 						// 但还是要把转换失败的放入失败列表
-						failImgsVo = append(failImgsVo, vo.ImgInfoVo{
+						failImgsVo = append(failImgsVo, vo.ImgVo{
 							ImgId:   imgId,
 							ImgName: data.ImgDto.ImgName,
 							Err:     data.Err.Error(),
@@ -132,7 +132,7 @@ func ConvertAndAddImg(ctx context.Context, imgDtos []dto.ImgDto) (*vo.ImgInfosVo
 					default:
 						// 其他错误，包括下载失败和删除失败，直接返回
 						// TODO: 这里有个问题，删除失败的话，Oss 中会同时存在原格式以及 webp 格式的图片，以后再添加功能自动扫描
-						failImgsVo = append(failImgsVo, vo.ImgInfoVo{
+						failImgsVo = append(failImgsVo, vo.ImgVo{
 							ImgName: data.ImgDto.ImgName,
 							Err:     data.Err.Error(),
 						})
@@ -148,7 +148,7 @@ func ConvertAndAddImg(ctx context.Context, imgDtos []dto.ImgDto) (*vo.ImgInfosVo
 }
 
 // handleConvertedImgsData 处理转换后的图片数据
-func handleConvertedImgsData(ctx context.Context, imgPos []po.H2Img, successImgsVo, failImgsVo []vo.ImgInfoVo) (*vo.ImgInfosVo, error) {
+func handleConvertedImgsData(ctx context.Context, imgPos []po.H2Img, successImgsVo, failImgsVo []vo.ImgVo) (*vo.ImgInfosVo, error) {
 	// 图片 vo 对象，包含压缩成功的和未成功的
 	imgInfosVo := &vo.ImgInfosVo{}
 	// 保存数据到数据库

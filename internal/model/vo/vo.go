@@ -42,20 +42,20 @@ func (cv *CategoryVo) VoFlag() string {
 	return "CategoryVo"
 }
 
-type ImgInfoVo struct {
+type ImgVo struct {
 	ImgId   string `json:"img_id,omitempty"`
 	ImgName string `json:"img_name,omitempty"`
 	ImgType string `json:"img_type,omitempty"`
 	Err     string `json:"err,omitempty"`
 }
 
-func (iv *ImgInfoVo) VoFlag() string {
-	return "ImgInfoVo"
+func (iv *ImgVo) VoFlag() string {
+	return "ImgVo"
 }
 
 type ImgInfosVo struct {
-	Success []ImgInfoVo `json:"success,omitempty"`
-	Failure []ImgInfoVo `json:"failure,omitempty"`
+	Success []ImgVo `json:"success,omitempty"`
+	Failure []ImgVo `json:"failure,omitempty"`
 }
 
 func (isv *ImgInfosVo) VoFlag() string {
