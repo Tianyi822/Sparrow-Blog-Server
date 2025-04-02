@@ -408,3 +408,32 @@ func ChangeBlogState(ctx context.Context, id string) error {
 
 	return nil
 }
+
+// DeleteImg 删除指定 ID 的图片信息及其相关资源。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
+//   - id: 图片的唯一标识符，用于定位需要删除的图片。
+//
+// 返回值:
+//   - error: 如果在查找图片信息、删除 OSS 中的图片数据或删除数据库记录时发生错误，则返回相应的错误信息；否则返回 nil。
+func DeleteImg(ctx context.Context, id string) error {
+	// 查找图片信息，确保图片存在并获取其详细信息
+	imgDto, err := imgInfoRepo.FindImgById(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// 删除 OSS 中存储的图片文件，使用图片名称和类型生成存储路径
+	if err := storage.Storage.DeleteObject(ctx, ossstore.GenOssSavePath(imgDto.ImgName, imgDto.ImgType)); err != nil {
+		return err
+	}
+
+	// 开启数据库事务，删除数据库中与图片相关的记录
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	if err := imgInfoRepo.DeleteImgById(tx, id); err != nil {
+		return err
+	}
+	tx.Commit()
+
+	return nil
+}

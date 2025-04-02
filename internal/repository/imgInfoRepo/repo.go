@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"h2blog_server/internal/model/dto"
 	"h2blog_server/internal/model/po"
 	"h2blog_server/pkg/logger"
@@ -67,36 +68,6 @@ func GetAllImgs(ctx context.Context) ([]dto.ImgDto, error) {
 	return imgDtos, nil
 }
 
-// AddImgInfo 创建新的图片信息记录
-// - ctx: 上下文对象
-// - img: 图片信息实体指针
-// 返回值: 受影响的行数和错误信息
-func AddImgInfo(ctx context.Context, img *po.H2Img) (int64, error) {
-	tx := storage.Storage.Db.Model(img).WithContext(ctx).Begin()
-	// 使用defer确保在panic时回滚事务
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Error("创建图片信息数据失败: %v", r)
-			tx.Rollback()
-		}
-	}()
-
-	logger.Info("添加图片信息数据")
-	// 执行创建操作
-	result := tx.Create(img)
-	if result.Error != nil {
-		tx.Rollback()
-		msg := fmt.Sprintf("创建图片信息数据失败: %v", result.Error)
-		logger.Error(msg)
-		return 0, errors.New(msg)
-	}
-
-	// 提交事务
-	tx.Commit()
-	logger.Info("创建图片信息数据成功: %v", result.RowsAffected)
-	return result.RowsAffected, nil
-}
-
 // AddImgInfoBatch 批量添加图片信息记录
 // - ctx: 上下文对象
 // - imgs: 图片信息实体切片
@@ -135,47 +106,25 @@ func AddImgInfoBatch(ctx context.Context, imgs []po.H2Img) (int64, error) {
 	return result.RowsAffected, nil
 }
 
-// DeleteImgInfoBatch 批量删除图片信息记录
-// - ctx: 上下文对象
-// - ids: 图片信息ID切片
+// DeleteImgById 根据图片 ID 删除对应的图片数据。
+// 参数:
+//   - tx: *gorm.DB，数据库事务对象，用于执行删除操作。
+//   - id: string，图片的唯一标识符，用于定位需要删除的图片数据。
 //
 // 返回值:
-// - int64: 受影响的行数
-// - error: 错误信息
-func DeleteImgInfoBatch(ctx context.Context, ids []string) (int64, error) {
-	if len(ids) == 0 {
-		return 0, nil
-	}
+//   - error: 如果删除过程中发生错误，则返回包含错误信息的 error 对象；否则返回 nil。
+func DeleteImgById(tx *gorm.DB, id string) error {
+	logger.Info("删除 ID 为 %v 的图片数据", id)
 
-	tx := storage.Storage.Db.Model(&po.H2Img{}).WithContext(ctx).Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Error("批量删除图片信息数据失败: %v", r)
-			tx.Rollback()
-		}
-	}()
-
-	logger.Info("批量删除图片信息数据")
-
-	// 将ID转换为ImgInfo对象
-	var imgs []po.H2Img
-	for _, id := range ids {
-		imgs = append(imgs, po.H2Img{ImgId: id})
-	}
-
-	// 执行删除操作
-	result := tx.Delete(imgs)
-	if result.Error != nil {
-		tx.Rollback()
-		msg := fmt.Sprintf("批量删除图片信息数据失败: %v", result.Error)
+	if err := tx.Where("img_id = ?", id).Delete(&po.H2Img{}).Error; err != nil {
+		msg := fmt.Sprintf("删除图片数据失败: %v", err)
 		logger.Error(msg)
-		return 0, errors.New(msg)
+		return errors.New(msg)
 	}
-	// 提交事务
-	tx.Commit()
-	logger.Info("批量删除图片信息数据成功: %v", result.RowsAffected)
 
-	return result.RowsAffected, nil
+	logger.Info("删除 ID 为 %v 的图片数据成功", id)
+
+	return nil
 }
 
 // UpdateImgNameById 更新图片信息记录的名称
