@@ -124,6 +124,7 @@ func TestDeleteImg(t *testing.T) {
 	err := DeleteImg(context.Background(), "cbbc9654d0219858")
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	t.Log("success")
 }
