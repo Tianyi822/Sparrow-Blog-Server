@@ -33,14 +33,14 @@ func FindImgById(ctx context.Context, imgId string) (*dto.ImgDto, error) {
 	}, nil
 }
 
-// GetAllImgs 查询数据库中所有的图片信息，并将其转换为 DTO 对象列表返回。
+// FindAllImgs 查询数据库中所有的图片信息，并将其转换为 DTO 对象列表返回。
 // 参数:
 //   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
 //
 // 返回值:
 //   - []dto.ImgDto: 包含所有图片信息的 DTO 列表，每个 DTO 包含图片的 ID、名称和类型。
 //   - error: 如果查询过程中发生错误，则返回错误信息；否则返回 nil。
-func GetAllImgs(ctx context.Context) ([]dto.ImgDto, error) {
+func FindAllImgs(ctx context.Context) ([]dto.ImgDto, error) {
 	var imgs []po.H2Img
 
 	logger.Info("查询所有图片信息数据")

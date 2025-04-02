@@ -192,7 +192,7 @@ func GetBlogData(ctx context.Context, id string) (*dto.BlogDto, string, error) {
 //   - error: 如果在获取图片信息、生成预签名链接或缓存操作中发生错误，则返回相应的错误信息。
 func GetAllImgs(ctx context.Context) ([]dto.ImgDto, error) {
 	// 从存储库中获取所有图片的基本信息。
-	imgs, err := imgInfoRepo.GetAllImgs(ctx)
+	imgs, err := imgInfoRepo.FindAllImgs(ctx)
 	if err != nil {
 		return nil, err
 	}

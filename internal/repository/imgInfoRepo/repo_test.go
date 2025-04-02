@@ -21,7 +21,7 @@ func init() {
 }
 
 func TestGetAllImgs(t *testing.T) {
-	imgs, err := GetAllImgs(context.Background())
+	imgs, err := FindAllImgs(context.Background())
 	if err != nil {
 		t.Error(err)
 	}
