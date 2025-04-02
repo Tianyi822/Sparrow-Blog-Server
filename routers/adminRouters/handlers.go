@@ -270,3 +270,12 @@ func getAllImgs(ctx *gin.Context) {
 
 	resp.Ok(ctx, "获取成功", imgVos)
 }
+
+func deleteImg(ctx *gin.Context) {
+	if err := adminService.DeleteImg(ctx, ctx.Param("img_id")); err != nil {
+		resp.Err(ctx, "删除失败", err.Error())
+		return
+	}
+
+	resp.Ok(ctx, "删除成功", nil)
+}

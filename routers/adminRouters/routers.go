@@ -39,5 +39,7 @@ func Routers(e *gin.Engine) {
 		galleryGroup := adminGroup.Group("/gallery")
 
 		galleryGroup.GET("/all-imgs", getAllImgs)
+
+		galleryGroup.DELETE("/:img_id", deleteImg)
 	}
 }
