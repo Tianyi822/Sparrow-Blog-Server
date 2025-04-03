@@ -409,6 +409,39 @@ func ChangeBlogState(ctx context.Context, id string) error {
 	return nil
 }
 
+// RenameImgById 根据图片 ID 修改图片名称，包括 OSS 中的文件名和数据库中的记录。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求生命周期和传递上下文信息。
+//   - imgId: 图片的唯一标识符，用于查询和更新图片信息。
+//   - newName: 新的图片名称，用于替换旧的图片名称。
+//
+// 返回值:
+//   - error: 如果操作失败，返回错误信息；如果成功，返回 nil。
+func RenameImgById(ctx context.Context, imgId string, newName string) error {
+	// 根据图片 ID 查询图片信息，确保图片存在并获取其详细信息
+	imgDto, err := imgrepo.FindImgById(ctx, imgId)
+	if err != nil {
+		return err
+	}
+
+	// 生成 OSS 中的旧路径和新路径，并调用存储服务重命名 OSS 中的文件
+	oldPath := ossstore.GenOssSavePath(imgDto.ImgName, imgDto.ImgType)
+	newPath := ossstore.GenOssSavePath(newName, imgDto.ImgType)
+	if err := storage.Storage.RenameObject(ctx, oldPath, newPath); err != nil {
+		return err
+	}
+
+	// 开启数据库事务，更新数据库中图片名称，并根据更新结果提交或回滚事务
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	if err = imgrepo.UpdateImgNameById(tx, imgId, newName); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+
+	return nil
+}
+
 // DeleteImg 删除指定 ID 的图片信息及其相关资源。
 // 参数:
 //   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。

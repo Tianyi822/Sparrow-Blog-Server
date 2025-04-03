@@ -30,3 +30,15 @@ func TestGetAllImgs(t *testing.T) {
 		t.Log(img)
 	}
 }
+
+func TestUpdateImgNameById(t *testing.T) {
+	tx := storage.Storage.Db.WithContext(context.Background()).Begin()
+
+	if err := UpdateImgNameById(tx, "85fba0685fa281a5", "test"); err != nil {
+		tx.Rollback()
+		t.Error(err)
+	}
+	tx.Commit()
+
+	t.Log("更新成功")
+}

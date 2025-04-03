@@ -128,33 +128,23 @@ func DeleteImgById(tx *gorm.DB, id string) error {
 }
 
 // UpdateImgNameById 更新图片信息记录的名称
-// - ctx: 上下文对象
-// - id: 图片信息ID
-// - name: 新的名称
+// 参数:
+//   - tx: 数据库事务对象
+//   - id: 图片信息ID
+//   - newName: 新的名称
 //
 // 返回值:
-// - int64: 受影响的行数
-// - error: 错误信息
-func UpdateImgNameById(ctx context.Context, id string, name string) (int64, error) {
-	tx := storage.Storage.Db.Model(&po.H2Img{}).WithContext(ctx).Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Error("更新图片信息数据失败: %v", r)
-			tx.Rollback()
-		}
-	}()
-
+//   - int64: 受影响的行数
+//   - error: 错误信息
+func UpdateImgNameById(tx *gorm.DB, id string, newName string) error {
 	logger.Info("更新图片信息数据")
-	result := tx.Model(&po.H2Img{}).Where("img_id = ?", id).Update("img_name", name)
+	result := tx.Model(&po.H2Img{}).Where("img_id = ?", id).Update("img_name", newName)
 	if result.Error != nil {
-		tx.Rollback()
 		msg := fmt.Sprintf("更新图片信息数据失败: %v", result.Error)
 		logger.Error(msg)
-		return 0, errors.New(msg)
+		return errors.New(msg)
 	}
-	// 提交事务
-	tx.Commit()
 	logger.Info("更新图片信息数据成功: %v", result.RowsAffected)
 
-	return result.RowsAffected, nil
+	return nil
 }

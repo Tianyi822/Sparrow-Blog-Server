@@ -128,3 +128,13 @@ func TestDeleteImg(t *testing.T) {
 	}
 	t.Log("success")
 }
+
+func TestRenameImgById(t *testing.T) {
+	ctx := context.Background()
+	err := RenameImgById(ctx, "6c76a6ece25a36c2", "test2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("rename success")
+	storage.Storage.Close(ctx)
+}

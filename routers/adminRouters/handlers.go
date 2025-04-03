@@ -279,3 +279,36 @@ func deleteImg(ctx *gin.Context) {
 
 	resp.Ok(ctx, "删除成功", nil)
 }
+
+// renameImg 修改指定图片的名称。
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法。
+//
+// 功能描述:
+//  1. 从请求上下文中解析图片数据传输对象 (ImgDto)。
+//  2. 验证请求路径中的图片ID与解析出的图片ID是否一致。
+//  3. 调用 adminService.RenameImgById 方法修改图片名称。
+//  4. 根据操作结果返回成功或失败的响应。
+func renameImg(ctx *gin.Context) {
+	// 从请求上下文中获取图片数据传输对象 (ImgDto)
+	imgDto, err := tools.GetImgDto(ctx)
+	if err != nil {
+		return
+	}
+
+	// 验证请求路径中的图片ID与 ImgDto 中的图片ID是否匹配
+	imgId := ctx.Param("img_id")
+	if imgId != imgDto.ImgId {
+		resp.BadRequest(ctx, "图片ID不匹配", nil)
+		return
+	}
+
+	// 调用服务层方法修改图片名称，并处理可能的错误
+	if err := adminService.RenameImgById(ctx, imgDto.ImgId, imgDto.ImgName); err != nil {
+		resp.Err(ctx, "修改失败", err.Error())
+		return
+	}
+
+	// 返回操作成功的响应
+	resp.Ok(ctx, "修改成功", nil)
+}
