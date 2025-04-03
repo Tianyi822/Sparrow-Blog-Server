@@ -8,7 +8,7 @@ import (
 	"h2blog_server/internal/model/dto"
 	"h2blog_server/internal/repository/blogRepo"
 	"h2blog_server/internal/repository/categoryRepo"
-	"h2blog_server/internal/repository/imgInfoRepo"
+	"h2blog_server/internal/repository/imgrepo"
 	"h2blog_server/internal/repository/tagRepo"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
@@ -192,7 +192,7 @@ func GetBlogData(ctx context.Context, id string) (*dto.BlogDto, string, error) {
 //   - error: 如果在获取图片信息、生成预签名链接或缓存操作中发生错误，则返回相应的错误信息。
 func GetAllImgs(ctx context.Context) ([]dto.ImgDto, error) {
 	// 从存储库中获取所有图片的基本信息。
-	imgs, err := imgInfoRepo.FindAllImgs(ctx)
+	imgs, err := imgrepo.FindAllImgs(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -418,7 +418,7 @@ func ChangeBlogState(ctx context.Context, id string) error {
 //   - error: 如果在查找图片信息、删除 OSS 中的图片数据或删除数据库记录时发生错误，则返回相应的错误信息；否则返回 nil。
 func DeleteImg(ctx context.Context, id string) error {
 	// 查找图片信息，确保图片存在并获取其详细信息
-	imgDto, err := imgInfoRepo.FindImgById(ctx, id)
+	imgDto, err := imgrepo.FindImgById(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -430,7 +430,7 @@ func DeleteImg(ctx context.Context, id string) error {
 
 	// 开启数据库事务，删除数据库中与图片相关的记录
 	tx := storage.Storage.Db.WithContext(ctx).Begin()
-	if err := imgInfoRepo.DeleteImgById(tx, id); err != nil {
+	if err := imgrepo.DeleteImgById(tx, id); err != nil {
 		return err
 	}
 	tx.Commit()

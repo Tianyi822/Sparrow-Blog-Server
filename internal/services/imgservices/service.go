@@ -8,7 +8,7 @@ import (
 	"h2blog_server/internal/model/dto"
 	"h2blog_server/internal/model/po"
 	"h2blog_server/internal/model/vo"
-	"h2blog_server/internal/repository/imgInfoRepo"
+	"h2blog_server/internal/repository/imgrepo"
 	"h2blog_server/pkg/utils"
 	"h2blog_server/pkg/webp"
 	"h2blog_server/storage"
@@ -29,7 +29,7 @@ func GetPresignUrlById(ctx context.Context, imgId string) (string, error) {
 	url, err := storage.Storage.Cache.GetString(ctx, storage.BuildImgCacheKey(imgId))
 	if errors.Is(err, cache.ErrNotFound) {
 		// 如果缓存中未找到对应的URL，则从数据库中查询图片信息。
-		imgDto, err := imgInfoRepo.FindImgById(ctx, imgId)
+		imgDto, err := imgrepo.FindImgById(ctx, imgId)
 		if err != nil {
 			return "", err
 		}
@@ -152,7 +152,7 @@ func handleConvertedImgsData(ctx context.Context, imgPos []po.H2Img, successImgs
 	// 图片 vo 对象，包含压缩成功的和未成功的
 	imgInfosVo := &vo.ImgInfosVo{}
 	// 保存数据到数据库
-	_, err := imgInfoRepo.AddImgInfoBatch(ctx, imgPos)
+	_, err := imgrepo.AddImgInfoBatch(ctx, imgPos)
 	if err != nil {
 		return imgInfosVo, err
 	}

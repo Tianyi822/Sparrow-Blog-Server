@@ -1,4 +1,4 @@
-package imgInfoRepo
+package imgrepo
 
 import (
 	"context"
