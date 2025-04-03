@@ -480,17 +480,28 @@ func DeleteImg(ctx context.Context, id string) error {
 		return err
 	}
 
-	// 删除 OSS 中存储的图片文件，使用图片名称和类型生成存储路径
+	logger.Info("删除 OSS 中存储的图片文件")
+	// 使用图片名称和类型生成存储路径
 	if err := storage.Storage.DeleteObject(ctx, ossstore.GenOssSavePath(imgDto.ImgName, imgDto.ImgType)); err != nil {
 		return err
 	}
+	logger.Info("删除 OSS 中存储的图片文件成功")
 
+	logger.Info("删除数据库中与图片相关的记录")
 	// 开启数据库事务，删除数据库中与图片相关的记录
 	tx := storage.Storage.Db.WithContext(ctx).Begin()
 	if err := imgrepo.DeleteImgById(tx, id); err != nil {
 		return err
 	}
 	tx.Commit()
+	logger.Info("删除数据库中与图片相关的记录成功")
+
+	logger.Info("删除缓存中保存的预签名 URL")
+	// 删除缓存中保存的预签名 URL
+	if err := storage.Storage.Cache.Delete(ctx, storage.BuildImgCacheKey(id)); err != nil {
+		return err
+	}
+	logger.Info("删除缓存中保存的预签名 URL 成功")
 
 	return nil
 }
