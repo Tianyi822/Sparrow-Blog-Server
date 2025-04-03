@@ -296,6 +296,11 @@ func renameImg(ctx *gin.Context) {
 		return
 	}
 
+	if imgDto.ImgName == "" {
+		resp.BadRequest(ctx, "图片名称不能为空", nil)
+		return
+	}
+
 	// 验证请求路径中的图片ID与 ImgDto 中的图片ID是否匹配
 	imgId := ctx.Param("img_id")
 	if imgId != imgDto.ImgId {
