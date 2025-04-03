@@ -450,7 +450,7 @@ func RenameImgById(ctx context.Context, imgId string, newName string) error {
 	logger.Info("删除缓存中保存的预签名 URL 成功")
 
 	// 生成新的预签名 URL
-	presign, err := storage.Storage.PreSignUrl(ctx, ossstore.GenOssSavePath(newName, imgDto.ImgType), ossstore.Get, 1*time.Minute)
+	presign, err := storage.Storage.PreSignUrl(ctx, ossstore.GenOssSavePath(newName, imgDto.ImgType), ossstore.Get, 35*time.Minute)
 	if err != nil {
 		return err
 	}
