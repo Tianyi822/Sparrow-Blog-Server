@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
-	"h2blog_server/storage/db/dbLogger"
+	"h2blog_server/storage/db/dblogger"
 )
 
 // createLoginRecordTableSQL 是用于创建库
@@ -79,7 +79,7 @@ func ConnectMysql(ctx context.Context) (*gorm.DB, error) {
 			},
 		),
 		&gorm.Config{
-			Logger: dbLogger.NewDbLogger(),
+			Logger: dblogger.NewDbLogger(),
 		},
 	)
 

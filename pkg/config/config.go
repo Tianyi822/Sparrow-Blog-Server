@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"h2blog_server/pkg/fileTool"
+	"h2blog_server/pkg/filetool"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -34,7 +34,7 @@ func (pc *ProjectConfig) Store() error {
 	}
 
 	// 将 YAML 数据写入到文件中
-	file, err := fileTool.CreateFile(filepath.Join(h2BlogHomePath, "config", "h2blog_config.yaml"))
+	file, err := filetool.CreateFile(filepath.Join(h2BlogHomePath, "config", "h2blog_config.yaml"))
 	if err != nil {
 		return fmt.Errorf("创建配置文件失败: %w", err)
 	}
@@ -170,7 +170,7 @@ func LoadConfig() error {
 	}
 
 	// 检查配置文件是否存在。如果不存在，返回 NoConfigFileErr 错误。
-	if !fileTool.IsExist(filepath.Join(userHomePath, "config", "h2blog_config.yaml")) {
+	if !filetool.IsExist(filepath.Join(userHomePath, "config", "h2blog_config.yaml")) {
 		return NewNoConfigFileErr("配置文件不存在")
 	}
 
@@ -226,7 +226,7 @@ func loadConfigFromFile() error {
 
 	// 构造配置文件的路径，并检查该路径下的配置文件是否存在
 	configPath := filepath.Join(h2blogDir, "config", "h2blog_config.yaml")
-	if fileTool.IsExist(configPath) {
+	if filetool.IsExist(configPath) {
 		// 如果配置文件存在，则尝试从该路径加载配置
 		return loadConfigFromPath(configPath)
 	}

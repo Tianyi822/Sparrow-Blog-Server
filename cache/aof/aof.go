@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"h2blog_server/cache/common"
-	"h2blog_server/pkg/fileTool"
+	"h2blog_server/pkg/filetool"
 	"h2blog_server/pkg/logger"
 	"os"
 	"path/filepath"
@@ -120,7 +120,7 @@ func (aof *Aof) LoadFile(ctx context.Context) ([][]string, error) {
 
 		// 检查当前的 AOF 文件是否存在，并将其加入文件列表。
 		currentFile := filepath.Join(dir, prefix+".aof")
-		if fileTool.IsExist(currentFile) {
+		if filetool.IsExist(currentFile) {
 			files = append(files, currentFile)
 		}
 
@@ -308,7 +308,7 @@ func processFile(path string, tempDir string) ([][]string, error) {
 
 		// 解压 .tar.gz 文件到临时目录
 		decompressedPath := filepath.Join(tempDir, strings.TrimSuffix(filepath.Base(path), ".tar.gz"))
-		if err := fileTool.DecompressTarGz(path, decompressedPath); err != nil {
+		if err := filetool.DecompressTarGz(path, decompressedPath); err != nil {
 			return nil, fmt.Errorf("failed to decompress %s: %w", path, err)
 		}
 

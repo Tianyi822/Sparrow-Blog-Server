@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"h2blog_server/pkg/config"
-	"h2blog_server/pkg/fileTool"
+	"h2blog_server/pkg/filetool"
 	"h2blog_server/pkg/logger"
 	"os"
 	"path/filepath"
@@ -77,10 +77,10 @@ func (fop *FileOp) ready() error {
 
 	// 打开现有文件或创建新文件
 	var err error
-	if fileTool.IsExist(fop.path) {
-		fop.file, err = fileTool.MustOpenFile(fop.path)
+	if filetool.IsExist(fop.path) {
+		fop.file, err = filetool.MustOpenFile(fop.path)
 	} else {
-		fop.file, err = fileTool.CreateFile(fop.path)
+		fop.file, err = filetool.CreateFile(fop.path)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to open/create file: %w", err)
@@ -225,14 +225,14 @@ func (fop *FileOp) checkAndRotate() error {
 		compressedPath = filepath.Join(filepath.Dir(fop.path), compressedPath)
 
 		// 压缩文件
-		if err := fileTool.CompressFileToTarGz(destPath, compressedPath); err != nil {
+		if err := filetool.CompressFileToTarGz(destPath, compressedPath); err != nil {
 			// 如果压缩失败，尝试恢复原始文件
 			_ = os.Rename(destPath, fop.path)
 			return fmt.Errorf("compression failed: %w", err)
 		}
 
 		// 在删除原始文件前验证压缩文件是否存在
-		if !fileTool.IsExist(compressedPath) {
+		if !filetool.IsExist(compressedPath) {
 			_ = os.Rename(destPath, fop.path)
 			return fmt.Errorf("compressed file not found after compression")
 		}

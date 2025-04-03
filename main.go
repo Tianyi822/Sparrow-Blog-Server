@@ -9,10 +9,10 @@ import (
 	"h2blog_server/pkg/logger"
 	"h2blog_server/pkg/webp"
 	"h2blog_server/routers"
-	"h2blog_server/routers/adminRouters"
-	"h2blog_server/routers/configRouters"
-	"h2blog_server/routers/emailRouters"
-	"h2blog_server/routers/imgrouters"
+	"h2blog_server/routers/adminrouter"
+	"h2blog_server/routers/configrouter"
+	"h2blog_server/routers/emailrouter"
+	"h2blog_server/routers/imgrouter"
 	"h2blog_server/storage"
 	"net/http"
 	"os"
@@ -48,10 +48,10 @@ func loadComponent(ctx context.Context) {
 func runServer() *http.Server {
 	logger.Info("加载路由信息")
 	routers.IncludeOpts(
-		imgrouters.Routers,
-		configRouters.Routers,
-		emailRouters.Routers,
-		adminRouters.Routers,
+		imgrouter.Routers,
+		configrouter.Routers,
+		emailrouter.Routers,
+		adminrouter.Routers,
 	)
 	logger.Info("路由信息加载完成")
 
@@ -112,7 +112,7 @@ func closeWebServer(srv *http.Server) {
 
 func startInitiateConfigServer() *http.Server {
 	// 加载配置接口
-	routers.IncludeOpts(configRouters.Routers, emailRouters.Routers)
+	routers.IncludeOpts(configrouter.Routers, emailrouter.Routers)
 
 	// 将当前环境设置为初始化环境
 	env.CurrentEnv = env.InitializedEnv
