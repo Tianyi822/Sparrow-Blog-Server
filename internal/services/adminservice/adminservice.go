@@ -424,13 +424,16 @@ func RenameImgById(ctx context.Context, imgId string, newName string) error {
 		return err
 	}
 
+	logger.Info("重命名 OSS 中的图片名称")
 	// 生成 OSS 中的旧路径和新路径，并调用存储服务重命名 OSS 中的文件
 	oldPath := ossstore.GenOssSavePath(imgDto.ImgName, imgDto.ImgType)
 	newPath := ossstore.GenOssSavePath(newName, imgDto.ImgType)
 	if err := storage.Storage.RenameObject(ctx, oldPath, newPath); err != nil {
 		return err
 	}
+	logger.Info("重命名 OSS 中的图片名称成功")
 
+	logger.Info("更新数据库中的图片名称")
 	// 开启数据库事务，更新数据库中图片名称，并根据更新结果提交或回滚事务
 	tx := storage.Storage.Db.WithContext(ctx).Begin()
 	if err = imgrepo.UpdateImgNameById(tx, imgId, newName); err != nil {
@@ -438,6 +441,27 @@ func RenameImgById(ctx context.Context, imgId string, newName string) error {
 		return err
 	}
 	tx.Commit()
+	logger.Info("更新数据库中的图片名称成功")
+
+	logger.Info("删除缓存中保存的预签名 URL")
+	if err := storage.Storage.Cache.Delete(ctx, storage.BuildImgCacheKey(imgId)); err != nil {
+		return err
+	}
+	logger.Info("删除缓存中保存的预签名 URL 成功")
+
+	// 生成新的预签名 URL
+	presign, err := storage.Storage.PreSignUrl(ctx, ossstore.GenOssSavePath(newName, imgDto.ImgType), ossstore.Get, 1*time.Minute)
+	if err != nil {
+		return err
+	}
+	// 缓存新的预签名 URL
+	err = storage.Storage.Cache.SetWithExpired(ctx, storage.BuildImgCacheKey(imgId), presign.URL, 30*time.Minute)
+	if err != nil {
+		logger.Warn("缓存新的预签名 URL 失败")
+		return err
+	}
+	logger.Info("缓存新的预签名 URL 成功")
+	logger.Info("完成图片的更新操作")
 
 	return nil
 }
