@@ -309,9 +309,10 @@ func getAllImgs(ctx *gin.Context) {
 	imgVos := make([]vo.ImgVo, 0, len(imgDtos))
 	for _, imgDto := range imgDtos {
 		imgVos = append(imgVos, vo.ImgVo{
-			ImgId:   imgDto.ImgId,
-			ImgName: imgDto.ImgName,
-			ImgType: imgDto.ImgType,
+			ImgId:      imgDto.ImgId,
+			ImgName:    imgDto.ImgName,
+			ImgType:    imgDto.ImgType,
+			CreateTime: imgDto.CreateTime,
 		})
 	}
 

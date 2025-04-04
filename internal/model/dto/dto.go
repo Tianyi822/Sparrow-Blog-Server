@@ -61,9 +61,10 @@ func (hc *CategoryDto) Name() string {
 
 // ImgDto 图片数据
 type ImgDto struct {
-	ImgId   string `json:"img_id,omitempty"`
-	ImgName string `json:"img_name,omitempty"`
-	ImgType string `json:"img_type,omitempty"`
+	ImgId      string    `json:"img_id,omitempty"`
+	ImgName    string    `json:"img_name,omitempty"`
+	ImgType    string    `json:"img_type,omitempty"`
+	CreateTime time.Time `json:"create_time,omitempty"`
 }
 
 func (i *ImgDto) DtoFlag() string {

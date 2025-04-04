@@ -43,23 +43,14 @@ func (cv *CategoryVo) VoFlag() string {
 }
 
 type ImgVo struct {
-	ImgId   string `json:"img_id,omitempty"`
-	ImgName string `json:"img_name,omitempty"`
-	ImgType string `json:"img_type,omitempty"`
-	Err     string `json:"err,omitempty"`
+	ImgId      string    `json:"img_id,omitempty"`
+	ImgName    string    `json:"img_name,omitempty"`
+	ImgType    string    `json:"img_type,omitempty"`
+	CreateTime time.Time `json:"create_time,omitempty"`
 }
 
 func (iv *ImgVo) VoFlag() string {
 	return "ImgVo"
-}
-
-type ImgInfosVo struct {
-	Success []ImgVo `json:"success,omitempty"`
-	Failure []ImgVo `json:"failure,omitempty"`
-}
-
-func (isv *ImgInfosVo) VoFlag() string {
-	return "ImgInfosVo"
 }
 
 type CommentVo struct {

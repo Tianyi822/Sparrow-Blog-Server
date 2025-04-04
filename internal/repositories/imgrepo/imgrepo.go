@@ -59,9 +59,10 @@ func FindAllImgs(ctx context.Context) ([]dto.ImgDto, error) {
 	imgDtos := make([]dto.ImgDto, 0)
 	for _, img := range imgs {
 		imgDtos = append(imgDtos, dto.ImgDto{
-			ImgId:   img.ImgId,
-			ImgName: img.ImgName,
-			ImgType: img.ImgType,
+			ImgId:      img.ImgId,
+			ImgName:    img.ImgName,
+			ImgType:    img.ImgType,
+			CreateTime: img.CreateTime,
 		})
 	}
 
