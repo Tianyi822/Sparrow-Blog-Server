@@ -277,6 +277,7 @@ func getBlogData(ctx *gin.Context) {
 	blogVo := vo.BlogVo{
 		BlogId:    blogDto.BlogId,
 		BlogTitle: blogDto.BlogTitle,
+		BlogBrief: blogDto.BlogBrief,
 		Category: vo.CategoryVo{
 			CategoryId:   blogDto.Category.CategoryId,
 			CategoryName: blogDto.Category.CategoryName,
