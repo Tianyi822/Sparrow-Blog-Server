@@ -8,6 +8,10 @@ import (
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/resp"
 	"h2blog_server/routers/tools"
+	"h2blog_server/storage"
+	"h2blog_server/storage/ossstore"
+	"strings"
+	"time"
 )
 
 // sendVerificationCode 处理发送验证码的请求。
@@ -62,6 +66,43 @@ func login(ctx *gin.Context) {
 
 	resp.Ok(ctx, "登录成功", map[string]string{
 		"token": token,
+	})
+}
+
+func genPresignPutUrl(ctx *gin.Context) {
+	fileName := ctx.Param("file_name")
+	fileType := ctx.Param("file_type")
+
+	var path string
+	switch strings.ToLower(fileType) {
+	case ossstore.MarkDown:
+		fileType = ossstore.MarkDown
+		path = ossstore.GenOssSavePath(fileName, ossstore.MarkDown)
+	case ossstore.Webp:
+		fileType = ossstore.Webp
+		path = ossstore.GenOssSavePath(fileName, ossstore.Webp)
+	case ossstore.JPG:
+		fileType = ossstore.JPG
+		path = ossstore.GenOssSavePath(fileName, ossstore.JPG)
+	case ossstore.JPEG:
+		fileType = ossstore.JPEG
+		path = ossstore.GenOssSavePath(fileName, ossstore.JPEG)
+	case ossstore.PNG:
+		fileType = ossstore.PNG
+		path = ossstore.GenOssSavePath(fileName, ossstore.PNG)
+	default:
+		resp.BadRequest(ctx, "文件类型错误", nil)
+		return
+	}
+
+	presign, err := storage.Storage.GenPreSignUrl(ctx, path, fileType, ossstore.Put, 2*time.Minute)
+	if err != nil {
+		resp.Err(ctx, "获取预签名URL失败", err.Error())
+		return
+	}
+
+	resp.Ok(ctx, "获取成功", map[string]string{
+		"pre_sign_put_url": presign.URL,
 	})
 }
 

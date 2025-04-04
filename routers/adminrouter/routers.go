@@ -14,6 +14,12 @@ func Routers(e *gin.Engine) {
 	}
 
 	{
+		ossGroup := adminGroup.Group("/oss")
+
+		ossGroup.GET("/pre_sign_url/:file_name/type/:file_type", genPresignPutUrl)
+	}
+
+	{
 		postsGroup := adminGroup.Group("/posts")
 
 		postsGroup.GET("/all-blogs", getAllBlogs)
