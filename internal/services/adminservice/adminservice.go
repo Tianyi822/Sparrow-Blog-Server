@@ -343,6 +343,13 @@ func DeleteBlogById(ctx context.Context, id string) error {
 
 	// 开启删除博客事务
 	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("删除博客失败: %v", r)
+			tx.Rollback()
+		}
+	}()
+
 	// 调用仓库方法根据ID删除博客。
 	err = blogrepo.DeleteBlogById(tx, id)
 	if err != nil {
@@ -386,6 +393,12 @@ func DeleteBlogById(ctx context.Context, id string) error {
 
 func SetTop(ctx context.Context, id string) error {
 	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("修改置顶状态失败: %v", r)
+			tx.Rollback()
+		}
+	}()
 
 	if err := blogrepo.SetTopById(tx, id); err != nil {
 		tx.Rollback()
@@ -399,6 +412,12 @@ func SetTop(ctx context.Context, id string) error {
 
 func ChangeBlogState(ctx context.Context, id string) error {
 	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("修改博客状态失败: %v", r)
+			tx.Rollback()
+		}
+	}()
 
 	if err := blogrepo.ChangeBlogStateById(tx, id); err != nil {
 		return err
@@ -436,6 +455,13 @@ func RenameImgById(ctx context.Context, imgId string, newName string) error {
 	logger.Info("更新数据库中的图片名称")
 	// 开启数据库事务，更新数据库中图片名称，并根据更新结果提交或回滚事务
 	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("重命名图片失败: %v", r)
+			tx.Rollback()
+		}
+	}()
+
 	if err = imgrepo.UpdateImgNameById(tx, imgId, newName); err != nil {
 		tx.Rollback()
 		return err
@@ -490,6 +516,13 @@ func DeleteImg(ctx context.Context, id string) error {
 	logger.Info("删除数据库中与图片相关的记录")
 	// 开启数据库事务，删除数据库中与图片相关的记录
 	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("删除图片失败: %v", r)
+			tx.Rollback()
+		}
+	}()
+
 	if err := imgrepo.DeleteImgById(tx, id); err != nil {
 		return err
 	}
