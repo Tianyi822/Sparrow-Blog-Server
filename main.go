@@ -7,7 +7,6 @@ import (
 	"h2blog_server/env"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
-	"h2blog_server/pkg/webp"
 	"h2blog_server/routers"
 	"h2blog_server/routers/adminrouter"
 	"h2blog_server/routers/configrouter"
@@ -36,11 +35,6 @@ func loadComponent(ctx context.Context) {
 	err = storage.InitStorage(ctx)
 	if err != nil {
 		panic("数据层初始化失败，请检查配置文件是否有误")
-	}
-	// 初始化图片转换器
-	err = webp.InitConverter(ctx)
-	if err != nil {
-		panic("图片转换器初始化失败，请检查配置文件是否有误")
 	}
 }
 
@@ -96,11 +90,6 @@ func closeWebServer(srv *http.Server) {
 	logger.Info("关闭数据层")
 	storage.Storage.Close(ctx)
 	logger.Info("数据层已关闭")
-
-	// 关闭图片压缩器
-	logger.Info("关闭图片压缩器")
-	webp.Converter.Shutdown()
-	logger.Info("图片压缩器已关闭")
 
 	logger.Info("正在关闭服务")
 	// 定时优雅关闭服务（将未处理完的请求处理完再关闭服务），超时就退出
