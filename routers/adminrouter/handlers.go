@@ -246,7 +246,7 @@ func updateOrAddBlog(ctx *gin.Context) {
 	}
 
 	// 调用服务层方法更新或添加博客，如果操作失败则返回错误响应。
-	presignUrl, err := adminservice.UpdateOrAddBlog(ctx, blogDto)
+	err = adminservice.UpdateOrAddBlog(ctx, blogDto)
 	if err != nil {
 		resp.Err(ctx, "添加或更新失败", err.Error())
 		return
@@ -254,8 +254,7 @@ func updateOrAddBlog(ctx *gin.Context) {
 
 	// 如果操作成功，返回成功的HTTP响应。
 	resp.Ok(ctx, "操作成功", map[string]string{
-		"blog_id":     blogDto.BlogId,
-		"presign_url": presignUrl,
+		"blog_id": blogDto.BlogId,
 	})
 }
 

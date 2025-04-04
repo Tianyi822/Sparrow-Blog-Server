@@ -51,12 +51,11 @@ func TestUpdateBlogData(t *testing.T) {
 		},
 	}
 
-	presignUrl, err := UpdateOrAddBlog(context.Background(), blogDto)
+	err := UpdateOrAddBlog(context.Background(), blogDto)
 
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(presignUrl)
 }
 
 func TestAddBlog(t *testing.T) {
@@ -75,13 +74,12 @@ func TestAddBlog(t *testing.T) {
 		},
 	}
 
-	presignUrl, err := UpdateOrAddBlog(context.Background(), blogDto)
+	err := UpdateOrAddBlog(context.Background(), blogDto)
 
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log(blogDto.BlogId)
-	t.Log(presignUrl)
 }
 
 func TestDeleteBlog(t *testing.T) {

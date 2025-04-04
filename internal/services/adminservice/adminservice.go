@@ -243,7 +243,7 @@ func GetAllImgs(ctx context.Context) ([]dto.ImgDto, error) {
 //
 // 返回值:
 //   - error: 如果操作过程中发生错误，则返回具体的错误信息；否则返回 nil。
-func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) (string, error) {
+func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) error {
 	// 开启事务
 	tx := storage.Storage.Db.WithContext(ctx).Begin()
 	defer func() {
@@ -261,7 +261,7 @@ func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) (string, error) 
 		err := categoryrepo.AddCategory(tx, &categoryDto)
 		if err != nil {
 			tx.Rollback()
-			return "", err
+			return err
 		}
 		blogDto.CategoryId = categoryDto.CategoryId
 	}
@@ -288,7 +288,7 @@ func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) (string, error) 
 			newTags, err = tagrepo.AddTags(tx, tagsWithoutId)
 			if err != nil {
 				tx.Rollback()
-				return "", err
+				return err
 			}
 			// 将有 ID 的标签和新创建的标签合并回 blogDto。
 			blogDto.Tags = append(tagsWithId, newTags...)
@@ -299,45 +299,32 @@ func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) (string, error) 
 	if len(blogDto.BlogId) == 0 {
 		if err := blogrepo.AddBlog(tx, blogDto); err != nil {
 			tx.Rollback()
-			return "", err
+			return err
 		}
 
 		// 建立标签与博客的关联关系
 		if err := tagrepo.AddBlogTagAssociation(tx, blogDto.BlogId, blogDto.Tags); err != nil {
 			tx.Rollback()
-			return "", err
+			return err
 		}
 	} else {
 		if err := blogrepo.UpdateBlog(tx, blogDto); err != nil {
 			tx.Rollback()
-			return "", err
+			return err
 		}
 
 		// 更新标签与博客的关联关系
 		if err := tagrepo.UpdateBlogTagAssociation(tx, blogDto.BlogId, blogDto.Tags); err != nil {
 			tx.Rollback()
-			return "", err
+			return err
 		}
 	}
 	logger.Info("完成博客的更新或创建操作")
 
-	// 为该博客生成预签名上传 URL
-	presign, err := storage.Storage.GenPreSignUrl(
-		ctx,
-		ossstore.GenOssSavePath(blogDto.BlogTitle, ossstore.MarkDown),
-		ossstore.MarkDown,
-		ossstore.Put,
-		1*time.Minute,
-	)
-	if err != nil {
-		tx.Rollback()
-		return "", err
-	}
-
 	// 提交事务
 	tx.Commit()
 
-	return presign.URL, nil
+	return nil
 }
 
 // DeleteBlogById 删除指定ID的博客
