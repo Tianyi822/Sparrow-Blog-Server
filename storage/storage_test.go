@@ -45,7 +45,7 @@ func TestStorage_ListOssDirFiles(t *testing.T) {
 
 func TestStorage_PreSignUrl(t *testing.T) {
 	ctx := context.Background()
-	url, err := Storage.PreSignUrl(ctx, "images/1714135012409.webp", ossstore.Get, 10*time.Minute)
+	url, err := Storage.GenPreSignUrl(ctx, "images/1714135012409.webp", ossstore.Webp, ossstore.Get, 10*time.Minute)
 	if err != nil {
 		fmt.Printf("获取预签名URL失败: %v", err)
 	}
@@ -55,7 +55,7 @@ func TestStorage_PreSignUrl(t *testing.T) {
 
 func TestStorage_PreSignUrl_Put(t *testing.T) {
 	ctx := context.Background()
-	url, err := Storage.PreSignUrl(ctx, "images/1714135012409.webp", ossstore.Put, 1*time.Minute)
+	url, err := Storage.GenPreSignUrl(ctx, "images/1714135012409.webp", ossstore.Webp, ossstore.Put, 1*time.Minute)
 	if err != nil {
 		fmt.Printf("获取预签名URL失败: %v", err)
 	}

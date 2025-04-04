@@ -21,6 +21,10 @@ const (
 
 const (
 	MarkdownHeader = "text/markdown"
+	WebpHeader     = "img/webp"
+	JPGHeader      = "img/jpg"
+	JPEGHeader     = "img/jpeg"
+	PNGHeader      = "img/png"
 )
 
 // GenOssSavePath 用于生成博客保存路径

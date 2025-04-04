@@ -169,9 +169,10 @@ func GetBlogData(ctx context.Context, id string) (*dto.BlogDto, string, error) {
 	}
 
 	// 获取预签名 URL，用于读取 OSS 中文章内容
-	presignUrl, err := storage.Storage.PreSignUrl(
+	presignUrl, err := storage.Storage.GenPreSignUrl(
 		ctx,
 		ossstore.GenOssSavePath(blogDto.BlogTitle, ossstore.MarkDown),
+		ossstore.MarkDown,
 		ossstore.Get,
 		1*time.Minute,
 	)
@@ -207,7 +208,13 @@ func GetAllImgs(ctx context.Context) ([]dto.ImgDto, error) {
 			path := ossstore.GenOssSavePath(img.ImgName, img.ImgType)
 
 			// 为图片生成预签名的访问链接，有效期为30分钟。
-			presign, err := storage.Storage.PreSignUrl(ctx, path, ossstore.Get, 35*time.Minute)
+			presign, err := storage.Storage.GenPreSignUrl(
+				ctx,
+				path,
+				img.ImgType,
+				ossstore.Get,
+				35*time.Minute,
+			)
 			if err != nil {
 				// 如果生成预签名链接失败，记录错误日志并返回错误。
 				msg := fmt.Sprintf("获取图片链接失败: %v", err)
@@ -315,7 +322,13 @@ func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) (string, error) 
 	logger.Info("完成博客的更新或创建操作")
 
 	// 为该博客生成预签名上传 URL
-	presign, err := storage.Storage.PreSignUrl(ctx, ossstore.GenOssSavePath(blogDto.BlogTitle, ossstore.MarkDown), ossstore.Put, 1*time.Minute)
+	presign, err := storage.Storage.GenPreSignUrl(
+		ctx,
+		ossstore.GenOssSavePath(blogDto.BlogTitle, ossstore.MarkDown),
+		ossstore.MarkDown,
+		ossstore.Put,
+		1*time.Minute,
+	)
 	if err != nil {
 		tx.Rollback()
 		return "", err
@@ -476,7 +489,13 @@ func RenameImgById(ctx context.Context, imgId string, newName string) error {
 	logger.Info("删除缓存中保存的预签名 URL 成功")
 
 	// 生成新的预签名 URL
-	presign, err := storage.Storage.PreSignUrl(ctx, ossstore.GenOssSavePath(newName, imgDto.ImgType), ossstore.Get, 35*time.Minute)
+	presign, err := storage.Storage.GenPreSignUrl(
+		ctx,
+		ossstore.GenOssSavePath(newName, imgDto.ImgType),
+		imgDto.ImgType,
+		ossstore.Get,
+		35*time.Minute,
+	)
 	if err != nil {
 		return err
 	}

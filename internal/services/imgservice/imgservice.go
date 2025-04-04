@@ -38,7 +38,7 @@ func GetPresignUrlById(ctx context.Context, imgId string) (string, error) {
 		ossPath := ossstore.GenOssSavePath(imgDto.ImgName, imgDto.ImgType)
 
 		// 为生成的OSS路径创建预签名URL，有效期为35分钟。
-		presign, err := storage.Storage.PreSignUrl(ctx, ossPath, ossstore.Get, 35*time.Minute)
+		presign, err := storage.Storage.GenPreSignUrl(ctx, ossPath, imgDto.ImgType, ossstore.Get, 35*time.Minute)
 		if err != nil {
 			return "", err
 		}

@@ -235,7 +235,7 @@ func (s *storage) ListOssDirFiles(ctx context.Context, dir string) ([]string, er
 	return results[1:], nil
 }
 
-// PreSignUrl 生成一个预签名的 URL，用于访问或上传指定的对象。
+// GenPreSignUrl 生成一个预签名的 URL，用于访问或上传指定的对象。
 // 参数:
 //   - ctx: 上下文对象，用于控制请求的生命周期和取消操作。
 //   - objectName: 对象的名称（通常是文件名），用于标识存储桶中的具体对象。
@@ -244,7 +244,7 @@ func (s *storage) ListOssDirFiles(ctx context.Context, dir string) ([]string, er
 // 返回值:
 //   - *oss.PresignResult: 包含预签名 URL 和相关元数据的结果对象。
 //   - error: 如果发生错误，返回具体的错误信息。
-func (s *storage) PreSignUrl(ctx context.Context, objectName, method string, duration time.Duration) (*oss.PresignResult, error) {
+func (s *storage) GenPreSignUrl(ctx context.Context, objectName, fileType, method string, duration time.Duration) (*oss.PresignResult, error) {
 	// 根据传入的方法构造对应的请求体
 	var request oss.RequestCommonInterface
 	switch method {
@@ -256,10 +256,25 @@ func (s *storage) PreSignUrl(ctx context.Context, objectName, method string, dur
 		}
 	case ossstore.Put:
 		// 构造上传对象的请求
+		var header string
+		switch fileType {
+		case ossstore.MarkDown:
+			header = ossstore.MarkdownHeader
+		case ossstore.Webp:
+			header = ossstore.WebpHeader
+		case ossstore.PNG:
+			header = ossstore.PNGHeader
+		case ossstore.JPG:
+			header = ossstore.JPGHeader
+		case ossstore.JPEG:
+			header = ossstore.JPEGHeader
+		default:
+			return nil, errors.New("不支持的文件类型")
+		}
 		request = &oss.PutObjectRequest{
 			Bucket:      oss.Ptr(config.Oss.Bucket),
 			Key:         oss.Ptr(objectName),
-			ContentType: oss.Ptr(ossstore.MarkdownHeader),
+			ContentType: oss.Ptr(header),
 		}
 	default:
 		// 如果传入的方法不被支持，返回错误
