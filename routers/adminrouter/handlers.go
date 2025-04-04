@@ -81,15 +81,6 @@ func genPresignPutUrl(ctx *gin.Context) {
 	case ossstore.Webp:
 		fileType = ossstore.Webp
 		path = ossstore.GenOssSavePath(fileName, ossstore.Webp)
-	case ossstore.JPG:
-		fileType = ossstore.JPG
-		path = ossstore.GenOssSavePath(fileName, ossstore.JPG)
-	case ossstore.JPEG:
-		fileType = ossstore.JPEG
-		path = ossstore.GenOssSavePath(fileName, ossstore.JPEG)
-	case ossstore.PNG:
-		fileType = ossstore.PNG
-		path = ossstore.GenOssSavePath(fileName, ossstore.PNG)
 	default:
 		resp.BadRequest(ctx, "文件类型错误", nil)
 		return

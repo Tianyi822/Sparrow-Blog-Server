@@ -9,9 +9,6 @@ import (
 const (
 	MarkDown = "markdown"
 	Webp     = "webp"
-	JPG      = "jpg"
-	JPEG     = "jpeg"
-	PNG      = "png"
 )
 
 const (
@@ -22,9 +19,6 @@ const (
 const (
 	MarkdownHeader = "text/markdown"
 	WebpHeader     = "image/webp"
-	JPGHeader      = "image/jpg"
-	JPEGHeader     = "image/jpeg"
-	PNGHeader      = "image/png"
 )
 
 // GenOssSavePath 用于生成博客保存路径
@@ -34,12 +28,6 @@ func GenOssSavePath(name string, fileType string) string {
 		return fmt.Sprintf("%s%s.md", config.Oss.BlogOssPath, name)
 	case Webp:
 		return fmt.Sprintf("%s%s.webp", config.Oss.ImageOssPath, name)
-	case JPG:
-		return fmt.Sprintf("%s%s.jpg", config.Oss.ImageOssPath, name)
-	case JPEG:
-		return fmt.Sprintf("%s%s.jpeg", config.Oss.ImageOssPath, name)
-	case PNG:
-		return fmt.Sprintf("%s%s.png", config.Oss.ImageOssPath, name)
 	default:
 		logger.Error("不存在该文件类型")
 		return ""

@@ -262,12 +262,6 @@ func (s *storage) GenPreSignUrl(ctx context.Context, objectName, fileType, metho
 			header = ossstore.MarkdownHeader
 		case ossstore.Webp:
 			header = ossstore.WebpHeader
-		case ossstore.PNG:
-			header = ossstore.PNGHeader
-		case ossstore.JPG:
-			header = ossstore.JPGHeader
-		case ossstore.JPEG:
-			header = ossstore.JPEGHeader
 		default:
 			return nil, errors.New("不支持的文件类型")
 		}
