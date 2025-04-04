@@ -86,6 +86,19 @@ func GetImgDto(ctx *gin.Context) (*dto.ImgDto, error) {
 	return imgDto, nil
 }
 
+// GetImgDtos 从 HTTP 请求中解析 RawData 数据并将其转换为 ImgsDto 对象
+func GetImgDtos(ctx *gin.Context) (*dto.ImgsDto, error) {
+	imgDtos := &dto.ImgsDto{}
+
+	err := rowDataToDto(ctx, imgDtos)
+	if err != nil {
+		resp.BadRequest(ctx, err.Error(), -1)
+		return nil, err
+	}
+
+	return imgDtos, nil
+}
+
 // rowDataToDto 将 HTTP 请求中的原始数据解析为指定的 DTO（数据传输对象）。
 // 参数:
 //   - ctx: *gin.Context，表示当前的 HTTP 请求上下文，包含请求方法、路径和原始数据等信息。

@@ -8,6 +8,7 @@ import (
 	"h2blog_server/internal/model/dto"
 	"h2blog_server/internal/model/po"
 	"h2blog_server/pkg/logger"
+	"h2blog_server/pkg/utils"
 	"h2blog_server/storage"
 )
 
@@ -68,42 +69,46 @@ func FindAllImgs(ctx context.Context) ([]dto.ImgDto, error) {
 	return imgDtos, nil
 }
 
-// AddImgInfoBatch 批量添加图片信息记录
-// - ctx: 上下文对象
-// - imgs: 图片信息实体切片
+// AddImgBatch 批量添加图片信息记录
+// 参数:
+//   - ctx: 上下文对象
+//   - imgs: 图片信息实体切片
 //
 // 返回值: 受影响的行数和错误信息
-// - int64: 受影响的行数
-// - error: 错误信息
-func AddImgInfoBatch(ctx context.Context, imgs []po.H2Img) (int64, error) {
+//   - int64: 受影响的行数
+//   - error: 错误信息
+func AddImgBatch(tx *gorm.DB, imgs []dto.ImgDto) error {
 	if len(imgs) == 0 {
-		return 0, nil
+		return nil
 	}
 
-	tx := storage.Storage.Db.Model(&po.H2Img{}).WithContext(ctx).Begin()
-	// 使用defer确保在panic时回滚事务
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Error("批量添加图片信息数据失败: %v", r)
-			tx.Rollback()
+	imgPos := make([]po.H2Img, 0)
+	for _, img := range imgs {
+		imgId, err := utils.GenId(img.ImgName)
+		if err != nil {
+			logger.Warn("图片 %v 的 ID 生成失败", img.ImgName)
+			return err
 		}
-	}()
+
+		imgPos = append(imgPos, po.H2Img{
+			ImgId:   imgId,
+			ImgName: img.ImgName,
+			ImgType: img.ImgType,
+		})
+	}
 
 	logger.Info("批量添加图片信息数据")
 	// 执行创建操作
-	result := tx.Create(imgs)
+	result := tx.Create(imgPos)
 	if result.Error != nil {
 		tx.Rollback()
 		msg := fmt.Sprintf("批量添加图片信息数据失败: %v", result.Error)
 		logger.Error(msg)
-		return 0, errors.New(msg)
+		return errors.New(msg)
 	}
-
-	// 提交事务
-	tx.Commit()
 	logger.Info("批量添加图片信息数据成功: %v", result.RowsAffected)
 
-	return result.RowsAffected, nil
+	return nil
 }
 
 // DeleteImgById 根据图片 ID 删除对应的图片数据。

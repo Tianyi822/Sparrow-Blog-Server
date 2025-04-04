@@ -74,6 +74,18 @@ func (i *ImgDto) Name() string {
 	return i.ImgName
 }
 
+type ImgsDto struct {
+	Imgs []ImgDto `json:"imgs,omitempty"`
+}
+
+func (i *ImgsDto) DtoFlag() string {
+	return "ImgsDto"
+}
+
+func (i *ImgsDto) Name() string {
+	return "ImgsDto"
+}
+
 type FriendLinkDto struct {
 	FriendLinkId   string `json:"friend_link_id,omitempty"`
 	FriendLinkName string `json:"friend_link_name,omitempty"`

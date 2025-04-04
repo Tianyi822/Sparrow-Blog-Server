@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"h2blog_server/cache"
+	"h2blog_server/internal/model/dto"
 	"h2blog_server/internal/repositories/imgrepo"
 	"h2blog_server/storage"
 	"h2blog_server/storage/ossstore"
@@ -48,4 +49,29 @@ func GetPresignUrlById(ctx context.Context, imgId string) (string, error) {
 
 	// 返回获取到的预签名URL。
 	return url, nil
+}
+
+// AddImgs 批量添加图片信息到数据库。
+// 参数：
+//   - ctx context.Context: 上下文对象，用于控制请求的生命周期和传递上下文信息。
+//   - imgs []dto.ImgDto: 包含图片信息的 DTO（数据传输对象）切片，每个元素代表一张图片的信息。
+//
+// 返回值：
+//   - error: 如果操作成功，则返回 nil；如果发生错误，则返回具体的错误信息。
+func AddImgs(ctx context.Context, imgs []dto.ImgDto) error {
+	// 开启事务，确保批量操作的原子性。
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	defer func() {
+		// 捕获 panic，确保在发生异常时回滚事务，避免数据库处于不一致状态。
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := imgrepo.AddImgBatch(tx, imgs); err != nil {
+		return err
+	}
+	tx.Commit()
+
+	return nil
 }
