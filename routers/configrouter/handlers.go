@@ -321,28 +321,6 @@ func configOss(ctx *gin.Context) {
 	}
 	ossConfig.BlogOssPath = blogOssPath
 
-	// 配置 WebP 相关参数，包括启用状态、压缩质量和压缩后大小
-	webpEnable, err := tools.GetUInt16FromRawData(rawData, "ossstore.webp.enable")
-	if err != nil {
-		resp.BadRequest(ctx, "WebP 启用配置错误", err.Error())
-		return
-	}
-	ossConfig.WebP.Enable = webpEnable == 1
-
-	webpQuality, err := tools.GetFloatFromRawData(rawData, "ossstore.webp.quality")
-	if err != nil {
-		resp.BadRequest(ctx, "WebP 压缩质量配置错误", err.Error())
-		return
-	}
-	ossConfig.WebP.Quality = webpQuality
-
-	webpSize, err := tools.GetFloatFromRawData(rawData, "ossstore.webp.size")
-	if err != nil {
-		resp.BadRequest(ctx, "WebP 压缩后大小配置错误", err.Error())
-		return
-	}
-	ossConfig.WebP.Size = webpSize
-
 	// 将配置完成的 OSS 配置对象保存到全局变量中
 	config.Oss = ossConfig
 

@@ -64,13 +64,6 @@ type UserConfigData struct {
 	BackgroundImage string `yaml:"background_image"` // Background image name
 }
 
-// WebPConfigData 定义了WebP图片转换设置
-type WebPConfigData struct {
-	Enable  bool    `yaml:"enable"`  // 是否启用WebP转换
-	Quality float32 `yaml:"quality"` // WebP图片质量(1-100)
-	Size    float32 `yaml:"size"`    // WebP图片最大大小(MB)
-}
-
 // ServerConfigData 定义了服务器相关配置
 type ServerConfigData struct {
 	Port                uint16         `yaml:"port"`                  // 服务器端口号
@@ -109,14 +102,13 @@ type MySQLConfigData struct {
 
 // OssConfig 定义了对象存储服务配置
 type OssConfig struct {
-	Endpoint        string         `yaml:"endpoint"`          // OSS 服务的访问域名
-	Region          string         `yaml:"region"`            // OSS 服务的地域
-	AccessKeyId     string         `yaml:"access_key_id"`     // OSS 访问密钥ID
-	AccessKeySecret string         `yaml:"access_key_secret"` // OSS 访问密钥密文
-	Bucket          string         `yaml:"bucket"`            // OSS 存储空间名称
-	ImageOssPath    string         `yaml:"image_oss_path"`    // 图片存储路径
-	BlogOssPath     string         `yaml:"blog_oss_path"`     // 博客内容存储路径
-	WebP            WebPConfigData `yaml:"webp"`              // WebP图片配置
+	Endpoint        string `yaml:"endpoint"`          // OSS 服务的访问域名
+	Region          string `yaml:"region"`            // OSS 服务的地域
+	AccessKeyId     string `yaml:"access_key_id"`     // OSS 访问密钥ID
+	AccessKeySecret string `yaml:"access_key_secret"` // OSS 访问密钥密文
+	Bucket          string `yaml:"bucket"`            // OSS 存储空间名称
+	ImageOssPath    string `yaml:"image_oss_path"`    // 图片存储路径
+	BlogOssPath     string `yaml:"blog_oss_path"`     // 博客内容存储路径
 }
 
 // CacheConfig 定义了缓存系统配置
