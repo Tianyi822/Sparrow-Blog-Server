@@ -82,7 +82,7 @@ const createH2BlogTagTableSQL = `
 	  COLLATE = utf8mb4_unicode_ci;
 `
 
-const createH2ImgInfoTableSQL = `
+const createH2ImgTableSQL = `
 	CREATE TABLE H2_IMG
 	(
 	    img_id 			VARCHAR(16) 	PRIMARY KEY NOT NULL															COMMENT '图片ID',
