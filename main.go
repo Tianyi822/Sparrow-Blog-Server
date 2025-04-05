@@ -111,7 +111,7 @@ func startInitiateConfigServer() *http.Server {
 
 	// 配置 HTTP 服务
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%v", Args["config-server-port"]),
+		Addr:    fmt.Sprintf(":%v", Args["init-server-port"]),
 		Handler: r,
 	}
 
@@ -165,8 +165,8 @@ func getArgsFromTerminal() {
 	Args = make(map[string]string)
 
 	for i := 0; i < len(os.Args); i++ {
-		if os.Args[i] == "--config-server-port" {
-			Args["config-server-port"] = os.Args[i+1]
+		if os.Args[i] == "--init-server-port" {
+			Args["init-server-port"] = os.Args[i+1]
 			i++
 		} else if os.Args[i] == "--env" {
 			Args["env"] = os.Args[i+1]
@@ -174,8 +174,8 @@ func getArgsFromTerminal() {
 		}
 	}
 
-	if _, ok := Args["config-server-port"]; !ok {
-		Args["config-server-port"] = "2234"
+	if _, ok := Args["init-server-port"]; !ok {
+		Args["init-server-port"] = "2234"
 	}
 
 	if _, ok := Args["env"]; !ok {
