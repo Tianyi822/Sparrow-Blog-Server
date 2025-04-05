@@ -179,7 +179,7 @@ func getArgsFromTerminal() {
 	}
 
 	if _, ok := Args["env"]; !ok {
-		Args["env"] = env.DebugEnv
+		Args["env"] = env.ProdEnv
 	}
 }
 
