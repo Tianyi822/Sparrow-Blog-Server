@@ -3,7 +3,7 @@ package env
 // Env 运行时的环境名称
 const (
 	DebugEnv       = "debug"
-	ProvEnv        = "prov"
+	ProdEnv        = "prod"
 	InitializedEnv = "init"
 )
 

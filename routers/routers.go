@@ -23,7 +23,7 @@ func InitRouter() *gin.Engine {
 
 	// 添加自定义的中间件
 	switch env.CurrentEnv {
-	case env.ProvEnv, env.DebugEnv:
+	case env.ProdEnv, env.DebugEnv:
 		r.Use(middleware.Logger(), middleware.RunTimeCors(), gin.Recovery())
 	case env.InitializedEnv:
 		r.Use(middleware.ConfigServiceCors(), gin.Recovery())
