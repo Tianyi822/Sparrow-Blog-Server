@@ -428,6 +428,39 @@ func ChangeBlogState(ctx context.Context, id string) error {
 	return nil
 }
 
+// IsExistImg 检查指定的图片是否存在于数据库和OSS存储中。
+// 如果图片在数据库中不存在，或者在OSS中不存在且数据库中存在，则返回true。
+// 如果在数据库中找到图片但OSS中不存在，则会尝试删除数据库中的记录，并返回true。
+// 如果发生错误，则返回true和错误信息。
+// 参数:
+//   - ctx: 上下文，用于传递请求范围的信息。
+//   - imgName: 图片的名称。
+//
+// 返回值:
+//   - bool: 图片是否存在。
+//   - error: 错误信息，如果有的话。
+func IsExistImg(ctx context.Context, imgName string) (bool, error) {
+	// 通过图片名称从数据库中查找图片信息。
+	imgDto, err := imgrepo.FindImgByName(ctx, imgName)
+	if err != nil {
+		// 如果查找过程中出现错误，返回true和错误信息。
+		return false, nil
+	}
+
+	// 尝试从OSS中获取图片内容。
+	flag, err := storage.Storage.IsExist(ctx, ossstore.GenOssSavePath(imgDto.ImgName, imgDto.ImgType))
+	// 如果OSS中图片不存在，但数据库中存在记录，则需要删除数据库中的记录。
+	if err != nil {
+		return false, err
+	}
+
+	if flag {
+		return true, nil
+	} else {
+		return false, nil
+	}
+}
+
 // RenameImgById 根据图片 ID 修改图片名称，包括 OSS 中的文件名和数据库中的记录。
 // 参数:
 //   - ctx: 上下文对象，用于控制请求生命周期和传递上下文信息。

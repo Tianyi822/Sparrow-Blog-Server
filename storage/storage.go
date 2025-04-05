@@ -165,6 +165,33 @@ func (s *storage) PutContentToOss(ctx context.Context, content []byte, objectNam
 	return nil
 }
 
+// IsExist 检查指定的对象是否存在于存储桶中。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和取消操作。
+//   - objectName: 要检查的对象名称。
+//
+// 返回值:
+//   - bool: 如果对象存在，则返回 true；否则返回 false。
+//   - error: 如果在检查过程中发生错误，则返回错误信息；否则返回 nil。
+func (s *storage) IsExist(ctx context.Context, objectName string) (bool, error) {
+	// 调用 OSS 客户端的 IsObjectExist 方法检查对象是否存在。
+	result, err := s.OssClient.IsObjectExist(ctx, config.Oss.Bucket, objectName)
+	if err != nil {
+		// 如果检查失败，记录错误日志并返回封装后的错误信息。
+		msg := fmt.Sprintf("判断 (%v) 对象是否存在失败 %v", objectName, err)
+		logger.Error(msg)
+		return false, errors.New(msg)
+	}
+
+	// 如果对象存在，返回 true 和 nil 错误。
+	if result {
+		return true, nil
+	}
+
+	// 如果对象不存在，返回 false 和 nil 错误。
+	return false, nil
+}
+
 // GetContentFromOss 下载内容
 // - ctx 上下文对象，用于控制请求的截止时间、取消信号等
 // - objectName 下载的对象名称

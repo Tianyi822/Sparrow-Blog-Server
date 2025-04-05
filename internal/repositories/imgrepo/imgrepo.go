@@ -34,6 +34,35 @@ func FindImgById(ctx context.Context, imgId string) (*dto.ImgDto, error) {
 	}, nil
 }
 
+// FindImgByName 检查数据库中是否存在指定名称的图片记录。
+// 参数:
+//   - ctx context.Context: 上下文对象，用于控制请求的生命周期和取消操作。
+//   - name string: 要查询的图片名称。
+//
+// 返回值:
+//   - bool: 如果存在指定名称的图片记录，返回 true；否则返回 false。
+//   - error: 如果查询过程中发生错误（非记录未找到错误），返回具体的错误信息；否则返回 nil。
+func FindImgByName(ctx context.Context, name string) (*dto.ImgDto, error) {
+	var img po.H2Img
+
+	// 使用 GORM 查询数据库，根据 img_name 查找单条记录。
+	// 如果查询失败，会进一步判断是否为记录未找到的错误。
+	result := storage.Storage.Db.Model(img).WithContext(ctx).Where("img_name = ?", name).First(&img)
+
+	if result.Error != nil {
+		// 如果查询失败，并且错误信息不是记录未找到的错误，则记录错误日志并返回错误信息。
+		msg := fmt.Sprintf("根据图片查询图片信息数据失败: %v", result.Error)
+		logger.Error(msg)
+		return nil, errors.New(msg)
+	}
+
+	return &dto.ImgDto{
+		ImgId:   img.ImgId,
+		ImgName: img.ImgName,
+		ImgType: img.ImgType,
+	}, nil
+}
+
 // FindAllImgs 查询数据库中所有的图片信息，并将其转换为 DTO 对象列表返回。
 // 参数:
 //   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。

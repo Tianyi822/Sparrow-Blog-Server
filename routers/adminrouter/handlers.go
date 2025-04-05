@@ -365,3 +365,17 @@ func renameImg(ctx *gin.Context) {
 	// 返回操作成功的响应
 	resp.Ok(ctx, "修改成功", nil)
 }
+
+func isExist(ctx *gin.Context) {
+	flag, err := adminservice.IsExistImg(ctx, ctx.Param("img_name"))
+	if err != nil {
+		resp.Err(ctx, "查询失败", err.Error())
+		return
+	}
+
+	if flag {
+		resp.Ok(ctx, "图片存在", flag)
+	} else {
+		resp.Ok(ctx, "图片不存在", flag)
+	}
+}

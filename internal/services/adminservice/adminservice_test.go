@@ -5,7 +5,6 @@ import (
 	"h2blog_server/internal/model/dto"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
-	"h2blog_server/pkg/webp"
 	"h2blog_server/storage"
 	"testing"
 )
@@ -21,7 +20,6 @@ func init() {
 	// 初始化数据库组件
 	_ = storage.InitStorage(context.Background())
 	// 初始化转换器
-	_ = webp.InitConverter(context.Background())
 }
 
 func TestGetBlogsInPage(t *testing.T) {
@@ -135,4 +133,14 @@ func TestRenameImgById(t *testing.T) {
 	}
 	t.Logf("rename success")
 	storage.Storage.Close(ctx)
+}
+
+func TestIsExistImg(t *testing.T) {
+	ctx := context.Background()
+	exist, err := IsExistImg(ctx, "test22")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("exist: %v", exist)
 }

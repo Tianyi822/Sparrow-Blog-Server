@@ -51,5 +51,7 @@ func Routers(e *gin.Engine) {
 		galleryGroup.DELETE("/:img_id", deleteImg)
 
 		galleryGroup.PUT("/:img_id", renameImg)
+
+		galleryGroup.GET("/is-exist/:img_name", isExist)
 	}
 }
