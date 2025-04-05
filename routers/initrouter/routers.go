@@ -1,13 +1,12 @@
-package configrouter
+package initrouter
 
 import (
 	"github.com/gin-gonic/gin"
-	"h2blog_server/env"
 )
 
 func Routers(e *gin.Engine) {
 	// 配置服务统一接口
-	configGroup := e.Group("/config")
+	initGroup := e.Group("/init")
 
 	// 基础配置接口，其配置项如下，保存在 config.yaml 中：
 	//
@@ -30,10 +29,10 @@ func Routers(e *gin.Engine) {
 	//       - DELETE
 	//       - GET
 	//       - OPTIONS
-	configGroup.POST("/base", configBase)
+	initGroup.POST("/server", configServer)
 
 	// 配置邮箱并发送验证码，并且将传入的用户配置参数先保存到全局中，必须在前端中保证只有验证码通过后，才能发起配置 User 的请求
-	configGroup.POST("/config-email-send-code", configEmailAndSendCode)
+	initGroup.POST("/config-email-send-code", configEmailAndSendCode)
 
 	// 配置用户服务，其配置项如下，保存在 config.yaml 中：
 	//
@@ -50,7 +49,7 @@ func Routers(e *gin.Engine) {
 	//  smtp_port: 465
 	//  # 邮箱 SMTP 密码
 	//  smtp_auth_code: YThfU32Tcq3FdVvx
-	configGroup.POST("/user", configUser)
+	initGroup.POST("/user", configUser)
 
 	// 配置 MySQL 数据库
 	//
@@ -70,7 +69,7 @@ func Routers(e *gin.Engine) {
 	//   max_open: 10
 	//   # 最大空闲的数据库连接数
 	//   max_idle: 5
-	configGroup.POST("/mysql", configMysql)
+	initGroup.POST("/mysql", configMysql)
 
 	// 配置 OSS，其配置项如下，保存在 config.yaml 中：
 	//
@@ -99,7 +98,7 @@ func Routers(e *gin.Engine) {
 	//     quality: 75
 	//     # 压缩后的大小，单位 MB
 	//     size: 1
-	configGroup.POST("/oss", configOss)
+	initGroup.POST("/oss", configOss)
 
 	// 配置缓存，其配置项如下，保存在 config.yaml 中：
 	//
@@ -114,7 +113,7 @@ func Routers(e *gin.Engine) {
 	//     max_size: 1
 	//     # 是否开启压缩
 	//     compress: true
-	configGroup.POST("/cache", configCache)
+	initGroup.POST("/cache", configCache)
 
 	// 配置日志，其配置项如下，保存在 config.yaml 中：
 	//
@@ -131,17 +130,8 @@ func Routers(e *gin.Engine) {
 	//  max_age: 7
 	//  # 是否压缩日志文件
 	//  compress: true
-	configGroup.POST("/logger", configLogger)
+	initGroup.POST("/logger", configLogger)
 
 	// 完成配置并保存接口
-	configGroup.GET("/complete-config", completeConfig)
-
-	// 只有在 runtime 环境下才开放以下接口
-	if env.CurrentEnv != env.InitializedEnv {
-		// 获取用户基本信息
-		configGroup.GET("/user-basic-info", userBasicInfo)
-
-		// 获取用户所有信息
-		configGroup.GET("/user-all-info", userAllInfo)
-	}
+	initGroup.GET("/complete-config", completeConfig)
 }

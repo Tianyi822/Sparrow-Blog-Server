@@ -1,4 +1,4 @@
-package configrouter
+package initrouter
 
 import (
 	"github.com/gin-gonic/gin"
@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// configBase 是一个用于解析和配置服务器基础信息的函数。
+// configServer 是一个用于解析和配置服务器基础信息的函数。
 // 参数:
 //
 //	ctx *gin.Context - Gin 框架的上下文对象，用于处理 HTTP 请求和响应。
@@ -20,7 +20,7 @@ import (
 // 返回值:
 //
 //	无返回值，但通过 ctx 返回 JSON 格式的响应结果。
-func configBase(ctx *gin.Context) {
+func configServer(ctx *gin.Context) {
 	serverConfig := config.ServerConfigData{}
 
 	// 配置跨域相关的固定值，这些值不需要前端传入，直接在代码中写死。
@@ -290,23 +290,22 @@ func configOss(ctx *gin.Context) {
 	// 从请求中提取原始数据并解析为 map
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
-		resp.BadRequest(ctx, "请求数据解析错误", err.Error())
 		return
 	}
 
 	// 配置 OSS 基础信息，包括 endpoint、region、access key 等
-	ossConfig.Endpoint = strings.TrimSpace(rawData["ossstore.endpoint"].(string))
-	ossConfig.Region = strings.TrimSpace(rawData["ossstore.region"].(string))
-	ossConfig.AccessKeyId = strings.TrimSpace(rawData["ossstore.access_key_id"].(string))
-	ossConfig.AccessKeySecret = strings.TrimSpace(rawData["ossstore.access_key_secret"].(string))
-	ossConfig.Bucket = strings.TrimSpace(rawData["ossstore.bucket"].(string))
+	ossConfig.Endpoint = strings.TrimSpace(rawData["oss.endpoint"].(string))
+	ossConfig.Region = strings.TrimSpace(rawData["oss.region"].(string))
+	ossConfig.AccessKeyId = strings.TrimSpace(rawData["oss.access_key_id"].(string))
+	ossConfig.AccessKeySecret = strings.TrimSpace(rawData["oss.access_key_secret"].(string))
+	ossConfig.Bucket = strings.TrimSpace(rawData["oss.bucket"].(string))
 	if err = tools.AnalyzeOssConfig(&ossConfig); err != nil {
 		resp.BadRequest(ctx, "OSS 配置错误", err.Error())
 		return
 	}
 
 	// 配置 OSS 图片路径，并验证路径的合法性
-	imageOssPath := strings.TrimSpace(rawData["ossstore.image_oss_path"].(string))
+	imageOssPath := strings.TrimSpace(rawData["oss.image_oss_path"].(string))
 	if err := tools.AnalyzeOssPath(imageOssPath); err != nil {
 		resp.BadRequest(ctx, "图片 OSS 路径配置错误", err.Error())
 		return
@@ -314,7 +313,7 @@ func configOss(ctx *gin.Context) {
 	ossConfig.ImageOssPath = imageOssPath
 
 	// 配置 OSS 博客路径，并验证路径的合法性
-	blogOssPath := strings.TrimSpace(rawData["ossstore.blog_oss_path"].(string))
+	blogOssPath := strings.TrimSpace(rawData["oss.blog_oss_path"].(string))
 	if err := tools.AnalyzeOssPath(blogOssPath); err != nil {
 		resp.BadRequest(ctx, "博客 OSS 路径配置错误", err.Error())
 		return
@@ -456,19 +455,6 @@ func configLogger(ctx *gin.Context) {
 
 	// 返回成功响应，包含配置完成的信息
 	resp.Ok(ctx, "配置完成", config.Logger)
-}
-
-// userBasicInfo 返回用户的基本信息。
-func userBasicInfo(ctx *gin.Context) {
-	// 构造并返回成功的 JSON 响应，包含用户名和用户邮箱信息。
-	resp.Ok(ctx, "获取成功", map[string]string{
-		"user_name": config.User.Username,
-	})
-}
-
-// userAllInfo 返回用户的所有信息。
-func userAllInfo(ctx *gin.Context) {
-	resp.Ok(ctx, "获取成功", config.User)
 }
 
 // completeConfig 完成配置，将配置保存到本地文件中
