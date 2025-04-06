@@ -15,7 +15,7 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
-// SendVerificationCodeEmailByArgs 发送包含验证码的电子邮件。
+// SendVerificationCodeByArgs 发送包含验证码的电子邮件。
 // 参数说明：
 //   - ctx: 上下文对象，用于控制请求的生命周期。
 //   - email: 收件人的电子邮件地址。
@@ -26,7 +26,7 @@ import (
 //
 // 返回值：
 //   - error: 如果发送邮件过程中发生错误，则返回错误信息；否则返回nil。
-func SendVerificationCodeEmailByArgs(ctx context.Context, email, smtpAccount, smtpAddress, smtpAuthCode string, smtpPort uint16) error {
+func SendVerificationCodeByArgs(ctx context.Context, email, smtpAccount, smtpAddress, smtpAuthCode string, smtpPort uint16) error {
 	// 生成一个长度为20的随机验证码，基于用户邮箱和当前时间。
 	code, err := utils.HashWithLength(config.User.UserEmail+time.Now().String(), 20)
 	if err != nil {
@@ -223,9 +223,9 @@ func sendContent(email, content, smtpAccount, smtpAddress, smtpAuthCode string, 
 // 返回值:
 //   - error: 如果发送过程中出现错误，则返回具体的错误信息；否则返回 nil。
 func SendVerificationCodeBySys(ctx context.Context, email string) error {
-	// 调用 SendVerificationCodeEmailByArgs 函数发送验证码邮件，
+	// 调用 SendVerificationCodeByArgs 函数发送验证码邮件，
 	// 使用系统配置中的 SMTP 账号、地址、授权码和端口信息。
-	if err := SendVerificationCodeEmailByArgs(
+	if err := SendVerificationCodeByArgs(
 		ctx,
 		email,
 		config.User.SmtpAccount,

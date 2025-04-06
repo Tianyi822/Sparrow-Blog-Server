@@ -116,9 +116,6 @@ func configUser(ctx *gin.Context) {
 		}
 	}
 
-	// 设置用户名称
-	config.User.Username = strings.TrimSpace(rawData["user.username"].(string))
-
 	// 清除已使用的验证码
 	switch env.CurrentEnv {
 	case env.InitializedEnv:
@@ -131,25 +128,12 @@ func configUser(ctx *gin.Context) {
 		}
 	}
 
-	// 向客户端返回成功消息及配置后的用户信息
-	resp.Ok(ctx, "配置完成", config.User)
-}
-
-// configEmailAndSendCode 处理发送验证码的请求。
-// 该函数从请求中获取用户邮箱、SMTP账户等信息，验证这些信息的有效性，并将有效的配置保存到全局配置中。
-// 最后，通过电子邮件发送验证码。如果过程中出现任何错误，将返回相应的错误信息。
-// 参数:
-//   - ctx: *gin.Context, 用于处理HTTP请求的上下文。
-//
-// 返回值:
-//
-//	无直接返回值，但会通过ctx对象响应客户端。
-func configEmailAndSendCode(ctx *gin.Context) {
 	userConfig := config.UserConfigData{}
 
-	rawData, err := tools.GetMapFromRawData(ctx)
-	if err != nil {
-		resp.BadRequest(ctx, "配置解析错误", err.Error())
+	// 设置用户名称
+	userConfig.Username = strings.TrimSpace(rawData["user.username"].(string))
+	if userConfig.Username == "" {
+		resp.BadRequest(ctx, "用户名不能为空", nil)
 		return
 	}
 
@@ -183,11 +167,57 @@ func configEmailAndSendCode(ctx *gin.Context) {
 	// 获取SMTP授权码
 	userConfig.SmtpAuthCode = strings.TrimSpace(rawData["user.smtp_auth_code"].(string))
 
-	// 将验证后的配置添加到全局配置
 	config.User = userConfig
 
+	// 向客户端返回成功消息及配置后的用户信息
+	resp.Ok(ctx, "配置完成", config.User)
+}
+
+// configEmailAndSendCode 处理发送验证码的请求。
+// 该函数从请求中获取用户邮箱、SMTP账户等信息，验证这些信息的有效性，并将有效的配置保存到全局配置中。
+// 最后，通过电子邮件发送验证码。如果过程中出现任何错误，将返回相应的错误信息。
+// 参数:
+//   - ctx: *gin.Context, 用于处理HTTP请求的上下文。
+//
+// 返回值:
+//
+//	无直接返回值，但会通过ctx对象响应客户端。
+func configEmailAndSendCode(ctx *gin.Context) {
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "配置解析错误", err.Error())
+		return
+	}
+
+	// 从请求中获取并验证用户邮箱
+	userEmail := strings.TrimSpace(rawData["user.user_email"].(string))
+	if err := tools.AnalyzeEmail(userEmail); err != nil {
+		resp.BadRequest(ctx, "用户邮箱配置错误", err.Error())
+		return
+	}
+
+	// 从请求中获取并验证系统邮箱
+	smtpAccount := strings.TrimSpace(rawData["user.smtp_account"].(string))
+	if err := tools.AnalyzeEmail(smtpAccount); err != nil {
+		resp.BadRequest(ctx, "系统邮箱配置错误", err.Error())
+		return
+	}
+
+	// 获取SMTP服务器地址
+	smtpAddress := strings.TrimSpace(rawData["user.smtp_address"].(string))
+
+	// 从请求中获取并验证SMTP端口
+	smtpPort, err := tools.GetUInt16FromRawData(rawData, "user.smtp_port")
+	if err != nil {
+		resp.BadRequest(ctx, "系统邮箱端口配置错误", err.Error())
+		return
+	}
+
+	// 获取SMTP授权码
+	smtpAuthCode := strings.TrimSpace(rawData["user.smtp_auth_code"].(string))
+
 	// 发送验证码邮件
-	if err = email.SendVerificationCodeEmail(ctx, userConfig.UserEmail); err != nil {
+	if err = email.SendVerificationCodeByArgs(ctx, userEmail, smtpAccount, smtpAddress, smtpAuthCode, smtpPort); err != nil {
 		resp.BadRequest(ctx, "验证码发送失败", err.Error())
 		return
 	}
