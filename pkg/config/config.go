@@ -61,7 +61,9 @@ type UserConfigData struct {
 	SmtpAddress     string `yaml:"smtp_address"`     // 邮箱 SMTP 服务器地址
 	SmtpPort        uint16 `yaml:"smtp_port"`        // 邮箱 SMTP 端口
 	SmtpAuthCode    string `yaml:"smtp_auth_code"`   // 邮箱 SMTP 密码
-	BackgroundImage string `yaml:"background_image"` // Background image name
+	BackgroundImage string `yaml:"background_image"` // 背景图
+	AvatarImage     string `yaml:"avatar_image"`     // 头像
+	WebLogo         string `yaml:"web_logo"`         // 网站 logo
 }
 
 // ServerConfigData 定义了服务器相关配置
