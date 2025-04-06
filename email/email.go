@@ -15,39 +15,39 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
-// SendVerificationCodeEmail 发送验证邮件到指定邮箱。
-// 该函数首先生成一个验证代码，然后根据当前环境（配置服务器环境或运行时环境）存储或获取验证代码，
-// 最后构建并发送包含验证代码的邮件到指定邮箱。
-// 参数:
+// SendVerificationCodeEmailByArgs 发送包含验证码的电子邮件。
+// 参数说明：
+//   - ctx: 上下文对象，用于控制请求的生命周期。
+//   - email: 收件人的电子邮件地址。
+//   - smtpAccount: SMTP服务器的账户名。
+//   - smtpAddress: SMTP服务器的地址。
+//   - smtpAuthCode: SMTP服务器的授权码。
+//   - smtpPort: SMTP服务器的端口号。
 //
-//	ctx - 上下文，用于传递请求范围的数据。
-//	email - 接收验证邮件的邮箱地址。
-//
-// 返回值:
-//
-//	如果发送邮件过程中发生错误，则返回该错误；否则返回nil。
-func SendVerificationCodeEmail(ctx context.Context, email string) error {
-	// 生成验证代码
+// 返回值：
+//   - error: 如果发送邮件过程中发生错误，则返回错误信息；否则返回nil。
+func SendVerificationCodeEmailByArgs(ctx context.Context, email, smtpAccount, smtpAddress, smtpAuthCode string, smtpPort uint16) error {
+	// 生成一个长度为20的随机验证码，基于用户邮箱和当前时间。
 	code, err := utils.HashWithLength(config.User.UserEmail+time.Now().String(), 20)
 	if err != nil {
 		return err
 	}
 
-	// 根据当前环境处理验证代码
+	// 根据当前运行环境处理验证码的存储和获取逻辑。
 	switch env.CurrentEnv {
 	case env.InitializedEnv:
-		// 在配置服务器环境中，如果环境变量中没有验证代码，则设置为当前生成的代码
+		// 在配置服务器环境中，优先使用环境变量中的验证码。
+		// 如果环境变量中没有验证码，则将生成的验证码存储到环境变量中。
 		if env.VerificationCode == "" {
 			env.VerificationCode = code
 		} else {
-			// 如果环境变量中已有验证代码，则使用它
 			code = env.VerificationCode
 		}
 	case env.ProdEnv, env.DebugEnv:
-		// 在运行时环境中，尝试从缓存中获取验证代码
+		// 在生产或调试环境中，尝试从缓存中获取验证码。
+		// 如果缓存中不存在验证码，则将生成的验证码存储到缓存中，并设置5分钟的过期时间。
 		c, err := storage.Storage.Cache.GetString(ctx, storage.VerificationCodeKey)
 		if err != nil {
-			// 如果缓存中没有验证代码，将其存储到缓存中，设置过期时间为5分钟
 			err = storage.Storage.Cache.SetWithExpired(ctx, storage.VerificationCodeKey, code, 5*time.Minute)
 			if err != nil {
 				msg := fmt.Sprintf("缓存验证码失败: %v", err)
@@ -58,16 +58,7 @@ func SendVerificationCodeEmail(ctx context.Context, email string) error {
 		}
 	}
 
-	// 创建邮件内容
-	m := gomail.NewMessage()
-	// 发件人
-	m.SetHeader("From", config.User.SmtpAccount)
-	// 收件人
-	m.SetHeader("To", email)
-	// 主题
-	m.SetHeader("Subject", "博客验证码")
-
-	// HTML 正文模板
+	// 定义HTML邮件模板，包含验证码的展示样式和提示信息。
 	htmlTemplate := `
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -169,16 +160,16 @@ func SendVerificationCodeEmail(ctx context.Context, email string) error {
 </html>
 	`
 
-	// 解析模板
+	// 解析HTML模板，准备渲染验证码。
 	tmpl, err := template.New("email").Parse(htmlTemplate)
 	if err != nil {
 		return err
 	}
 
-	// 创建一个字符串构建器来存储渲染后的HTML内容
+	// 创建一个字符串构建器，用于存储渲染后的HTML内容。
 	var htmlContent strings.Builder
 
-	// 执行模板并写入构建器
+	// 执行模板渲染，将验证码插入到HTML模板中。
 	err = tmpl.Execute(&htmlContent, struct {
 		Code string
 	}{Code: template.HTMLEscapeString(code)})
@@ -186,14 +177,62 @@ func SendVerificationCodeEmail(ctx context.Context, email string) error {
 		return err
 	}
 
-	// 设置邮件正文
-	m.SetBody("text/html", htmlContent.String())
+	// 调用SendContent函数发送包含验证码的邮件。
+	return SendContent(email, htmlContent.String(), smtpAccount, smtpAddress, smtpAuthCode, smtpPort)
+}
 
-	// 配置 SMTP 服务器
-	d := gomail.NewDialer(config.User.SmtpAddress, int(config.User.SmtpPort), config.User.SmtpAccount, config.User.SmtpAuthCode)
+// SendContent 发送邮件内容到指定邮箱。
+// 参数说明：
+//   - email: 收件人的邮箱地址。
+//   - content: 邮件的正文内容，支持 HTML 格式。
+//   - smtpAccount: SMTP 服务器的发件人账号（通常是邮箱地址）。
+//   - smtpAddress: SMTP 服务器的地址（如 smtp.example.com）。
+//   - smtpAuthCode: SMTP 服务器的授权码或密码。
+//   - smtpPort: SMTP 服务器的端口号（如 465 或 587）。
+//
+// 返回值：
+//   - error: 如果发送邮件失败，则返回错误信息；否则返回 nil。
+func SendContent(email, content, smtpAccount, smtpAddress, smtpAuthCode string, smtpPort uint16) error {
+	// 创建邮件内容
+	m := gomail.NewMessage()
 
-	// 发送邮件
+	// 设置邮件头部信息，包括发件人、收件人和主题
+	m.SetHeader("From", smtpAccount)
+	m.SetHeader("To", email)
+	m.SetHeader("Subject", "博客验证码")
+
+	// 设置邮件正文为 HTML 格式
+	m.SetBody("text/html", content)
+
+	// 配置 SMTP 服务器连接信息
+	d := gomail.NewDialer(smtpAddress, int(smtpPort), smtpAccount, smtpAuthCode)
+
+	// 尝试连接 SMTP 服务器并发送邮件
 	if err := d.DialAndSend(m); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SendVerificationCodeBySys 发送验证码邮件给指定的邮箱地址。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据；
+//   - email: 目标邮箱地址，验证码将发送到该邮箱；
+//
+// 返回值:
+//   - error: 如果发送过程中出现错误，则返回具体的错误信息；否则返回 nil。
+func SendVerificationCodeBySys(ctx context.Context, email string) error {
+	// 调用 SendVerificationCodeEmailByArgs 函数发送验证码邮件，
+	// 使用系统配置中的 SMTP 账号、地址、授权码和端口信息。
+	if err := SendVerificationCodeEmailByArgs(
+		ctx,
+		email,
+		config.User.SmtpAccount,
+		config.User.SmtpAddress,
+		config.User.SmtpAuthCode,
+		config.User.SmtpPort,
+	); err != nil {
 		return err
 	}
 
