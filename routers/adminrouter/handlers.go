@@ -38,7 +38,7 @@ func sendVerificationCode(ctx *gin.Context) {
 	}
 
 	// 调用邮件服务发送验证码邮件，并处理发送过程中可能出现的错误。
-	err = email.SendVerificationCodeEmail(ctx, config.User.UserEmail)
+	err = email.SendVerificationCodeBySys(ctx)
 	if err != nil {
 		resp.Err(ctx, "验证码发送失败", err.Error())
 		return

@@ -222,12 +222,12 @@ func sendContent(email, content, smtpAccount, smtpAddress, smtpAuthCode string, 
 //
 // 返回值:
 //   - error: 如果发送过程中出现错误，则返回具体的错误信息；否则返回 nil。
-func SendVerificationCodeBySys(ctx context.Context, email string) error {
+func SendVerificationCodeBySys(ctx context.Context) error {
 	// 调用 SendVerificationCodeByArgs 函数发送验证码邮件，
 	// 使用系统配置中的 SMTP 账号、地址、授权码和端口信息。
 	if err := SendVerificationCodeByArgs(
 		ctx,
-		email,
+		config.User.UserEmail,
 		config.User.SmtpAccount,
 		config.User.SmtpAddress,
 		config.User.SmtpAuthCode,
