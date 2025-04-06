@@ -178,10 +178,10 @@ func SendVerificationCodeEmailByArgs(ctx context.Context, email, smtpAccount, sm
 	}
 
 	// 调用SendContent函数发送包含验证码的邮件。
-	return SendContent(email, htmlContent.String(), smtpAccount, smtpAddress, smtpAuthCode, smtpPort)
+	return sendContent(email, htmlContent.String(), smtpAccount, smtpAddress, smtpAuthCode, smtpPort)
 }
 
-// SendContent 发送邮件内容到指定邮箱。
+// sendContent 发送邮件内容到指定邮箱。
 // 参数说明：
 //   - email: 收件人的邮箱地址。
 //   - content: 邮件的正文内容，支持 HTML 格式。
@@ -192,7 +192,7 @@ func SendVerificationCodeEmailByArgs(ctx context.Context, email, smtpAccount, sm
 //
 // 返回值：
 //   - error: 如果发送邮件失败，则返回错误信息；否则返回 nil。
-func SendContent(email, content, smtpAccount, smtpAddress, smtpAuthCode string, smtpPort uint16) error {
+func sendContent(email, content, smtpAccount, smtpAddress, smtpAuthCode string, smtpPort uint16) error {
 	// 创建邮件内容
 	m := gomail.NewMessage()
 
