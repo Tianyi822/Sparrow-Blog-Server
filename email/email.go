@@ -46,10 +46,10 @@ func SendVerificationCodeByArgs(ctx context.Context, email, smtpAccount, smtpAdd
 	case env.ProdEnv, env.DebugEnv:
 		// 在生产或调试环境中，尝试从缓存中获取验证码。
 		// 如果缓存中不存在验证码，则将生成的验证码存储到缓存中，并设置5分钟的过期时间。
-		c, err := storage.Storage.Cache.GetString(ctx, storage.VerificationCodeKey)
-		if err != nil {
-			err = storage.Storage.Cache.SetWithExpired(ctx, storage.VerificationCodeKey, code, 5*time.Minute)
-			if err != nil {
+		c, getErr := storage.Storage.Cache.GetString(ctx, storage.VerificationCodeKey)
+		if getErr != nil {
+			setErr := storage.Storage.Cache.SetWithExpired(ctx, storage.VerificationCodeKey, code, 5*time.Minute)
+			if setErr != nil {
 				msg := fmt.Sprintf("缓存验证码失败: %v", err)
 				return errors.New(msg)
 			}
