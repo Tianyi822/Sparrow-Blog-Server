@@ -12,12 +12,12 @@ func init() {
 
 func TestSendVerificationCodeEmail(t *testing.T) {
 	ctx := context.Background()
-	err := SendVerificationCodeBySys(ctx, "chentyit@163.com")
+	err := SendVerificationCodeBySys(ctx)
 	if err != nil {
 		t.Fatalf("SendVerificationCodeBySys failed: %v", err)
 	}
 
-	err = SendVerificationCodeBySys(ctx, "chentyit@163.com")
+	err = SendVerificationCodeBySys(ctx)
 	if err != nil {
 		t.Fatalf("SendVerificationCodeBySys failed: %v", err)
 	}
