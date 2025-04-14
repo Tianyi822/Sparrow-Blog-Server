@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-// sendVerificationCode 处理发送验证码的请求。
+// sendLoginVerificationCode 处理发送验证码的请求。
 // 参数:
 //   - *gin.Context: HTTP 请求上下文，包含请求数据和响应方法。
 //
@@ -23,7 +23,7 @@ import (
 //
 //	该函数从请求中解析用户提交的数据，验证用户邮箱是否正确，
 //	并调用邮件服务发送验证码。根据操作结果返回相应的 HTTP 响应。
-func sendVerificationCode(ctx *gin.Context) {
+func sendLoginVerificationCode(ctx *gin.Context) {
 	// 从请求中解析原始数据为 map，并处理可能的解析错误。
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {

@@ -8,7 +8,7 @@ func Routers(e *gin.Engine) {
 	{
 		loginGroup := adminGroup.Group("/login")
 
-		loginGroup.POST("/verification-code", sendVerificationCode)
+		loginGroup.POST("/verification-code", sendLoginVerificationCode)
 
 		loginGroup.POST("/login", login)
 	}
