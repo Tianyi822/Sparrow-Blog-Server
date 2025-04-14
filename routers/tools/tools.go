@@ -179,6 +179,52 @@ func GetUInt16FromRawData(reqData map[string]any, key string) (uint16, error) {
 	}
 }
 
+// GetUInt8FromRawData 从原始数据中提取指定键的值并将其转换为 uint8 类型。
+// 参数:
+//   - reqData: 包含键值对的 map，值可以是任意类型。
+//   - key: 要提取的键名。
+//
+// 返回值:
+//   - uint8: 提取并转换成功的 uint8 值。
+//   - error: 如果键不存在、值类型不支持或值超出 uint8 范围，则返回相应的错误信息。
+func GetUInt8FromRawData(reqData map[string]any, key string) (uint8, error) {
+	// 检查键是否存在，如果不存在则返回错误
+	val, ok := reqData[key]
+	if !ok {
+		return 0, fmt.Errorf("'%s' 为空", key)
+	}
+
+	// 根据值的实际类型进行处理
+	switch v := val.(type) {
+	case float64:
+		// 如果值是 float64 类型，检查是否在 uint8 范围内
+		if v < 0 || v > math.MaxUint8 {
+			return 0, fmt.Errorf("'%s' 超出 uint8 范围", key)
+		}
+		return uint8(v), nil
+	case int:
+		// 如果值是 int 类型，检查是否在 uint8 范围内
+		if v < 0 || v > math.MaxUint8 {
+			return 0, fmt.Errorf("'%s' 超出 uint8 范围", key)
+		}
+		return uint8(v), nil
+	case string:
+		// 如果值是字符串类型，尝试将其解析为无符号整数
+		num, err := strconv.ParseUint(v, 10, 8)
+		if err != nil {
+			return 0, fmt.Errorf("不可使用的无符号整型值 '%s': %w", key, err)
+		}
+		// 检查解析后的值是否在 uint8 范围内
+		if num > math.MaxUint8 {
+			return 0, fmt.Errorf("'%s' 超出 uint8 范围", key)
+		}
+		return uint8(num), nil
+	default:
+		// 如果值的类型不被支持，返回错误
+		return 0, fmt.Errorf("'%s' 类型不支持", key)
+	}
+}
+
 // GetFloatFromRawData 从原始数据中提取指定键的浮点数值。
 // 参数:
 //   - reqData: 包含键值对的原始数据映射，值可以是任意类型。
@@ -212,5 +258,42 @@ func GetFloatFromRawData(reqData map[string]any, key string) (float32, error) {
 	default:
 		// 如果值的类型不被支持，返回错误。
 		return 0, fmt.Errorf("'%s' 类型不支持", key)
+	}
+}
+
+// GetStrListFromRawData 从原始数据中提取字符串列表
+// 参数:
+//   - reqData: 包含键值对的原始数据映射，值可以是任意类型
+//   - key: 需要提取字符串列表的键名
+//
+// 返回值:
+//   - []string: 提取并转换成功的字符串列表
+//   - error: 如果键不存在、值类型不支持或转换失败，则返回相应的错误信息
+func GetStrListFromRawData(reqData map[string]any, key string) ([]string, error) {
+	// 检查键是否存在，如果不存在则返回错误
+	val, ok := reqData[key]
+	if !ok {
+		return nil, fmt.Errorf("'%s' 为空", key)
+	}
+
+	switch v := val.(type) {
+	case []string:
+		// 如果值已经是字符串切片类型，直接返回
+		return v, nil
+	case []any:
+		// 如果值是任意类型的切片，尝试将每个元素转换为字符串
+		var list []string
+		for _, item := range v {
+			if str, ok := item.(string); ok {
+				list = append(list, str)
+			} else {
+				// 如果有任何元素不能转换为字符串，返回错误
+				return nil, fmt.Errorf("'%s' 类型不支持", key)
+			}
+		}
+		return list, nil
+	default:
+		// 如果值的类型既不是字符串切片也不是任意类型切片，返回错误
+		return nil, fmt.Errorf("'%s' 类型不支持", key)
 	}
 }
