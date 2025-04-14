@@ -569,3 +569,11 @@ func updateUserConfig(ctx *gin.Context) {
 	// 返回更新成功的响应
 	resp.Ok(ctx, "更新成功", nil)
 }
+
+func getServerConfig(ctx *gin.Context) {
+	resp.Ok(ctx, "获取成功", map[string]string{
+		"port":                  strconv.Itoa(int(config.Server.Port)),
+		"token_expire_duration": strconv.Itoa(int(config.Server.TokenExpireDuration)),
+		"cors_origins":          strings.Join(config.Server.Cors.Origins, ","),
+	})
+}

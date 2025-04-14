@@ -63,5 +63,7 @@ func Routers(e *gin.Engine) {
 		settingGroup.POST("/user/verify-new-smtp-config", verifyNewSmtpConfig)
 
 		settingGroup.PUT("/user/config", updateUserConfig)
+
+		settingGroup.GET("/server/config", getServerConfig)
 	}
 }
