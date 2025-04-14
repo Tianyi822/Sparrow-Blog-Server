@@ -570,10 +570,82 @@ func updateUserConfig(ctx *gin.Context) {
 	resp.Ok(ctx, "更新成功", nil)
 }
 
+// getServerConfig 获取服务器配置信息
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从系统配置中获取服务器配置信息，包括token过期时间和跨域源配置
+//  2. 将配置信息封装为map结构返回给客户端
 func getServerConfig(ctx *gin.Context) {
-	resp.Ok(ctx, "获取成功", map[string]string{
-		"port":                  strconv.Itoa(int(config.Server.Port)),
-		"token_expire_duration": strconv.Itoa(int(config.Server.TokenExpireDuration)),
-		"cors_origins":          strings.Join(config.Server.Cors.Origins, ","),
+	resp.Ok(ctx, "获取成功", map[string]any{
+		"token_expire_duration": config.Server.TokenExpireDuration,
+		"cors_origins":          config.Server.Cors.Origins,
 	})
+}
+
+// updateServerConfig 更新服务器配置信息
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从请求中解析并验证新的服务器配置信息
+//  2. 验证Token密钥的合法性
+//  3. 验证Token过期时间的设置
+//  4. 验证跨域源配置的合法性
+//  5. 更新系统配置并保存
+func updateServerConfig(ctx *gin.Context) {
+	// 从请求中解析原始数据
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
+		return
+	}
+
+	// 验证Token密钥
+	tokenKey := strings.TrimSpace(rawData["token_key"].(string))
+	if anaErr := tools.AnalyzeTokenKey(tokenKey); anaErr != nil {
+		resp.BadRequest(ctx, "Token 密钥配置错误", anaErr.Error())
+		return
+	}
+
+	// 验证Token过期时间
+	tokenExpireDur, getErr := tools.GetUInt8FromRawData(rawData, "token_expire_duration")
+	if getErr != nil {
+		resp.BadRequest(ctx, "Token 过期时间配置错误", getErr.Error())
+		return
+	}
+
+	// 获取并验证跨域源配置
+	origins, getErr := tools.GetStrListFromRawData(rawData, "cors_origins")
+	if getErr != nil {
+		resp.BadRequest(ctx, "跨域源配置错误", getErr.Error())
+		return
+	}
+	anaErr := tools.AnalyzeCorsOrigins(origins)
+	if anaErr != nil {
+		resp.BadRequest(ctx, "跨域源配置错误", anaErr.Error())
+		return
+	}
+
+	// 构造新的服务器配置
+	config.Server = config.ServerConfigData{
+		Port:                config.Server.Port,
+		TokenKey:            tokenKey,
+		TokenExpireDuration: tokenExpireDur,
+		Cors: config.CorsConfigData{
+			Origins: origins,
+			Methods: config.Server.Cors.Methods,
+			Headers: config.Server.Cors.Headers,
+		},
+	}
+
+	// 更新配置到存储系统
+	if upErr := adminservice.UpdateConfig(); upErr != nil {
+		resp.Err(ctx, "更新失败", upErr.Error())
+		return
+	}
+
+	// 返回更新成功的响应
+	resp.Ok(ctx, "更新成功", nil)
 }

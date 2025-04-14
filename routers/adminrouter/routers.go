@@ -65,5 +65,7 @@ func Routers(e *gin.Engine) {
 		settingGroup.PUT("/user/config", updateUserConfig)
 
 		settingGroup.GET("/server/config", getServerConfig)
+
+		settingGroup.PUT("/server/config", updateServerConfig)
 	}
 }
