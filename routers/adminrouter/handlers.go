@@ -496,8 +496,8 @@ func updateUserConfig(ctx *gin.Context) {
 		return
 	}
 	defer func() {
-		if err := storage.Storage.Cache.Delete(ctx, storage.VerificationCodeKey); err != nil {
-			logger.Warn("删除验证码缓存失败: ", err.Error())
+		if delErr := storage.Storage.Cache.Delete(ctx, storage.VerificationCodeKey); delErr != nil {
+			logger.Warn("删除验证码缓存失败: ", delErr.Error())
 		}
 	}()
 
