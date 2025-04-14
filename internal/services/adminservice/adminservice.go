@@ -577,3 +577,21 @@ func DeleteImg(ctx context.Context, id string) error {
 
 	return nil
 }
+
+func UpdateConfig() error {
+	projConfig := config.ProjectConfig{
+		User:   config.User,
+		Server: config.Server,
+		MySQL:  config.MySQL,
+		Oss:    config.Oss,
+		Cache:  config.Cache,
+		Logger: config.Logger,
+	}
+
+	err := projConfig.Store()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
