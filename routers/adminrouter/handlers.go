@@ -7,10 +7,12 @@ import (
 	"h2blog_server/internal/services/adminservice"
 	"h2blog_server/internal/services/imgservice"
 	"h2blog_server/pkg/config"
+	"h2blog_server/pkg/logger"
 	"h2blog_server/pkg/resp"
 	"h2blog_server/routers/tools"
 	"h2blog_server/storage"
 	"h2blog_server/storage/ossstore"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -378,4 +380,192 @@ func isExist(ctx *gin.Context) {
 	} else {
 		resp.Ok(ctx, "图片不存在", flag)
 	}
+}
+
+// getUserInfo 获取用户基本信息
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从系统配置中获取用户信息，包括用户名、邮箱、SMTP配置等
+//  2. 将获取到的用户信息封装为map结构返回给客户端
+//  3. 返回成功的HTTP响应
+func getUserInfo(ctx *gin.Context) {
+	resp.Ok(ctx, "获取成功", map[string]string{
+		"user_name":        config.User.Username,
+		"user_email":       config.User.UserEmail,
+		"smtp_account":     config.User.SmtpAccount,
+		"smtp_address":     config.User.SmtpAddress,
+		"smtp_port":        strconv.Itoa(int(config.User.SmtpPort)),
+		"background_image": config.User.BackgroundImage,
+		"avatar_image":     config.User.AvatarImage,
+		"web_logo":         config.User.WebLogo,
+	})
+}
+
+// verifyNewSmtpConfig 验证新的 SMTP 配置，发送验证邮件
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从请求中获取并验证新的SMTP配置信息，包括邮箱、SMTP账号、地址、授权码和端口
+//  2. 使用新的配置信息发送验证邮件，测试配置是否正确
+//  3. 根据验证结果返回相应的响应
+func verifyNewSmtpConfig(ctx *gin.Context) {
+	// 从请求中解析原始数据
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
+		return
+	}
+
+	// 验证并获取新的邮箱地址
+	newEmail := strings.TrimSpace(rawData["user_email"].(string))
+	if anaErr := tools.AnalyzeEmail(newEmail); anaErr != nil {
+		resp.BadRequest(ctx, "邮箱格式有误，请检查错误", anaErr.Error())
+		return
+	}
+
+	// 验证并获取SMTP账号
+	smtpAccount := strings.TrimSpace(rawData["smtp_account"].(string))
+	if len(smtpAccount) == 0 {
+		resp.BadRequest(ctx, "SMTP账号不能为空", "")
+		return
+	}
+
+	// 验证并获取SMTP服务器地址
+	smtpAddress := strings.TrimSpace(rawData["smtp_address"].(string))
+	if len(smtpAddress) == 0 {
+		resp.BadRequest(ctx, "SMTP地址不能为空", "")
+		return
+	}
+
+	// 验证并获取SMTP授权码
+	smtpAuthCode := strings.TrimSpace(rawData["smtp_auth_code"].(string))
+	if len(smtpAuthCode) == 0 {
+		resp.BadRequest(ctx, "SMTP授权码不能为空", "")
+		return
+	}
+
+	// 验证并获取SMTP端口号
+	smtpPort, err := tools.GetUInt16FromRawData(rawData, "smtp_port")
+	if err != nil {
+		resp.BadRequest(ctx, "SMTP端口号有误，请检查错误", err.Error())
+		return
+	}
+
+	// 使用新的配置信息发送验证邮件
+	if err := email.SendVerificationCodeByArgs(
+		ctx,
+		newEmail,
+		smtpAccount,
+		smtpAddress,
+		smtpAuthCode,
+		smtpPort,
+	); err != nil {
+		resp.Err(ctx, "发送失败", err.Error())
+		return
+	}
+
+	// 发送成功，返回原始配置数据
+	resp.Ok(ctx, "发送成功", rawData)
+}
+
+// updateUserInfo 处理更新用户信息的请求
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 验证用户提交的验证码
+//  2. 验证并获取用户基本信息(用户名、邮箱等)
+//  3. 验证并获取SMTP邮件服务器配置信息
+//  4. 更新用户界面相关配置(背景图、头像、网站logo等)
+//  5. 将新的配置信息保存到系统中
+func updateUserInfo(ctx *gin.Context) {
+	// 从请求中解析原始数据
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
+		return
+	}
+
+	// 从缓存中获取验证码
+	verifiedCode, err := storage.Storage.Cache.GetString(ctx, storage.VerificationCodeKey)
+	if err != nil {
+		resp.BadRequest(ctx, "验证码过期", err.Error())
+		return
+	}
+	defer func() {
+		if err := storage.Storage.Cache.Delete(ctx, storage.VerificationCodeKey); err != nil {
+			logger.Warn("删除验证码缓存失败: ", err.Error())
+		}
+	}()
+
+	// 验证用户提交的验证码是否正确
+	if verifiedCode != rawData["verified_code"].(string) {
+		resp.BadRequest(ctx, "验证码错误", "")
+		return
+	}
+
+	// 获取并验证用户名
+	userName := strings.TrimSpace(rawData["user_name"].(string))
+	if len(userName) == 0 {
+		resp.BadRequest(ctx, "用户名不能为空", "")
+		return
+	}
+
+	// 获取并验证用户邮箱格式
+	userEmail := strings.TrimSpace(rawData["user_email"].(string))
+	if anaErr := tools.AnalyzeEmail(userEmail); anaErr != nil {
+		resp.BadRequest(ctx, "用户邮箱配置错误", anaErr.Error())
+		return
+	}
+
+	// 获取并验证SMTP账号邮箱格式
+	smtpAccount := strings.TrimSpace(rawData["smtp_account"].(string))
+	if anaErr := tools.AnalyzeEmail(smtpAccount); anaErr != nil {
+		resp.BadRequest(ctx, "系统邮箱配置错误", anaErr.Error())
+		return
+	}
+
+	// 获取SMTP服务器地址
+	smtpAddress := strings.TrimSpace(rawData["smtp_address"].(string))
+
+	// 获取并验证SMTP端口号
+	smtpPort, err := tools.GetUInt16FromRawData(rawData, "smtp_port")
+	if err != nil {
+		resp.BadRequest(ctx, "系统邮箱端口配置错误", err.Error())
+		return
+	}
+
+	// 获取SMTP授权码
+	smtpAuthCode := strings.TrimSpace(rawData["smtp_auth_code"].(string))
+
+	// 获取用户界面相关配置
+	backgroundImage := strings.TrimSpace(rawData["background_image"].(string))
+	avatarImage := strings.TrimSpace(rawData["avatar_image"].(string))
+	webLogo := strings.TrimSpace(rawData["web_logo"].(string))
+
+	// 构造新的用户配置对象
+	userConfig := config.UserConfigData{
+		Username:        userName,
+		UserEmail:       userEmail,
+		SmtpAccount:     smtpAccount,
+		SmtpAddress:     smtpAddress,
+		SmtpPort:        smtpPort,
+		SmtpAuthCode:    smtpAuthCode,
+		BackgroundImage: backgroundImage,
+		AvatarImage:     avatarImage,
+		WebLogo:         webLogo,
+	}
+	config.User = userConfig
+
+	// 更新配置到存储系统
+	if upErr := adminservice.UpdateConfig(); upErr != nil {
+		resp.Err(ctx, "更新失败", upErr.Error())
+		return
+	}
+
+	// 返回更新成功的响应
+	resp.Ok(ctx, "更新成功", nil)
 }

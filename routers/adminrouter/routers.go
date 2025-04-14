@@ -54,4 +54,14 @@ func Routers(e *gin.Engine) {
 
 		galleryGroup.GET("/is-exist/:img_name", isExist)
 	}
+
+	{
+		settingGroup := adminGroup.Group("/setting")
+
+		settingGroup.GET("/user/info", getUserInfo)
+
+		settingGroup.POST("/user/verify-new-smtp-config", verifyNewSmtpConfig)
+
+		settingGroup.PUT("/user/info", updateUserInfo)
+	}
 }
