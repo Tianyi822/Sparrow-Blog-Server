@@ -480,8 +480,8 @@ func RenameImgById(ctx context.Context, imgId string, newName string) error {
 	// 生成 OSS 中的旧路径和新路径，并调用存储服务重命名 OSS 中的文件
 	oldPath := ossstore.GenOssSavePath(imgDto.ImgName, imgDto.ImgType)
 	newPath := ossstore.GenOssSavePath(newName, imgDto.ImgType)
-	if err := storage.Storage.RenameObject(ctx, oldPath, newPath); err != nil {
-		return err
+	if renameErr := storage.Storage.RenameObject(ctx, oldPath, newPath); renameErr != nil {
+		return renameErr
 	}
 	logger.Info("重命名 OSS 中的图片名称成功")
 
@@ -503,8 +503,8 @@ func RenameImgById(ctx context.Context, imgId string, newName string) error {
 	logger.Info("更新数据库中的图片名称成功")
 
 	logger.Info("删除缓存中保存的预签名 URL")
-	if err := storage.Storage.Cache.Delete(ctx, storage.BuildImgCacheKey(imgId)); err != nil {
-		return err
+	if delErr := storage.Storage.Cache.Delete(ctx, storage.BuildImgCacheKey(imgId)); delErr != nil {
+		return delErr
 	}
 	logger.Info("删除缓存中保存的预签名 URL 成功")
 
