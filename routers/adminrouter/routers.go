@@ -58,10 +58,10 @@ func Routers(e *gin.Engine) {
 	{
 		settingGroup := adminGroup.Group("/setting")
 
-		settingGroup.GET("/user/info", getUserInfo)
+		settingGroup.GET("/user/config", getUserConfig)
 
 		settingGroup.POST("/user/verify-new-smtp-config", verifyNewSmtpConfig)
 
-		settingGroup.PUT("/user/info", updateUserInfo)
+		settingGroup.PUT("/user/config", updateUserConfig)
 	}
 }

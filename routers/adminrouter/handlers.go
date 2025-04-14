@@ -382,7 +382,7 @@ func isExist(ctx *gin.Context) {
 	}
 }
 
-// getUserInfo 获取用户基本信息
+// getUserConfig 获取用户基本信息
 // 参数:
 //   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
 //
@@ -390,7 +390,7 @@ func isExist(ctx *gin.Context) {
 //  1. 从系统配置中获取用户信息，包括用户名、邮箱、SMTP配置等
 //  2. 将获取到的用户信息封装为map结构返回给客户端
 //  3. 返回成功的HTTP响应
-func getUserInfo(ctx *gin.Context) {
+func getUserConfig(ctx *gin.Context) {
 	resp.Ok(ctx, "获取成功", map[string]string{
 		"user_name":        config.User.Username,
 		"user_email":       config.User.UserEmail,
@@ -471,7 +471,7 @@ func verifyNewSmtpConfig(ctx *gin.Context) {
 	resp.Ok(ctx, "发送成功", rawData)
 }
 
-// updateUserInfo 处理更新用户信息的请求
+// updateUserConfig 处理更新用户信息的请求
 // 参数:
 //   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
 //
@@ -481,7 +481,7 @@ func verifyNewSmtpConfig(ctx *gin.Context) {
 //  3. 验证并获取SMTP邮件服务器配置信息
 //  4. 更新用户界面相关配置(背景图、头像、网站logo等)
 //  5. 将新的配置信息保存到系统中
-func updateUserInfo(ctx *gin.Context) {
+func updateUserConfig(ctx *gin.Context) {
 	// 从请求中解析原始数据
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
