@@ -33,8 +33,19 @@ func (pc *ProjectConfig) Store() error {
 		return fmt.Errorf("将配置数据转换为YAML失败: %w", err)
 	}
 
-	// 将 YAML 数据写入到文件中
-	file, err := filetool.CreateFile(filepath.Join(h2BlogHomePath, "config", "h2blog_config.yaml"))
+	// 生成配置文件路径
+	configPath := filepath.Join(h2BlogHomePath, "config", "h2blog_config.yaml")
+
+	// 删除原有的配置文件
+	if filetool.IsExist(configPath) {
+		removeErr := os.Remove(configPath)
+		if removeErr != nil {
+			return fmt.Errorf("删除旧的配置文件失败: %w", removeErr)
+		}
+	}
+
+	// 将新的 YAML 数据写入到文件中
+	file, err := filetool.CreateFile(configPath)
 	if err != nil {
 		return fmt.Errorf("创建配置文件失败: %w", err)
 	}
@@ -48,6 +59,11 @@ func (pc *ProjectConfig) Store() error {
 	_, err = file.Write(yamlData)
 	if err != nil {
 		return fmt.Errorf("写入配置文件失败: %w", err)
+	}
+
+	err = file.Sync()
+	if err != nil {
+		return fmt.Errorf("同步配置文件失败: %w", err)
 	}
 
 	return nil
