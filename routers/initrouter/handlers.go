@@ -105,9 +105,9 @@ func configUser(ctx *gin.Context) {
 			return
 		}
 	case env.ProdEnv, env.DebugEnv:
-		c, err := storage.Storage.Cache.GetString(ctx, storage.VerificationCodeKey)
-		if err != nil {
-			resp.BadRequest(ctx, "验证码过期", err.Error())
+		c, getErr := storage.Storage.Cache.GetString(ctx, storage.VerificationCodeKey)
+		if getErr != nil {
+			resp.BadRequest(ctx, "验证码过期", getErr.Error())
 			return
 		}
 		if c != code {
@@ -121,9 +121,9 @@ func configUser(ctx *gin.Context) {
 	case env.InitializedEnv:
 		env.VerificationCode = ""
 	case env.ProdEnv:
-		err := storage.Storage.Cache.Delete(ctx, storage.VerificationCodeKey)
-		if err != nil {
-			resp.Err(ctx, "验证码缓存清除失败", err.Error())
+		delErr := storage.Storage.Cache.Delete(ctx, storage.VerificationCodeKey)
+		if delErr != nil {
+			resp.Err(ctx, "验证码缓存清除失败", delErr.Error())
 			return
 		}
 	}
@@ -139,16 +139,16 @@ func configUser(ctx *gin.Context) {
 
 	// 从请求中获取并验证用户邮箱
 	userEmail := strings.TrimSpace(rawData["user.user_email"].(string))
-	if err := tools.AnalyzeEmail(userEmail); err != nil {
-		resp.BadRequest(ctx, "用户邮箱配置错误", err.Error())
+	if emailErr := tools.AnalyzeEmail(userEmail); emailErr != nil {
+		resp.BadRequest(ctx, "用户邮箱配置错误", emailErr.Error())
 		return
 	}
 	userConfig.UserEmail = userEmail
 
 	// 从请求中获取并验证系统邮箱
 	smtpAccount := strings.TrimSpace(rawData["user.smtp_account"].(string))
-	if err := tools.AnalyzeEmail(smtpAccount); err != nil {
-		resp.BadRequest(ctx, "系统邮箱配置错误", err.Error())
+	if emailErr := tools.AnalyzeEmail(smtpAccount); emailErr != nil {
+		resp.BadRequest(ctx, "系统邮箱配置错误", emailErr.Error())
 		return
 	}
 	userConfig.SmtpAccount = smtpAccount
@@ -191,15 +191,15 @@ func configEmailAndSendCode(ctx *gin.Context) {
 
 	// 从请求中获取并验证用户邮箱
 	userEmail := strings.TrimSpace(rawData["user.user_email"].(string))
-	if err := tools.AnalyzeEmail(userEmail); err != nil {
-		resp.BadRequest(ctx, "用户邮箱配置错误", err.Error())
+	if emailErr := tools.AnalyzeEmail(userEmail); emailErr != nil {
+		resp.BadRequest(ctx, "用户邮箱配置错误", emailErr.Error())
 		return
 	}
 
 	// 从请求中获取并验证系统邮箱
 	smtpAccount := strings.TrimSpace(rawData["user.smtp_account"].(string))
-	if err := tools.AnalyzeEmail(smtpAccount); err != nil {
-		resp.BadRequest(ctx, "系统邮箱配置错误", err.Error())
+	if emailErr := tools.AnalyzeEmail(smtpAccount); emailErr != nil {
+		resp.BadRequest(ctx, "系统邮箱配置错误", emailErr.Error())
 		return
 	}
 
@@ -434,8 +434,8 @@ func configLogger(ctx *gin.Context) {
 
 	// 解析日志级别配置，并验证其合法性
 	level := strings.TrimSpace(rawData["logger.level"].(string))
-	if err := tools.AnalyzeLoggerLevel(level); err != nil {
-		resp.BadRequest(ctx, "日志级别配置错误", err.Error())
+	if anaErr := tools.AnalyzeLoggerLevel(level); anaErr != nil {
+		resp.BadRequest(ctx, "日志级别配置错误", anaErr.Error())
 		return
 	}
 	loggerConfig.Level = level
