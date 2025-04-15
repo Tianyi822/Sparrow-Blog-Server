@@ -942,3 +942,23 @@ func updateOssConfig(ctx *gin.Context) {
 	// 返回更新成功的响应
 	resp.Ok(ctx, "更新成功", nil)
 }
+
+// getCacheConfig 获取缓存配置信息
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从系统配置中获取缓存相关配置信息，包括:
+//     - AOF持久化是否启用 (enable_aof)
+//     - AOF文件存储目录路径 (aof_dir_path)
+//     - AOF文件大小限制 (aof_mix_size)
+//     - AOF文件是否压缩 (aof_compress)
+//  2. 将配置信息封装为map结构返回给客户端
+func getCacheConfig(ctx *gin.Context) {
+	resp.Ok(ctx, "获取成功", map[string]any{
+		"enable_aof":   config.Cache.Aof.Enable,
+		"aof_dir_path": filepath.Dir(config.Cache.Aof.Path),
+		"aof_mix_size": config.Cache.Aof.MaxSize,
+		"aof_compress": config.Cache.Aof.Compress,
+	})
+}

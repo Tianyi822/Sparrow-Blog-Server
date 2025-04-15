@@ -79,5 +79,7 @@ func Routers(e *gin.Engine) {
 		settingGroup.GET("/oss/config", getOssConfig)
 
 		settingGroup.PUT("/oss/config", updateOssConfig)
+
+		settingGroup.GET("/cache/config", getCacheConfig)
 	}
 }
