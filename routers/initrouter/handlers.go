@@ -473,12 +473,12 @@ func configLogger(ctx *gin.Context) {
 	loggerConfig.MaxAge = maxAge
 
 	// 解析日志文件是否启用压缩配置
-	compress, err := tools.GetUInt16FromRawData(rawData, "logger.compress")
+	compress, err := tools.GetBoolFromRawData(rawData, "logger.compress")
 	if err != nil {
 		resp.BadRequest(ctx, "日志文件压缩配置错误", err.Error())
 		return
 	}
-	loggerConfig.Compress = compress == 1
+	loggerConfig.Compress = compress
 
 	// 将解析完成的日志配置设置为全局配置
 	config.Logger = loggerConfig
