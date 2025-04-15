@@ -666,7 +666,7 @@ func updateServerConfig(ctx *gin.Context) {
 func getLoggerConfig(ctx *gin.Context) {
 	resp.Ok(ctx, "获取成功", map[string]any{
 		"level":       config.Logger.Level,
-		"path":        filepath.Dir(config.Logger.Path),
+		"dir_path":    filepath.Dir(config.Logger.Path),
 		"max_age":     config.Logger.MaxAge,
 		"max_size":    config.Logger.MaxSize,
 		"max_backups": config.Logger.MaxBackups,
