@@ -869,3 +869,76 @@ func updateMysqlConfig(ctx *gin.Context) {
 	// 返回更新成功的响应
 	resp.Ok(ctx, "更新成功", nil)
 }
+
+// getOssConfig 获取对象存储(OSS)配置信息
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从系统配置中获取OSS相关配置信息，包括:
+//     - 访问端点 (endpoint)
+//     - 地域信息 (region)
+//     - 存储桶名称 (bucket)
+//     - 图片存储路径 (image_oss_path)
+//     - 博客内容存储路径 (blog_oss_path)
+//  2. 将配置信息封装为map结构返回给客户端
+func getOssConfig(ctx *gin.Context) {
+	resp.Ok(ctx, "获取成功", map[string]any{
+		"endpoint":       config.Oss.Endpoint,
+		"region":         config.Oss.Region,
+		"bucket":         config.Oss.Bucket,
+		"image_oss_path": config.Oss.ImageOssPath,
+		"blog_oss_path":  config.Oss.BlogOssPath,
+	})
+}
+
+// updateOssConfig 更新对象存储(OSS)配置信息
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从请求中解析并验证OSS配置参数
+//  2. 验证各项参数的合法性，包括:
+//     - 访问端点(endpoint)
+//     - 地域信息(region)
+//     - 访问密钥(access key)
+//     - 存储桶名称(bucket)
+//     - 图片存储路径(image path)
+//  3. 测试OSS连接配置的有效性
+//  4. 更新系统配置并保存
+func updateOssConfig(ctx *gin.Context) {
+	// 从请求中解析原始数据
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
+		return
+	}
+	// 初始化OSS配置结构体。
+	ossConfig := config.OssConfig{}
+
+	// 从原始数据中提取并清理OSS配置参数
+	ossConfig.Endpoint = strings.TrimSpace(rawData["endpoint"].(string))                 // OSS访问端点
+	ossConfig.Region = strings.TrimSpace(rawData["region"].(string))                     // OSS地域信息
+	ossConfig.AccessKeyId = strings.TrimSpace(rawData["access_key_id"].(string))         // 访问密钥ID
+	ossConfig.AccessKeySecret = strings.TrimSpace(rawData["access_key_secret"].(string)) // 访问密钥密文
+	ossConfig.Bucket = strings.TrimSpace(rawData["bucket"].(string))                     // 存储桶名称
+	ossConfig.ImageOssPath = strings.TrimSpace(rawData["image_oss_path"].(string))       // 图片存储路径
+
+	// 验证OSS配置。
+	if err = tools.AnalyzeOssConfig(&ossConfig); err != nil {
+		// 如果连接配置验证失败，返回400错误响应。
+		resp.BadRequest(ctx, "OSS连接配置错误", err.Error())
+		return
+	}
+
+	// 将OSS配置赋值给全局变量。
+	config.Oss = ossConfig
+	// 更新配置到存储系统
+	if upErr := adminservice.UpdateConfig(); upErr != nil {
+		resp.Err(ctx, "更新失败", upErr.Error())
+		return
+	}
+
+	// 返回更新成功的响应
+	resp.Ok(ctx, "更新成功", nil)
+}
