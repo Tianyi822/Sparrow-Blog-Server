@@ -50,10 +50,7 @@ func (pc *ProjectConfig) Store() error {
 		return fmt.Errorf("创建配置文件失败: %w", err)
 	}
 	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-
-		}
+		_ = file.Close()
 	}(file)
 
 	_, err = file.Write(yamlData)
