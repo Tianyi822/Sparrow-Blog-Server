@@ -744,3 +744,128 @@ func updateLoggerConfig(ctx *gin.Context) {
 	// 返回更新成功的响应
 	resp.Ok(ctx, "更新成功", nil)
 }
+
+// getMysqlConfig 获取MySQL数据库配置信息
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从系统配置中获取MySQL相关配置信息，包括:
+//     - 主机地址 (host)
+//     - 端口号 (port)
+//     - 数据库名称 (database)
+//     - 用户名 (user)
+//     - 最大连接数 (max_open)
+//     - 最大空闲连接数 (max_idle)
+//  2. 将配置信息封装为map结构返回给客户端
+func getMysqlConfig(ctx *gin.Context) {
+	resp.Ok(ctx, "获取成功", map[string]any{
+		"user":     config.MySQL.User,
+		"host":     config.MySQL.Host,
+		"port":     config.MySQL.Port,
+		"database": config.MySQL.DB,
+		"max_open": config.MySQL.MaxOpen,
+		"max_idle": config.MySQL.MaxIdle,
+	})
+}
+
+// updateMysqlConfig 更新MySQL数据库配置信息
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从请求中解析并验证MySQL配置参数
+//  2. 验证各项参数的合法性，包括:
+//     - 用户名和密码
+//     - 主机地址和端口
+//     - 数据库名称
+//     - 连接池配置(最大连接数和空闲连接数)
+//  3. 测试数据库连接配置的有效性
+//  4. 更新系统配置并保存
+func updateMysqlConfig(ctx *gin.Context) {
+	// 从请求中解析原始数据
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
+		return
+	}
+
+	// 初始化MySQL配置结构体。
+	mysqlConfig := config.MySQLConfigData{}
+
+	// 获取并验证数据库用户名
+	user := strings.TrimSpace(rawData["user"].(string))
+	if len(user) == 0 {
+		resp.BadRequest(ctx, "数据库用户名不能为空", "")
+		return
+	}
+	mysqlConfig.User = user
+
+	// 获取并验证数据库密码
+	mysqlConfig.Password = strings.TrimSpace(rawData["password"].(string))
+
+	// 获取并验证数据库主机地址
+	host := strings.TrimSpace(rawData["host"].(string))
+	if anaErr := tools.AnalyzeHostAddress(host); anaErr != nil {
+		resp.BadRequest(ctx, "数据库主机地址配置错误", anaErr.Error())
+		return
+	}
+	mysqlConfig.Host = host
+
+	// 获取并验证数据库端口号
+	port, err := tools.GetUInt16FromRawData(rawData, "port")
+	if err != nil {
+		resp.BadRequest(ctx, "数据库端口配置错误", err.Error())
+		return
+	}
+	mysqlConfig.Port = port
+
+	// 获取并验证数据库名称
+	db := strings.TrimSpace(rawData["database"].(string))
+	if len(db) == 0 {
+		resp.BadRequest(ctx, "数据库名称不能为空", "")
+		return
+	}
+	mysqlConfig.DB = db
+
+	// 获取并验证最大连接数
+	maxOpen, err := tools.GetUInt16FromRawData(rawData, "max_open")
+	if err != nil {
+		resp.BadRequest(ctx, "最大连接数配置错误", err.Error())
+		return
+	}
+	// 获取并验证最大空闲连接数
+	maxIdle, err := tools.GetUInt16FromRawData(rawData, "max_idle")
+	if err != nil {
+		resp.BadRequest(ctx, "最大空闲连接数配置错误", err.Error())
+		return
+	}
+
+	// 检查最大空闲连接数是否大于最大打开连接数。
+	if maxIdle > maxOpen {
+		resp.BadRequest(ctx, "最大空闲连接数不能大于最大打开连接数", nil)
+		return
+	}
+	// 将获取的最大连接数和最大空闲连接数赋值给MySQL配置结构体。
+	mysqlConfig.MaxOpen = maxOpen
+	mysqlConfig.MaxIdle = maxIdle
+
+	// 验证MySQL连接配置。
+	if err = tools.AnalyzeMySqlConnect(&mysqlConfig); err != nil {
+		// 如果连接配置验证失败，返回400错误响应。
+		resp.BadRequest(ctx, "数据库连接配置错误", err.Error())
+		return
+	}
+
+	// 将MySQL配置赋值给全局变量。
+	config.MySQL = mysqlConfig
+
+	// 更新配置到存储系统
+	if upErr := adminservice.UpdateConfig(); upErr != nil {
+		resp.Err(ctx, "更新失败", upErr.Error())
+		return
+	}
+
+	// 返回更新成功的响应
+	resp.Ok(ctx, "更新成功", nil)
+}

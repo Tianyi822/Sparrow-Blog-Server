@@ -71,5 +71,9 @@ func Routers(e *gin.Engine) {
 		settingGroup.GET("/logger/config", getLoggerConfig)
 
 		settingGroup.PUT("/logger/config", updateLoggerConfig)
+
+		settingGroup.GET("/mysql/config", getMysqlConfig)
+
+		settingGroup.PUT("/mysql/config", updateMysqlConfig)
 	}
 }
