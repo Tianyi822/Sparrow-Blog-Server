@@ -231,16 +231,14 @@ func AnalyzeLoggerLevel(level string) error {
 	return nil
 }
 
-// AnalyzeAbsolutePath 分析并验证给定的绝对路径。
-// 如果路径为空，则尝试使用当前用户的主目录作为默认路径。
+// AnalyzeAbsolutePath 分析并处理路径，确保返回一个有效的绝对路径
+// 如果输入路径为空，则使用用户主目录下的 .h2blog 作为默认路径
 // 参数:
+//   - path: 需要分析的路径字符串
 //
-//	path - 待分析的路径字符串。如果为空，函数会尝试使用用户的主目录。
-//
-// 返回值:
-//
-//	string - 验证通过的绝对路径。
-//	error - 如果发生错误（如无法获取用户信息或路径不是绝对路径），返回相应的错误信息。
+// 返回:
+//   - string: 处理后的绝对路径
+//   - error: 处理过程中可能发生的错误
 func AnalyzeAbsolutePath(path string) (string, error) {
 	// 如果路径为空，尝试使用用户的主目录作为默认路径
 	if path == "" {
