@@ -962,3 +962,65 @@ func getCacheConfig(ctx *gin.Context) {
 		"aof_compress": config.Cache.Aof.Compress,
 	})
 }
+
+// updateCacheConfig 更新缓存配置信息
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从请求中解析并验证缓存配置参数
+//  2. 验证各项参数的合法性，包括:
+//     - AOF持久化开关
+//     - AOF文件存储路径
+//     - AOF文件大小限制
+//     - AOF文件压缩选项
+//  3. 更新系统配置并保存
+//  4. 返回操作结果
+func updateCacheConfig(ctx *gin.Context) {
+	// 从请求中解析原始数据
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
+		return
+	}
+
+	// 初始化缓存配置结构体。
+	cacheConfig := config.CacheConfig{}
+
+	// 从原始数据中提取并清理缓存配置参数
+	cacheConfig.Aof.Enable, err = tools.GetBoolFromRawData(rawData, "enable_aof") // AOF持久化是否启用
+	if err != nil {
+		resp.BadRequest(ctx, "AOF持久化是否启用配置错误", err.Error())
+		return
+	}
+
+	cacheConfig.Aof.Path, err = tools.AnalyzeAbsolutePath(rawData["aof_dir_path"].(string))
+	if err != nil {
+		resp.BadRequest(ctx, "AOF文件存储目录路径配置错误", err.Error())
+		return
+	}
+
+	cacheConfig.Aof.MaxSize, err = tools.GetUInt16FromRawData(rawData, "aof_mix_size")
+	if err != nil {
+		resp.BadRequest(ctx, "AOF文件大小限制配置错误", err.Error())
+		return
+	}
+
+	cacheConfig.Aof.Compress, err = tools.GetBoolFromRawData(rawData, "aof_compress")
+	if err != nil {
+		resp.BadRequest(ctx, "AOF文件是否压缩配置错误", err.Error())
+		return
+	}
+
+	// 将缓存配置赋值给全局变量。
+	config.Cache = cacheConfig
+
+	// 更新配置到存储系统
+	if upErr := adminservice.UpdateConfig(); upErr != nil {
+		resp.Err(ctx, "更新失败", upErr.Error())
+		return
+	}
+
+	// 返回更新成功的响应
+	resp.Ok(ctx, "更新成功", nil)
+}
