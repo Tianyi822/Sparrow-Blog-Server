@@ -376,12 +376,12 @@ func configCache(ctx *gin.Context) {
 	}
 
 	// 解析 AOF 启用配置
-	aofEnable, err := tools.GetUInt16FromRawData(rawData, "cache.aof.enable")
+	aofEnable, err := tools.GetBoolFromRawData(rawData, "cache.aof.enable")
 	if err != nil {
 		resp.BadRequest(ctx, "AOF 启用配置错误", err.Error())
 		return
 	}
-	cacheConfig.Aof.Enable = aofEnable == 1
+	cacheConfig.Aof.Enable = aofEnable
 
 	// 解析 AOF 文件路径，并生成绝对路径
 	projPath, err := tools.AnalyzeAbsolutePath(strings.TrimSpace(rawData["cache.aof.path"].(string)))
@@ -400,12 +400,12 @@ func configCache(ctx *gin.Context) {
 	cacheConfig.Aof.MaxSize = maxSize
 
 	// 解析 AOF 文件压缩配置
-	aofCompress, err := tools.GetUInt16FromRawData(rawData, "cache.aof.compress")
+	aofCompress, err := tools.GetBoolFromRawData(rawData, "cache.aof.compress")
 	if err != nil {
 		resp.BadRequest(ctx, "AOF 文件压缩配置错误", err.Error())
 		return
 	}
-	cacheConfig.Aof.Compress = aofCompress == 1
+	cacheConfig.Aof.Compress = aofCompress
 
 	// 将解析完成的缓存配置存储到全局配置中
 	config.Cache = cacheConfig
