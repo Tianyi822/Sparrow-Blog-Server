@@ -1,7 +1,6 @@
 package adminrouter
 
 import (
-	"github.com/gin-gonic/gin"
 	"h2blog_server/email"
 	"h2blog_server/internal/model/vo"
 	"h2blog_server/internal/services/adminservice"
@@ -12,9 +11,12 @@ import (
 	"h2blog_server/routers/tools"
 	"h2blog_server/storage"
 	"h2blog_server/storage/ossstore"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 // sendLoginVerificationCode 处理发送验证码的请求。
@@ -646,6 +648,99 @@ func updateServerConfig(ctx *gin.Context) {
 		return
 	}
 
+	// 返回更新成功的响应
+	resp.Ok(ctx, "更新成功", nil)
+}
+
+// getLoggerConfig 获取日志配置信息
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述: 从系统配置中获取日志相关配置信息，包括:
+//   - 日志级别 (level)
+//   - 日志文件路径 (path)
+//   - 日志文件保留时间 (max_age)
+//   - 单个日志文件大小限制 (max_size)
+//   - 保留的日志文件备份数量 (max_backups)
+//   - 是否压缩日志文件 (compress)
+func getLoggerConfig(ctx *gin.Context) {
+	resp.Ok(ctx, "获取成功", map[string]any{
+		"level":       config.Logger.Level,
+		"path":        filepath.Dir(config.Logger.Path),
+		"max_age":     config.Logger.MaxAge,
+		"max_size":    config.Logger.MaxSize,
+		"max_backups": config.Logger.MaxBackups,
+		"compress":    config.Logger.Compress,
+	})
+}
+
+// updateLoggerConfig 更新日志配置信息
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从请求中解析并验证新的日志配置信息
+//  2. 验证日志级别、文件路径等参数的合法性
+//  3. 更新系统日志配置并保存
+//  4. 返回操作结果
+func updateLoggerConfig(ctx *gin.Context) {
+	// 从请求中解析原始数据
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
+		return
+	}
+	// 获取并验证日志级别
+	level := strings.TrimSpace(rawData["level"].(string))
+	if anaErr := tools.AnalyzeLoggerLevel(level); anaErr != nil {
+		resp.BadRequest(ctx, "日志级别配置错误", anaErr.Error())
+		return
+	}
+	// 获取并验证日志文件路径
+	path, anaErr := tools.AnalyzeAbsolutePath(rawData["path"].(string))
+	if anaErr != nil {
+		resp.BadRequest(ctx, "日志文件路径配置错误", anaErr.Error())
+		return
+	}
+	// 获取并验证日志文件保留时间
+	maxAge, getErr := tools.GetUInt16FromRawData(rawData, "max_age")
+	if getErr != nil {
+		resp.BadRequest(ctx, "日志文件保留时间配置错误", getErr.Error())
+		return
+	}
+	// 获取并验证单个日志文件大小限制
+	maxSize, getErr := tools.GetUInt16FromRawData(rawData, "max_size")
+	if getErr != nil {
+		resp.BadRequest(ctx, "单个日志文件大小限制配置错误", getErr.Error())
+		return
+	}
+	// 获取并验证保留的日志文件备份数量
+	maxBackups, getErr := tools.GetUInt16FromRawData(rawData, "max_backups")
+	if getErr != nil {
+		resp.BadRequest(ctx, "保留的日志文件备份数量配置错误", getErr.Error())
+		return
+	}
+	// 获取并验证是否压缩日志文件
+	compress, getErr := tools.GetBoolFromRawData(rawData, "compress")
+	if getErr != nil {
+		resp.BadRequest(ctx, "是否压缩日志文件配置错误", getErr.Error())
+		return
+	}
+
+	// 构造新的日志配置
+	config.Logger = config.LoggerConfigData{
+		Level:      level,      // 日志级别
+		Path:       path,       // 日志目录路径
+		MaxAge:     maxAge,     // 日志文件保留时间(天)
+		MaxSize:    maxSize,    // 单个日志文件大小限制(MB)
+		MaxBackups: maxBackups, // 保留的日志文件备份数量
+		Compress:   compress,   // 是否压缩日志文件
+	}
+	// 更新配置到存储系统
+	if upErr := adminservice.UpdateConfig(); upErr != nil {
+		resp.Err(ctx, "更新失败", upErr.Error())
+		return
+	}
 	// 返回更新成功的响应
 	resp.Ok(ctx, "更新成功", nil)
 }
