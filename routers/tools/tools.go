@@ -261,6 +261,35 @@ func GetFloatFromRawData(reqData map[string]any, key string) (float32, error) {
 	}
 }
 
+// GetBoolFromRawData 从原始数据中提取指定键的布尔值。
+// 参数:
+//   - reqData: 包含键值对的原始数据映射，值可以是任意类型。
+//   - key: 需要提取布尔值的键名。
+//
+// 返回值:
+//   - bool: 提取并转换成功的布尔值。
+//   - error: 如果键不存在、值类型不支持或转换失败，则返回相应的错误信息。
+func GetBoolFromRawData(reqData map[string]any, key string) (bool, error) {
+	val, ok := reqData[key]
+	if !ok {
+		return false, fmt.Errorf("'%s' 为空", key)
+	}
+	switch v := val.(type) {
+	case bool:
+		return v, nil
+	case string:
+		// 尝试将字符串转换为布尔值
+		num, err := strconv.ParseBool(v)
+		if err != nil {
+			return false, fmt.Errorf("不可使用的布尔值 '%s': %w", key, err)
+		}
+		return num, nil
+	default:
+		// 如果值的类型不被支持，返回错误
+		return false, fmt.Errorf("'%s' 类型不支持", key)
+	}
+}
+
 // GetStrListFromRawData 从原始数据中提取字符串列表
 // 参数:
 //   - reqData: 包含键值对的原始数据映射，值可以是任意类型
