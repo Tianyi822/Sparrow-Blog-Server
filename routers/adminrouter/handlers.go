@@ -422,35 +422,35 @@ func verifyNewSmtpConfig(ctx *gin.Context) {
 	}
 
 	// 验证并获取新的邮箱地址
-	newEmail := strings.TrimSpace(rawData["user_email"].(string))
+	newEmail := strings.TrimSpace(rawData["user.user_email"].(string))
 	if anaErr := tools.AnalyzeEmail(newEmail); anaErr != nil {
 		resp.BadRequest(ctx, "邮箱格式有误，请检查错误", anaErr.Error())
 		return
 	}
 
 	// 验证并获取SMTP账号
-	smtpAccount := strings.TrimSpace(rawData["smtp_account"].(string))
+	smtpAccount := strings.TrimSpace(rawData["user.smtp_account"].(string))
 	if len(smtpAccount) == 0 {
 		resp.BadRequest(ctx, "SMTP账号不能为空", "")
 		return
 	}
 
 	// 验证并获取SMTP服务器地址
-	smtpAddress := strings.TrimSpace(rawData["smtp_address"].(string))
+	smtpAddress := strings.TrimSpace(rawData["user.smtp_address"].(string))
 	if len(smtpAddress) == 0 {
 		resp.BadRequest(ctx, "SMTP地址不能为空", "")
 		return
 	}
 
 	// 验证并获取SMTP授权码
-	smtpAuthCode := strings.TrimSpace(rawData["smtp_auth_code"].(string))
+	smtpAuthCode := strings.TrimSpace(rawData["user.smtp_auth_code"].(string))
 	if len(smtpAuthCode) == 0 {
 		resp.BadRequest(ctx, "SMTP授权码不能为空", "")
 		return
 	}
 
 	// 验证并获取SMTP端口号
-	smtpPort, err := tools.GetUInt16FromRawData(rawData, "smtp_port")
+	smtpPort, err := tools.GetUInt16FromRawData(rawData, "user.smtp_port")
 	if err != nil {
 		resp.BadRequest(ctx, "SMTP端口号有误，请检查错误", err.Error())
 		return
@@ -470,7 +470,7 @@ func verifyNewSmtpConfig(ctx *gin.Context) {
 	}
 
 	// 发送成功，返回原始配置数据
-	resp.Ok(ctx, "发送成功", rawData)
+	resp.Ok(ctx, "发送成功", nil)
 }
 
 // updateUserConfig 处理更新用户信息的请求
@@ -504,49 +504,49 @@ func updateUserConfig(ctx *gin.Context) {
 	}()
 
 	// 验证用户提交的验证码是否正确
-	if verifiedCode != rawData["verified_code"].(string) {
+	if verifiedCode != rawData["user.verified_code"].(string) {
 		resp.BadRequest(ctx, "验证码错误", "")
 		return
 	}
 
 	// 获取并验证用户名
-	userName := strings.TrimSpace(rawData["user_name"].(string))
+	userName := strings.TrimSpace(rawData["user.user_name"].(string))
 	if len(userName) == 0 {
 		resp.BadRequest(ctx, "用户名不能为空", "")
 		return
 	}
 
 	// 获取并验证用户邮箱格式
-	userEmail := strings.TrimSpace(rawData["user_email"].(string))
+	userEmail := strings.TrimSpace(rawData["user.user_email"].(string))
 	if anaErr := tools.AnalyzeEmail(userEmail); anaErr != nil {
 		resp.BadRequest(ctx, "用户邮箱配置错误", anaErr.Error())
 		return
 	}
 
 	// 获取并验证SMTP账号邮箱格式
-	smtpAccount := strings.TrimSpace(rawData["smtp_account"].(string))
+	smtpAccount := strings.TrimSpace(rawData["user.smtp_account"].(string))
 	if anaErr := tools.AnalyzeEmail(smtpAccount); anaErr != nil {
 		resp.BadRequest(ctx, "系统邮箱配置错误", anaErr.Error())
 		return
 	}
 
 	// 获取SMTP服务器地址
-	smtpAddress := strings.TrimSpace(rawData["smtp_address"].(string))
+	smtpAddress := strings.TrimSpace(rawData["user.smtp_address"].(string))
 
 	// 获取并验证SMTP端口号
-	smtpPort, err := tools.GetUInt16FromRawData(rawData, "smtp_port")
+	smtpPort, err := tools.GetUInt16FromRawData(rawData, "user.smtp_port")
 	if err != nil {
 		resp.BadRequest(ctx, "系统邮箱端口配置错误", err.Error())
 		return
 	}
 
 	// 获取SMTP授权码
-	smtpAuthCode := strings.TrimSpace(rawData["smtp_auth_code"].(string))
+	smtpAuthCode := strings.TrimSpace(rawData["user.smtp_auth_code"].(string))
 
 	// 获取用户界面相关配置
-	backgroundImage := strings.TrimSpace(rawData["background_image"].(string))
-	avatarImage := strings.TrimSpace(rawData["avatar_image"].(string))
-	webLogo := strings.TrimSpace(rawData["web_logo"].(string))
+	backgroundImage := strings.TrimSpace(rawData["user.background_image"].(string))
+	avatarImage := strings.TrimSpace(rawData["user.avatar_image"].(string))
+	webLogo := strings.TrimSpace(rawData["user.web_logo"].(string))
 
 	// 构造新的用户配置对象
 	userConfig := config.UserConfigData{
@@ -605,21 +605,21 @@ func updateServerConfig(ctx *gin.Context) {
 	}
 
 	// 验证Token密钥
-	tokenKey := strings.TrimSpace(rawData["token_key"].(string))
+	tokenKey := strings.TrimSpace(rawData["server.token_key"].(string))
 	if anaErr := tools.AnalyzeTokenKey(tokenKey); anaErr != nil {
 		resp.BadRequest(ctx, "Token 密钥配置错误", anaErr.Error())
 		return
 	}
 
 	// 验证Token过期时间
-	tokenExpireDur, getErr := tools.GetUInt8FromRawData(rawData, "token_expire_duration")
+	tokenExpireDur, getErr := tools.GetUInt8FromRawData(rawData, "server.token_expire_duration")
 	if getErr != nil {
 		resp.BadRequest(ctx, "Token 过期时间配置错误", getErr.Error())
 		return
 	}
 
 	// 获取并验证跨域源配置
-	origins, getErr := tools.GetStrListFromRawData(rawData, "cors_origins")
+	origins, getErr := tools.GetStrListFromRawData(rawData, "server.cors_origins")
 	if getErr != nil {
 		resp.BadRequest(ctx, "跨域源配置错误", getErr.Error())
 		return
@@ -690,38 +690,45 @@ func updateLoggerConfig(ctx *gin.Context) {
 		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
 		return
 	}
+
 	// 获取并验证日志级别
-	level := strings.TrimSpace(rawData["level"].(string))
+	level := strings.TrimSpace(rawData["logger.level"].(string))
 	if anaErr := tools.AnalyzeLoggerLevel(level); anaErr != nil {
 		resp.BadRequest(ctx, "日志级别配置错误", anaErr.Error())
 		return
 	}
+
 	// 获取并验证日志文件路径
-	path, anaErr := tools.AnalyzeAbsolutePath(rawData["path"].(string))
+	dirPath, anaErr := tools.AnalyzeAbsolutePath(rawData["logger.path"].(string))
 	if anaErr != nil {
 		resp.BadRequest(ctx, "日志文件路径配置错误", anaErr.Error())
 		return
 	}
+	dirPath = filepath.Join(dirPath, "h2blog.log")
+
 	// 获取并验证日志文件保留时间
-	maxAge, getErr := tools.GetUInt16FromRawData(rawData, "max_age")
+	maxAge, getErr := tools.GetUInt16FromRawData(rawData, "logger.max_age")
 	if getErr != nil {
 		resp.BadRequest(ctx, "日志文件保留时间配置错误", getErr.Error())
 		return
 	}
+
 	// 获取并验证单个日志文件大小限制
-	maxSize, getErr := tools.GetUInt16FromRawData(rawData, "max_size")
+	maxSize, getErr := tools.GetUInt16FromRawData(rawData, "logger.max_size")
 	if getErr != nil {
 		resp.BadRequest(ctx, "单个日志文件大小限制配置错误", getErr.Error())
 		return
 	}
+
 	// 获取并验证保留的日志文件备份数量
-	maxBackups, getErr := tools.GetUInt16FromRawData(rawData, "max_backups")
+	maxBackups, getErr := tools.GetUInt16FromRawData(rawData, "logger.max_backups")
 	if getErr != nil {
 		resp.BadRequest(ctx, "保留的日志文件备份数量配置错误", getErr.Error())
 		return
 	}
+
 	// 获取并验证是否压缩日志文件
-	compress, getErr := tools.GetBoolFromRawData(rawData, "compress")
+	compress, getErr := tools.GetBoolFromRawData(rawData, "logger.compress")
 	if getErr != nil {
 		resp.BadRequest(ctx, "是否压缩日志文件配置错误", getErr.Error())
 		return
@@ -730,17 +737,19 @@ func updateLoggerConfig(ctx *gin.Context) {
 	// 构造新的日志配置
 	config.Logger = config.LoggerConfigData{
 		Level:      level,      // 日志级别
-		Path:       path,       // 日志目录路径
+		Path:       dirPath,    // 日志目录路径
 		MaxAge:     maxAge,     // 日志文件保留时间(天)
 		MaxSize:    maxSize,    // 单个日志文件大小限制(MB)
 		MaxBackups: maxBackups, // 保留的日志文件备份数量
 		Compress:   compress,   // 是否压缩日志文件
 	}
+
 	// 更新配置到存储系统
 	if upErr := adminservice.UpdateConfig(); upErr != nil {
 		resp.Err(ctx, "更新失败", upErr.Error())
 		return
 	}
+
 	// 返回更新成功的响应
 	resp.Ok(ctx, "更新成功", nil)
 }
@@ -794,7 +803,7 @@ func updateMysqlConfig(ctx *gin.Context) {
 	mysqlConfig := config.MySQLConfigData{}
 
 	// 获取并验证数据库用户名
-	user := strings.TrimSpace(rawData["user"].(string))
+	user := strings.TrimSpace(rawData["mysql.user"].(string))
 	if len(user) == 0 {
 		resp.BadRequest(ctx, "数据库用户名不能为空", "")
 		return
@@ -802,10 +811,10 @@ func updateMysqlConfig(ctx *gin.Context) {
 	mysqlConfig.User = user
 
 	// 获取并验证数据库密码
-	mysqlConfig.Password = strings.TrimSpace(rawData["password"].(string))
+	mysqlConfig.Password = strings.TrimSpace(rawData["mysql.password"].(string))
 
 	// 获取并验证数据库主机地址
-	host := strings.TrimSpace(rawData["host"].(string))
+	host := strings.TrimSpace(rawData["mysql.host"].(string))
 	if anaErr := tools.AnalyzeHostAddress(host); anaErr != nil {
 		resp.BadRequest(ctx, "数据库主机地址配置错误", anaErr.Error())
 		return
@@ -813,7 +822,7 @@ func updateMysqlConfig(ctx *gin.Context) {
 	mysqlConfig.Host = host
 
 	// 获取并验证数据库端口号
-	port, err := tools.GetUInt16FromRawData(rawData, "port")
+	port, err := tools.GetUInt16FromRawData(rawData, "mysql.port")
 	if err != nil {
 		resp.BadRequest(ctx, "数据库端口配置错误", err.Error())
 		return
@@ -821,7 +830,7 @@ func updateMysqlConfig(ctx *gin.Context) {
 	mysqlConfig.Port = port
 
 	// 获取并验证数据库名称
-	db := strings.TrimSpace(rawData["database"].(string))
+	db := strings.TrimSpace(rawData["mysql.database"].(string))
 	if len(db) == 0 {
 		resp.BadRequest(ctx, "数据库名称不能为空", "")
 		return
@@ -829,13 +838,13 @@ func updateMysqlConfig(ctx *gin.Context) {
 	mysqlConfig.DB = db
 
 	// 获取并验证最大连接数
-	maxOpen, err := tools.GetUInt16FromRawData(rawData, "max_open")
+	maxOpen, err := tools.GetUInt16FromRawData(rawData, "mysql.max_open")
 	if err != nil {
 		resp.BadRequest(ctx, "最大连接数配置错误", err.Error())
 		return
 	}
 	// 获取并验证最大空闲连接数
-	maxIdle, err := tools.GetUInt16FromRawData(rawData, "max_idle")
+	maxIdle, err := tools.GetUInt16FromRawData(rawData, "mysql.max_idle")
 	if err != nil {
 		resp.BadRequest(ctx, "最大空闲连接数配置错误", err.Error())
 		return
@@ -846,6 +855,7 @@ func updateMysqlConfig(ctx *gin.Context) {
 		resp.BadRequest(ctx, "最大空闲连接数不能大于最大打开连接数", nil)
 		return
 	}
+
 	// 将获取的最大连接数和最大空闲连接数赋值给MySQL配置结构体。
 	mysqlConfig.MaxOpen = maxOpen
 	mysqlConfig.MaxIdle = maxIdle
@@ -910,19 +920,18 @@ func updateOssConfig(ctx *gin.Context) {
 	// 从请求中解析原始数据
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
-		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
 		return
 	}
 	// 初始化OSS配置结构体。
 	ossConfig := config.OssConfig{}
 
 	// 从原始数据中提取并清理OSS配置参数
-	ossConfig.Endpoint = strings.TrimSpace(rawData["endpoint"].(string))                 // OSS访问端点
-	ossConfig.Region = strings.TrimSpace(rawData["region"].(string))                     // OSS地域信息
-	ossConfig.AccessKeyId = strings.TrimSpace(rawData["access_key_id"].(string))         // 访问密钥ID
-	ossConfig.AccessKeySecret = strings.TrimSpace(rawData["access_key_secret"].(string)) // 访问密钥密文
-	ossConfig.Bucket = strings.TrimSpace(rawData["bucket"].(string))                     // 存储桶名称
-	ossConfig.ImageOssPath = strings.TrimSpace(rawData["image_oss_path"].(string))       // 图片存储路径
+	ossConfig.Endpoint = strings.TrimSpace(rawData["oss.endpoint"].(string))                 // OSS访问端点
+	ossConfig.Region = strings.TrimSpace(rawData["oss.region"].(string))                     // OSS地域信息
+	ossConfig.AccessKeyId = strings.TrimSpace(rawData["oss.access_key_id"].(string))         // 访问密钥ID
+	ossConfig.AccessKeySecret = strings.TrimSpace(rawData["oss.access_key_secret"].(string)) // 访问密钥密文
+	ossConfig.Bucket = strings.TrimSpace(rawData["oss.bucket"].(string))                     // 存储桶名称
+	ossConfig.ImageOssPath = strings.TrimSpace(rawData["oss.image_oss_path"].(string))       // 图片存储路径
 
 	// 验证OSS配置。
 	if err = tools.AnalyzeOssConfig(&ossConfig); err != nil {
@@ -931,8 +940,27 @@ func updateOssConfig(ctx *gin.Context) {
 		return
 	}
 
-	// 将OSS配置赋值给全局变量。
+	// 验证图片存储路径
+	imageOssPath := strings.TrimSpace(rawData["oss.image_oss_path"].(string))
+	if err = tools.AnalyzeOssPath(imageOssPath); err != nil {
+		// 如果连接配置验证失败，返回400错误响应。
+		resp.BadRequest(ctx, "OSS连接配置错误", err.Error())
+		return
+	}
+	ossConfig.ImageOssPath = imageOssPath
+
+	// 验证博客内容存储路径
+	blogOssPath := strings.TrimSpace(rawData["oss.blog_oss_path"].(string))
+	if err = tools.AnalyzeOssPath(blogOssPath); err != nil {
+		// 如果连接配置验证失败，返回400错误响应。
+		resp.BadRequest(ctx, "OSS连接配置错误", err.Error())
+		return
+	}
+	ossConfig.BlogOssPath = blogOssPath
+
+	// 将OSS配置赋值给全局变量
 	config.Oss = ossConfig
+
 	// 更新配置到存储系统
 	if upErr := adminservice.UpdateConfig(); upErr != nil {
 		resp.Err(ctx, "更新失败", upErr.Error())
@@ -988,25 +1016,30 @@ func updateCacheConfig(ctx *gin.Context) {
 	cacheConfig := config.CacheConfig{}
 
 	// 从原始数据中提取并清理缓存配置参数
-	cacheConfig.Aof.Enable, err = tools.GetBoolFromRawData(rawData, "enable_aof") // AOF持久化是否启用
+	cacheConfig.Aof.Enable, err = tools.GetBoolFromRawData(rawData, "cache.aof.enable") // AOF持久化是否启用
 	if err != nil {
 		resp.BadRequest(ctx, "AOF持久化是否启用配置错误", err.Error())
 		return
 	}
 
-	cacheConfig.Aof.Path, err = tools.AnalyzeAbsolutePath(rawData["aof_dir_path"].(string))
+	aofDirPath, err := tools.AnalyzeAbsolutePath(rawData["cache.aof.path"].(string))
 	if err != nil {
 		resp.BadRequest(ctx, "AOF文件存储目录路径配置错误", err.Error())
 		return
 	}
+	if strings.HasSuffix(aofDirPath, "/aof") {
+		cacheConfig.Aof.Path = filepath.Join(aofDirPath, "h2blog.aof")
+	} else {
+		cacheConfig.Aof.Path = filepath.Join(aofDirPath, "aof", "h2blog.aof")
+	}
 
-	cacheConfig.Aof.MaxSize, err = tools.GetUInt16FromRawData(rawData, "aof_mix_size")
+	cacheConfig.Aof.MaxSize, err = tools.GetUInt16FromRawData(rawData, "cache.aof.max_size")
 	if err != nil {
 		resp.BadRequest(ctx, "AOF文件大小限制配置错误", err.Error())
 		return
 	}
 
-	cacheConfig.Aof.Compress, err = tools.GetBoolFromRawData(rawData, "aof_compress")
+	cacheConfig.Aof.Compress, err = tools.GetBoolFromRawData(rawData, "cache.aof.compress")
 	if err != nil {
 		resp.BadRequest(ctx, "AOF文件是否压缩配置错误", err.Error())
 		return
