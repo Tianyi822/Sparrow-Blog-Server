@@ -1,6 +1,7 @@
 package adminrouter
 
 import (
+	"fmt"
 	"h2blog_server/email"
 	"h2blog_server/internal/model/vo"
 	"h2blog_server/internal/services/adminservice"
@@ -581,6 +582,7 @@ func updateUserConfig(ctx *gin.Context) {
 //  2. 将配置信息封装为map结构返回给客户端
 func getServerConfig(ctx *gin.Context) {
 	resp.Ok(ctx, "获取成功", map[string]any{
+		"port":                  config.Server.Port,
 		"token_expire_duration": config.Server.TokenExpireDuration,
 		"cors_origins":          config.Server.Cors.Origins,
 	})
@@ -600,33 +602,38 @@ func updateServerConfig(ctx *gin.Context) {
 	// 从请求中解析原始数据
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
-		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
+		msg := fmt.Sprintf("请求数据有误，请检查错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
 	// 验证Token密钥
 	tokenKey := strings.TrimSpace(rawData["server.token_key"].(string))
 	if anaErr := tools.AnalyzeTokenKey(tokenKey); anaErr != nil {
-		resp.BadRequest(ctx, "Token 密钥配置错误", anaErr.Error())
+		msg := fmt.Sprintf("Token 密钥配置错误: %s", anaErr.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
 	// 验证Token过期时间
 	tokenExpireDur, getErr := tools.GetUInt8FromRawData(rawData, "server.token_expire_duration")
 	if getErr != nil {
-		resp.BadRequest(ctx, "Token 过期时间配置错误", getErr.Error())
+		msg := fmt.Sprintf("Token 过期时间配置错误: %s", getErr.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
 	// 获取并验证跨域源配置
 	origins, getErr := tools.GetStrListFromRawData(rawData, "server.cors_origins")
 	if getErr != nil {
-		resp.BadRequest(ctx, "跨域源配置错误", getErr.Error())
+		msg := fmt.Sprintf("跨域源配置错误: %s", getErr.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 	anaErr := tools.AnalyzeCorsOrigins(origins)
 	if anaErr != nil {
-		resp.BadRequest(ctx, "跨域源配置错误", anaErr.Error())
+		msg := fmt.Sprintf("跨域源配置错误: %s", anaErr.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
