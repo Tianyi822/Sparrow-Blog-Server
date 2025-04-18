@@ -137,7 +137,7 @@ func TestRenameImgById(t *testing.T) {
 
 func TestIsExistImg(t *testing.T) {
 	ctx := context.Background()
-	exist, err := IsExistImg(ctx, "test22")
+	exist, err := IsExistImgByName(ctx, "test22")
 	if err != nil {
 		t.Fatal(err)
 	}
