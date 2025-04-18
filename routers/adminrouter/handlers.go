@@ -488,14 +488,14 @@ func updateUserConfig(ctx *gin.Context) {
 	// 从请求中解析原始数据
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
-		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
 		return
 	}
 
 	// 从缓存中获取验证码
 	verifiedCode, err := storage.Storage.Cache.GetString(ctx, storage.VerificationCodeKey)
 	if err != nil {
-		resp.BadRequest(ctx, "验证码过期", err.Error())
+		msg := fmt.Sprintf("获取验证码失败: %v", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 	defer func() {
@@ -506,28 +506,30 @@ func updateUserConfig(ctx *gin.Context) {
 
 	// 验证用户提交的验证码是否正确
 	if verifiedCode != rawData["user.verified_code"].(string) {
-		resp.BadRequest(ctx, "验证码错误", "")
+		resp.BadRequest(ctx, "验证码错误", nil)
 		return
 	}
 
 	// 获取并验证用户名
 	userName := strings.TrimSpace(rawData["user.user_name"].(string))
 	if len(userName) == 0 {
-		resp.BadRequest(ctx, "用户名不能为空", "")
+		resp.BadRequest(ctx, "用户名不能为空", nil)
 		return
 	}
 
 	// 获取并验证用户邮箱格式
 	userEmail := strings.TrimSpace(rawData["user.user_email"].(string))
 	if anaErr := tools.AnalyzeEmail(userEmail); anaErr != nil {
-		resp.BadRequest(ctx, "用户邮箱配置错误", anaErr.Error())
+		msg := fmt.Sprintf("用户邮箱格式错误: %v", anaErr.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
 	// 获取并验证SMTP账号邮箱格式
 	smtpAccount := strings.TrimSpace(rawData["user.smtp_account"].(string))
 	if anaErr := tools.AnalyzeEmail(smtpAccount); anaErr != nil {
-		resp.BadRequest(ctx, "系统邮箱配置错误", anaErr.Error())
+		msg := fmt.Sprintf("SMTP账号邮箱格式错误: %v", anaErr.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
@@ -537,7 +539,8 @@ func updateUserConfig(ctx *gin.Context) {
 	// 获取并验证SMTP端口号
 	smtpPort, err := tools.GetUInt16FromRawData(rawData, "user.smtp_port")
 	if err != nil {
-		resp.BadRequest(ctx, "系统邮箱端口配置错误", err.Error())
+		msg := fmt.Sprintf("SMTP端口号错误: %v", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
@@ -565,7 +568,8 @@ func updateUserConfig(ctx *gin.Context) {
 
 	// 更新配置到存储系统
 	if upErr := adminservice.UpdateConfig(); upErr != nil {
-		resp.Err(ctx, "更新失败", upErr.Error())
+		msg := fmt.Sprintf("更新配置失败: %v", upErr.Error())
+		resp.Err(ctx, msg, nil)
 		return
 	}
 
@@ -694,21 +698,24 @@ func updateLoggerConfig(ctx *gin.Context) {
 	// 从请求中解析原始数据
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
-		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
+		msg := fmt.Sprintf("请求数据有误，请检查错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
 	// 获取并验证日志级别
 	level := strings.TrimSpace(rawData["logger.level"].(string))
 	if anaErr := tools.AnalyzeLoggerLevel(level); anaErr != nil {
-		resp.BadRequest(ctx, "日志级别配置错误", anaErr.Error())
+		msg := fmt.Sprintf("日志级别配置错误: %s", anaErr.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
 	// 获取并验证日志文件路径
 	dirPath, anaErr := tools.AnalyzeAbsolutePath(rawData["logger.path"].(string))
 	if anaErr != nil {
-		resp.BadRequest(ctx, "日志文件路径配置错误", anaErr.Error())
+		msg := fmt.Sprintf("日志文件路径配置错误: %s", anaErr.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 	dirPath = filepath.Join(dirPath, "h2blog.log")
@@ -716,28 +723,32 @@ func updateLoggerConfig(ctx *gin.Context) {
 	// 获取并验证日志文件保留时间
 	maxAge, getErr := tools.GetUInt16FromRawData(rawData, "logger.max_age")
 	if getErr != nil {
-		resp.BadRequest(ctx, "日志文件保留时间配置错误", getErr.Error())
+		msg := fmt.Sprintf("日志文件保留时间配置错误: %s", getErr.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
 	// 获取并验证单个日志文件大小限制
 	maxSize, getErr := tools.GetUInt16FromRawData(rawData, "logger.max_size")
 	if getErr != nil {
-		resp.BadRequest(ctx, "单个日志文件大小限制配置错误", getErr.Error())
+		msg := fmt.Sprintf("单个日志文件大小限制配置错误: %s", getErr.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
 	// 获取并验证保留的日志文件备份数量
 	maxBackups, getErr := tools.GetUInt16FromRawData(rawData, "logger.max_backups")
 	if getErr != nil {
-		resp.BadRequest(ctx, "保留的日志文件备份数量配置错误", getErr.Error())
+		msg := fmt.Sprintf("保留的日志文件备份数量配置错误: %s", getErr.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
 	// 获取并验证是否压缩日志文件
 	compress, getErr := tools.GetBoolFromRawData(rawData, "logger.compress")
 	if getErr != nil {
-		resp.BadRequest(ctx, "是否压缩日志文件配置错误", getErr.Error())
+		msg := fmt.Sprintf("是否压缩日志文件配置错误: %s", getErr.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
@@ -802,7 +813,8 @@ func updateMysqlConfig(ctx *gin.Context) {
 	// 从请求中解析原始数据
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
-		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
+		msg := fmt.Sprintf("请求数据有误，请检查错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
@@ -812,7 +824,7 @@ func updateMysqlConfig(ctx *gin.Context) {
 	// 获取并验证数据库用户名
 	user := strings.TrimSpace(rawData["mysql.user"].(string))
 	if len(user) == 0 {
-		resp.BadRequest(ctx, "数据库用户名不能为空", "")
+		resp.BadRequest(ctx, "数据库用户名不能为空", nil)
 		return
 	}
 	mysqlConfig.User = user
@@ -823,7 +835,8 @@ func updateMysqlConfig(ctx *gin.Context) {
 	// 获取并验证数据库主机地址
 	host := strings.TrimSpace(rawData["mysql.host"].(string))
 	if anaErr := tools.AnalyzeHostAddress(host); anaErr != nil {
-		resp.BadRequest(ctx, "数据库主机地址配置错误", anaErr.Error())
+		msg := fmt.Sprintf("数据库主机地址配置错误: %s", anaErr.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 	mysqlConfig.Host = host
@@ -831,7 +844,8 @@ func updateMysqlConfig(ctx *gin.Context) {
 	// 获取并验证数据库端口号
 	port, err := tools.GetUInt16FromRawData(rawData, "mysql.port")
 	if err != nil {
-		resp.BadRequest(ctx, "数据库端口配置错误", err.Error())
+		msg := fmt.Sprintf("数据库端口号配置错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 	mysqlConfig.Port = port
@@ -839,7 +853,7 @@ func updateMysqlConfig(ctx *gin.Context) {
 	// 获取并验证数据库名称
 	db := strings.TrimSpace(rawData["mysql.database"].(string))
 	if len(db) == 0 {
-		resp.BadRequest(ctx, "数据库名称不能为空", "")
+		resp.BadRequest(ctx, "数据库名称不能为空", nil)
 		return
 	}
 	mysqlConfig.DB = db
@@ -847,13 +861,15 @@ func updateMysqlConfig(ctx *gin.Context) {
 	// 获取并验证最大连接数
 	maxOpen, err := tools.GetUInt16FromRawData(rawData, "mysql.max_open")
 	if err != nil {
-		resp.BadRequest(ctx, "最大连接数配置错误", err.Error())
+		msg := fmt.Sprintf("最大连接数配置错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 	// 获取并验证最大空闲连接数
 	maxIdle, err := tools.GetUInt16FromRawData(rawData, "mysql.max_idle")
 	if err != nil {
-		resp.BadRequest(ctx, "最大空闲连接数配置错误", err.Error())
+		msg := fmt.Sprintf("最大空闲连接数配置错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
@@ -870,7 +886,8 @@ func updateMysqlConfig(ctx *gin.Context) {
 	// 验证MySQL连接配置。
 	if err = tools.AnalyzeMySqlConnect(&mysqlConfig); err != nil {
 		// 如果连接配置验证失败，返回400错误响应。
-		resp.BadRequest(ctx, "数据库连接配置错误", err.Error())
+		msg := fmt.Sprintf("数据库连接配置错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
@@ -879,7 +896,8 @@ func updateMysqlConfig(ctx *gin.Context) {
 
 	// 更新配置到存储系统
 	if upErr := adminservice.UpdateConfig(); upErr != nil {
-		resp.Err(ctx, "更新失败", upErr.Error())
+		msg := fmt.Sprintf("更新失败: %s", upErr.Error())
+		resp.Err(ctx, msg, nil)
 		return
 	}
 
@@ -943,7 +961,8 @@ func updateOssConfig(ctx *gin.Context) {
 	// 验证OSS配置。
 	if err = tools.AnalyzeOssConfig(&ossConfig); err != nil {
 		// 如果连接配置验证失败，返回400错误响应。
-		resp.BadRequest(ctx, "OSS连接配置错误", err.Error())
+		msg := fmt.Sprintf("OSS连接配置错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
@@ -951,7 +970,8 @@ func updateOssConfig(ctx *gin.Context) {
 	imageOssPath := strings.TrimSpace(rawData["oss.image_oss_path"].(string))
 	if err = tools.AnalyzeOssPath(imageOssPath); err != nil {
 		// 如果连接配置验证失败，返回400错误响应。
-		resp.BadRequest(ctx, "OSS连接配置错误", err.Error())
+		msg := fmt.Sprintf("图片 OSS 路径配置错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 	ossConfig.ImageOssPath = imageOssPath
@@ -960,7 +980,8 @@ func updateOssConfig(ctx *gin.Context) {
 	blogOssPath := strings.TrimSpace(rawData["oss.blog_oss_path"].(string))
 	if err = tools.AnalyzeOssPath(blogOssPath); err != nil {
 		// 如果连接配置验证失败，返回400错误响应。
-		resp.BadRequest(ctx, "OSS连接配置错误", err.Error())
+		msg := fmt.Sprintf("博客 OSS 路径配置错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 	ossConfig.BlogOssPath = blogOssPath
@@ -970,7 +991,8 @@ func updateOssConfig(ctx *gin.Context) {
 
 	// 更新配置到存储系统
 	if upErr := adminservice.UpdateConfig(); upErr != nil {
-		resp.Err(ctx, "更新失败", upErr.Error())
+		msg := fmt.Sprintf("更新失败: %s", upErr.Error())
+		resp.Err(ctx, msg, nil)
 		return
 	}
 
@@ -1015,7 +1037,8 @@ func updateCacheConfig(ctx *gin.Context) {
 	// 从请求中解析原始数据
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
-		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
+		msg := fmt.Sprintf("解析请求数据失败: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
@@ -1025,13 +1048,15 @@ func updateCacheConfig(ctx *gin.Context) {
 	// 从原始数据中提取并清理缓存配置参数
 	cacheConfig.Aof.Enable, err = tools.GetBoolFromRawData(rawData, "cache.aof.enable") // AOF持久化是否启用
 	if err != nil {
-		resp.BadRequest(ctx, "AOF持久化是否启用配置错误", err.Error())
+		msg := fmt.Sprintf("AOF持久化开关配置错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
 	aofDirPath, err := tools.AnalyzeAbsolutePath(rawData["cache.aof.path"].(string))
 	if err != nil {
-		resp.BadRequest(ctx, "AOF文件存储目录路径配置错误", err.Error())
+		msg := fmt.Sprintf("AOF路径配置错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 	if strings.HasSuffix(aofDirPath, "/aof") {
@@ -1042,13 +1067,15 @@ func updateCacheConfig(ctx *gin.Context) {
 
 	cacheConfig.Aof.MaxSize, err = tools.GetUInt16FromRawData(rawData, "cache.aof.max_size")
 	if err != nil {
-		resp.BadRequest(ctx, "AOF文件大小限制配置错误", err.Error())
+		msg := fmt.Sprintf("AOF文件大小限制配置错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
 	cacheConfig.Aof.Compress, err = tools.GetBoolFromRawData(rawData, "cache.aof.compress")
 	if err != nil {
-		resp.BadRequest(ctx, "AOF文件是否压缩配置错误", err.Error())
+		msg := fmt.Sprintf("AOF文件压缩选项配置错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
@@ -1057,7 +1084,8 @@ func updateCacheConfig(ctx *gin.Context) {
 
 	// 更新配置到存储系统
 	if upErr := adminservice.UpdateConfig(); upErr != nil {
-		resp.Err(ctx, "更新失败", upErr.Error())
+		msg := fmt.Sprintf("更新失败: %s", upErr.Error())
+		resp.Err(ctx, msg, nil)
 		return
 	}
 
