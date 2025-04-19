@@ -26,7 +26,7 @@ func InitRouter() *gin.Engine {
 	case env.ProdEnv, env.DebugEnv:
 		r.Use(middleware.Logger(), middleware.RunTimeCors(), gin.Recovery())
 	case env.InitializedEnv:
-		r.Use(middleware.ConfigServiceCors(), gin.Recovery())
+		r.Use(middleware.InitiatedStepCors(), gin.Recovery())
 	}
 
 	for _, opt := range options {
