@@ -443,22 +443,70 @@ func IsExistImgByName(ctx context.Context, imgName string) (bool, error) {
 	// 通过图片名称从数据库中查找图片信息。
 	imgDto, err := imgrepo.FindImgByName(ctx, imgName)
 	if err != nil {
-		// 如果查找过程中出现错误，返回true和错误信息。
+		// 如果查找过程中出现错误，返回false，表示图片不存在
 		return false, nil
 	}
 
-	// 尝试从OSS中获取图片内容。
+	// 尝试从OSS中获取图片内容，检查图片是否存在于OSS存储中
 	flag, err := storage.Storage.IsExist(ctx, ossstore.GenOssSavePath(imgDto.ImgName, imgDto.ImgType))
-	// 如果OSS中图片不存在，但数据库中存在记录，则需要删除数据库中的记录。
+	// 如果OSS中图片不存在，但数据库中存在记录，则需要删除数据库中的记录
 	if err != nil {
+		// 开启数据库事务
+		tx := storage.Storage.Db.WithContext(ctx).Begin()
+
+		// 删除数据库中的图片记录
+		if delErr := imgrepo.DeleteImgById(tx, imgDto.ImgId); delErr != nil {
+			// 如果删除失败，回滚事务
+			tx.Rollback()
+			return false, delErr
+		}
+
+		// 提交事务
+		tx.Commit()
 		return false, err
 	}
 
-	if flag {
-		return true, nil
-	} else {
+	// 返回图片是否存在的标志
+	return flag, nil
+}
+
+// IsExistImgById 根据图片ID检查图片是否存在于数据库和OSS存储中
+// 参数:
+//   - ctx: 上下文，用于传递请求范围的信息
+//   - imgId: 图片的唯一标识符
+//
+// 返回值:
+//   - bool: 图片是否存在
+//   - error: 错误信息，如果有的话
+func IsExistImgById(ctx context.Context, imgId string) (bool, error) {
+	// 通过图片 ID 从数据库中查找图片信息
+	imgDto, err := imgrepo.FindImgById(ctx, imgId)
+	if err != nil {
+		// 如果查找过程中出现错误，返回false，表示图片不存在
 		return false, nil
 	}
+
+	// 尝试从OSS中获取图片内容，检查图片是否存在于OSS存储中
+	flag, err := storage.Storage.IsExist(ctx, ossstore.GenOssSavePath(imgDto.ImgName, imgDto.ImgType))
+	// 如果OSS中图片不存在，但数据库中存在记录，则需要删除数据库中的记录
+	if err != nil {
+		// 开启数据库事务
+		tx := storage.Storage.Db.WithContext(ctx).Begin()
+
+		// 删除数据库中的图片记录
+		if delErr := imgrepo.DeleteImgById(tx, imgDto.ImgId); delErr != nil {
+			// 如果删除失败，回滚事务
+			tx.Rollback()
+			return false, delErr
+		}
+
+		// 提交事务
+		tx.Commit()
+		return false, err
+	}
+
+	// 返回图片是否存在的标志
+	return flag, nil
 }
 
 // RenameImgById 根据图片 ID 修改图片名称，包括 OSS 中的文件名和数据库中的记录。

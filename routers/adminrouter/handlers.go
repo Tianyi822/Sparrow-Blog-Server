@@ -372,7 +372,7 @@ func renameImg(ctx *gin.Context) {
 }
 
 func isExist(ctx *gin.Context) {
-	flag, err := adminservice.IsExistImg(ctx, ctx.Param("img_name"))
+	flag, err := adminservice.IsExistImgByName(ctx, ctx.Param("img_name"))
 	if err != nil {
 		resp.Err(ctx, "查询失败", err.Error())
 		return
@@ -567,6 +567,62 @@ func updateUserConfig(ctx *gin.Context) {
 	config.User = userConfig
 
 	// 更新配置到存储系统
+	if upErr := adminservice.UpdateConfig(); upErr != nil {
+		msg := fmt.Sprintf("更新配置失败: %v", upErr.Error())
+		resp.Err(ctx, msg, nil)
+		return
+	}
+
+	// 返回更新成功的响应
+	resp.Ok(ctx, "更新成功", nil)
+}
+
+// updateUserVisuals 更新用户背景图片配置
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从请求中解析并验证背景图片ID
+//  2. 检查背景图片是否存在
+//  3. 更新用户配置中的背景图片设置
+//  4. 保存更新后的配置
+func updateUserVisuals(ctx *gin.Context) {
+	// 从请求中解析原始数据
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		return
+	}
+
+	// 获取并清理背景图片ID
+	imgId := strings.TrimSpace(rawData["img_id"].(string))
+
+	// 验证背景图片ID不为空
+	if len(imgId) == 0 {
+		resp.BadRequest(ctx, "背景图ID不能为空", nil)
+		return
+	}
+
+	// 检查背景图片是否存在
+	flag, existErr := adminservice.IsExistImgById(ctx, imgId)
+	if existErr != nil || !flag {
+		resp.BadRequest(ctx, "背景图ID不存在", nil)
+		return
+	}
+
+	visualType := strings.ToUpper(strings.TrimSpace(ctx.Param("type")))
+	switch visualType {
+	case "BACKGROUND":
+		config.User.BackgroundImage = imgId
+	case "AVATAR":
+		config.User.AvatarImage = imgId
+	case "LOGO":
+		config.User.WebLogo = imgId
+	default:
+		resp.BadRequest(ctx, "未知的 visual-type", nil)
+		return
+	}
+
+	// 保存更新后的配置到存储系统
 	if upErr := adminservice.UpdateConfig(); upErr != nil {
 		msg := fmt.Sprintf("更新配置失败: %v", upErr.Error())
 		resp.Err(ctx, msg, nil)
