@@ -547,11 +547,6 @@ func updateUserConfig(ctx *gin.Context) {
 	// 获取SMTP授权码
 	smtpAuthCode := strings.TrimSpace(rawData["user.smtp_auth_code"].(string))
 
-	// 获取用户界面相关配置
-	backgroundImage := strings.TrimSpace(rawData["user.background_image"].(string))
-	avatarImage := strings.TrimSpace(rawData["user.avatar_image"].(string))
-	webLogo := strings.TrimSpace(rawData["user.web_logo"].(string))
-
 	// 构造新的用户配置对象
 	userConfig := config.UserConfigData{
 		Username:        userName,
@@ -560,9 +555,9 @@ func updateUserConfig(ctx *gin.Context) {
 		SmtpAddress:     smtpAddress,
 		SmtpPort:        smtpPort,
 		SmtpAuthCode:    smtpAuthCode,
-		BackgroundImage: backgroundImage,
-		AvatarImage:     avatarImage,
-		WebLogo:         webLogo,
+		BackgroundImage: config.User.BackgroundImage,
+		AvatarImage:     config.User.AvatarImage,
+		WebLogo:         config.User.WebLogo,
 	}
 	config.User = userConfig
 
@@ -593,34 +588,60 @@ func updateUserVisuals(ctx *gin.Context) {
 		return
 	}
 
-	// 获取并清理背景图片ID
-	imgId := strings.TrimSpace(rawData["img_id"].(string))
+	// 获取并清理背景图片 ID、头像图片 ID 和网站 logo 图片 ID
+	backgroundImgId := strings.TrimSpace(rawData["user.background_image"].(string))
+	avatarImgId := strings.TrimSpace(rawData["user.avatar_image"].(string))
+	logoImgId := strings.TrimSpace(rawData["user.web_logo"].(string))
 
-	// 验证背景图片ID不为空
-	if len(imgId) == 0 {
-		resp.BadRequest(ctx, "背景图ID不能为空", nil)
+	// 验证背景图片是否存在
+	flag, bkgErr := adminservice.IsExistImgById(ctx, backgroundImgId)
+	if bkgErr != nil {
+		// 查询过程发生错误时返回错误信息
+		msg := fmt.Sprintf("查找图片报错: %v", bkgErr.Error())
+		resp.BadRequest(ctx, msg, nil)
+		return
+	}
+	if !flag {
+		// 背景图片不存在时返回错误信息
+		msg := fmt.Sprintf("背景图片不存在")
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
-	// 检查背景图片是否存在
-	flag, existErr := adminservice.IsExistImgById(ctx, imgId)
-	if existErr != nil || !flag {
-		resp.BadRequest(ctx, "背景图ID不存在", nil)
+	// 验证头像图片是否存在
+	flag, avatarErr := adminservice.IsExistImgById(ctx, avatarImgId)
+	if avatarErr != nil {
+		// 查询过程发生错误时返回错误信息
+		msg := fmt.Sprintf("查找图片报错: %v", avatarErr.Error())
+		resp.BadRequest(ctx, msg, nil)
+		return
+	}
+	if !flag {
+		// 头像图片不存在时返回错误信息
+		msg := fmt.Sprintf("头像图片不存在")
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
 
-	visualType := strings.ToUpper(strings.TrimSpace(ctx.Param("type")))
-	switch visualType {
-	case "BACKGROUND":
-		config.User.BackgroundImage = imgId
-	case "AVATAR":
-		config.User.AvatarImage = imgId
-	case "LOGO":
-		config.User.WebLogo = imgId
-	default:
-		resp.BadRequest(ctx, "未知的 visual-type", nil)
+	// 验证网站logo图片是否存在
+	flag, logoErr := adminservice.IsExistImgById(ctx, logoImgId)
+	if logoErr != nil {
+		// 查询过程发生错误时返回错误信息
+		msg := fmt.Sprintf("查找图片报错: %v", logoErr.Error())
+		resp.BadRequest(ctx, msg, nil)
 		return
 	}
+	if !flag {
+		// 网站logo图片不存在时返回错误信息
+		msg := fmt.Sprintf("网站logo图片不存在")
+		resp.BadRequest(ctx, msg, nil)
+		return
+	}
+
+	// 更新用户配置中的图片设置
+	config.User.BackgroundImage = backgroundImgId
+	config.User.AvatarImage = avatarImgId
+	config.User.WebLogo = logoImgId
 
 	// 保存更新后的配置到存储系统
 	if upErr := adminservice.UpdateConfig(); upErr != nil {
