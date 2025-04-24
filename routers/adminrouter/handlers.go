@@ -13,7 +13,6 @@ import (
 	"h2blog_server/storage"
 	"h2blog_server/storage/ossstore"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -64,7 +63,19 @@ func login(ctx *gin.Context) {
 		return
 	}
 
-	token, err := adminservice.Login(ctx, rawData["user_email"].(string), rawData["verification_code"].(string))
+	userEmail, getErr := tools.GetStringFromRawData(rawData, "user_email")
+	if getErr != nil {
+		resp.BadRequest(ctx, "用户邮箱解析错误", getErr.Error())
+		return
+	}
+
+	verificationCode, getErr := tools.GetStringFromRawData(rawData, "verification_code")
+	if getErr != nil {
+		resp.BadRequest(ctx, "验证码解析错误", getErr.Error())
+		return
+	}
+
+	token, err := adminservice.Login(ctx, userEmail, verificationCode)
 	if err != nil {
 		resp.Err(ctx, "登录失败", err.Error())
 		return
@@ -394,15 +405,15 @@ func isExist(ctx *gin.Context) {
 //  2. 将获取到的用户信息封装为map结构返回给客户端
 //  3. 返回成功的HTTP响应
 func getUserConfig(ctx *gin.Context) {
-	resp.Ok(ctx, "获取成功", map[string]string{
-		"user_name":        config.User.Username,
-		"user_email":       config.User.UserEmail,
-		"smtp_account":     config.User.SmtpAccount,
-		"smtp_address":     config.User.SmtpAddress,
-		"smtp_port":        strconv.Itoa(int(config.User.SmtpPort)),
-		"background_image": config.User.BackgroundImage,
-		"avatar_image":     config.User.AvatarImage,
-		"web_logo":         config.User.WebLogo,
+	resp.Ok(ctx, "获取成功", map[string]any{
+		"user_name":           config.User.Username,
+		"user_email":          config.User.UserEmail,
+		"user_github_address": config.User.UserGithubAddress,
+		"user_hobbies":        config.User.UserHobbies,
+		"type_writer_content": config.User.TypeWriterContent,
+		"background_image":    config.User.BackgroundImage,
+		"avatar_image":        config.User.AvatarImage,
+		"web_logo":            config.User.WebLogo,
 	})
 }
 
@@ -488,77 +499,94 @@ func updateUserConfig(ctx *gin.Context) {
 	// 从请求中解析原始数据
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
-		return
-	}
-
-	// 从缓存中获取验证码
-	verifiedCode, err := storage.Storage.Cache.GetString(ctx, storage.VerificationCodeKey)
-	if err != nil {
-		msg := fmt.Sprintf("获取验证码失败: %v", err.Error())
-		resp.BadRequest(ctx, msg, nil)
-		return
-	}
-	defer func() {
-		if delErr := storage.Storage.Cache.Delete(ctx, storage.VerificationCodeKey); delErr != nil {
-			logger.Warn("删除验证码缓存失败: ", delErr.Error())
-		}
-	}()
-
-	// 验证用户提交的验证码是否正确
-	if verifiedCode != rawData["user.verified_code"].(string) {
-		resp.BadRequest(ctx, "验证码错误", nil)
+		// 解析失败时直接返回
 		return
 	}
 
 	// 获取并验证用户名
-	userName := strings.TrimSpace(rawData["user.user_name"].(string))
-	if len(userName) == 0 {
-		resp.BadRequest(ctx, "用户名不能为空", nil)
+	// 用户名为必填项,不能为空
+	username, getErr := tools.GetStringFromRawData(rawData, "user.user_name")
+	if getErr != nil {
+		resp.BadRequest(ctx, "用户名配置错误", getErr.Error())
 		return
 	}
 
-	// 获取并验证用户邮箱格式
-	userEmail := strings.TrimSpace(rawData["user.user_email"].(string))
-	if anaErr := tools.AnalyzeEmail(userEmail); anaErr != nil {
-		msg := fmt.Sprintf("用户邮箱格式错误: %v", anaErr.Error())
-		resp.BadRequest(ctx, msg, nil)
+	// 获取并验证GitHub地址
+	// GitHub地址为可选项，会提供默认值
+	userGithubAddress, getErr := tools.GetStringFromRawData(rawData, "user.user_github_address")
+	if getErr != nil || userGithubAddress == "" {
+		userGithubAddress = "https://github.com/"
+	}
+
+	// 获取并验证用户爱好列表
+	// 爱好列表为可选项,但需要是字符串数组格式
+	userHobbies, getErr := tools.GetStrListFromRawData(rawData, "user.user_hobbies")
+	if getErr != nil {
+		resp.BadRequest(ctx, "爱好配置错误", getErr.Error())
 		return
 	}
 
-	// 获取并验证SMTP账号邮箱格式
-	smtpAccount := strings.TrimSpace(rawData["user.smtp_account"].(string))
-	if anaErr := tools.AnalyzeEmail(smtpAccount); anaErr != nil {
-		msg := fmt.Sprintf("SMTP账号邮箱格式错误: %v", anaErr.Error())
-		resp.BadRequest(ctx, msg, nil)
+	// 获取并验证打字机内容列表
+	// 打字机内容为可选项,但需要是字符串数组格式
+	typeWriterContent, getErr := tools.GetStrListFromRawData(rawData, "user.type_writer_content")
+	if getErr != nil {
+		resp.BadRequest(ctx, "打字机内容配置错误", getErr.Error())
 		return
 	}
 
-	// 获取SMTP服务器地址
-	smtpAddress := strings.TrimSpace(rawData["user.smtp_address"].(string))
+	// 根据是否传递验证码判断用户是否有更新邮箱
+	// 若传递，则需要从缓存中获取验证码进行验证
+	// 若没有传递则只将其余的配置进行更新，不处理邮箱
+	var userEmail string
 
-	// 获取并验证SMTP端口号
-	smtpPort, err := tools.GetUInt16FromRawData(rawData, "user.smtp_port")
-	if err != nil {
-		msg := fmt.Sprintf("SMTP端口号错误: %v", err.Error())
-		resp.BadRequest(ctx, msg, nil)
-		return
+	// 获取用户提交的验证码
+	vefCode, getErr := tools.GetStringFromRawData(rawData, "user.verification_code")
+	if getErr != nil || vefCode == "" {
+		// 如果没有提供验证码,保持原有邮箱不变
+		userEmail = config.User.UserEmail
+	} else {
+		// 从缓存中获取验证码
+		vefCodeInCache, cacheErr := storage.Storage.Cache.GetString(ctx, storage.VerificationCodeKey)
+		if cacheErr != nil {
+			msg := fmt.Sprintf("验证码失效: %v", cacheErr.Error())
+			resp.BadRequest(ctx, msg, nil)
+			return
+		}
+		// 确保验证码使用后从缓存中删除
+		defer func() {
+			if delErr := storage.Storage.Cache.Delete(ctx, storage.VerificationCodeKey); delErr != nil {
+				logger.Warn("删除验证码缓存失败: ", delErr.Error())
+			}
+		}()
+
+		// 验证用户提交的验证码是否正确
+		if vefCodeInCache != vefCode {
+			resp.BadRequest(ctx, "验证码错误", nil)
+			return
+		}
+
+		// 获取新的邮箱地址
+		newEmail, getErr := tools.GetStringFromRawData(rawData, "user.user_email")
+		if getErr != nil {
+			resp.BadRequest(ctx, "用户邮箱配置错误", getErr.Error())
+			return
+		}
+		userEmail = newEmail
 	}
-
-	// 获取SMTP授权码
-	smtpAuthCode := strings.TrimSpace(rawData["user.smtp_auth_code"].(string))
 
 	// 构造新的用户配置对象
+	// 保持原有的背景图、头像和网站logo不变
 	userConfig := config.UserConfigData{
-		Username:        userName,
-		UserEmail:       userEmail,
-		SmtpAccount:     smtpAccount,
-		SmtpAddress:     smtpAddress,
-		SmtpPort:        smtpPort,
-		SmtpAuthCode:    smtpAuthCode,
-		BackgroundImage: config.User.BackgroundImage,
-		AvatarImage:     config.User.AvatarImage,
-		WebLogo:         config.User.WebLogo,
+		Username:          username,
+		UserEmail:         userEmail,
+		UserGithubAddress: userGithubAddress,
+		UserHobbies:       userHobbies,
+		TypeWriterContent: typeWriterContent,
+		BackgroundImage:   config.User.BackgroundImage,
+		AvatarImage:       config.User.AvatarImage,
+		WebLogo:           config.User.WebLogo,
 	}
+	// 更新全局用户配置
 	config.User = userConfig
 
 	// 更新配置到存储系统
@@ -570,6 +598,45 @@ func updateUserConfig(ctx *gin.Context) {
 
 	// 返回更新成功的响应
 	resp.Ok(ctx, "更新成功", nil)
+}
+
+// verifyNewEmail 验证新的邮箱地址并发送验证码
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从请求中解析并验证新的邮箱地址
+//  2. 使用系统SMTP配置向新邮箱发送验证码
+//  3. 根据发送结果返回相应的HTTP响应
+func verifyNewEmail(ctx *gin.Context) {
+	// 从请求中解析原始数据
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		// 解析失败时直接返回
+		return
+	}
+
+	// 获取并验证新邮箱地址
+	newEmail, getErr := tools.GetStringFromRawData(rawData, "user.user_email")
+	if getErr != nil {
+		resp.BadRequest(ctx, "用户邮箱配置错误", getErr.Error())
+		return
+	}
+
+	// 发送验证码
+	if err := email.SendVerificationCodeByArgs(
+		ctx,
+		newEmail,
+		config.Server.SmtpAccount,
+		config.Server.SmtpAddress,
+		config.Server.SmtpAuthCode,
+		config.Server.SmtpPort,
+	); err != nil {
+		resp.Err(ctx, "发送失败", err.Error())
+		return
+	}
+
+	resp.Ok(ctx, "发送成功", nil)
 }
 
 // updateUserVisuals 更新用户背景图片配置

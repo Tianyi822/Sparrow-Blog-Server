@@ -60,15 +60,17 @@ func Routers(e *gin.Engine) {
 
 		settingGroup.GET("/user/config", getUserConfig)
 
-		settingGroup.POST("/user/verify-new-smtp-config", verifyNewSmtpConfig)
-
 		settingGroup.PUT("/user/config", updateUserConfig)
+
+		settingGroup.POST("/user/verify-new-email", verifyNewEmail)
 
 		settingGroup.PUT("/user/visual", updateUserVisuals)
 
 		settingGroup.GET("/server/config", getServerConfig)
 
 		settingGroup.PUT("/server/config", updateServerConfig)
+
+		settingGroup.POST("/user/verify-new-smtp-config", verifyNewSmtpConfig)
 
 		settingGroup.GET("/logger/config", getLoggerConfig)
 
