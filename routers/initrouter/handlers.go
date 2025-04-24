@@ -126,7 +126,7 @@ func initServer(ctx *gin.Context) {
 	// 保存配置
 	config.Server = serverConfig
 
-	resp.Ok(ctx, "配置完成", config.Server)
+	resp.Ok(ctx, "配置完成", nil)
 }
 
 // initUser 用于初始化用户配置
@@ -167,7 +167,9 @@ func initUser(ctx *gin.Context) {
 
 	// 解析GitHub地址
 	githubAddress, getErr := tools.GetStringFromRawData(rawData, "user.user_github_address")
-	if getErr != nil {
+	if githubAddress == "" {
+		githubAddress = "https://github.com/"
+	} else if getErr != nil {
 		resp.BadRequest(ctx, "GitHub地址配置错误", getErr.Error())
 		return
 	}
@@ -192,7 +194,7 @@ func initUser(ctx *gin.Context) {
 	// 保存配置
 	config.User = userConfig
 
-	resp.Ok(ctx, "配置完成", config.User)
+	resp.Ok(ctx, "配置完成", nil)
 }
 
 // sendCode 用于发送验证码
@@ -206,52 +208,31 @@ func sendCode(ctx *gin.Context) {
 		return
 	}
 
-	// 解析SMTP账户
-	smtpAccount, getErr := tools.GetStringFromRawData(rawData, "server.smtp_account")
+	// 解析用户邮箱
+	userEmail, getErr := tools.GetStringFromRawData(rawData, "user.user_email")
 	if getErr != nil {
-		resp.BadRequest(ctx, "SMTP 账户配置错误", getErr.Error())
+		resp.BadRequest(ctx, "用户邮箱配置错误", getErr.Error())
 		return
 	}
-	if emailErr := tools.AnalyzeEmail(smtpAccount); emailErr != nil {
-		resp.BadRequest(ctx, "系统邮箱配置错误", emailErr.Error())
-		return
-	}
-
-	// 解析SMTP服务器配置
-	smtpAddress, getErr := tools.GetStringFromRawData(rawData, "server.smtp_address")
-	if getErr != nil {
-		resp.BadRequest(ctx, "SMTP 服务器配置错误", getErr.Error())
-		return
-	}
-
-	// 解析SMTP端口
-	smtpPort, err := tools.GetUInt16FromRawData(rawData, "server.smtp_port")
-	if err != nil {
-		resp.BadRequest(ctx, "系统邮箱端口配置错误", err.Error())
-		return
-	}
-
-	// 解析SMTP认证码
-	smtpAuthCode, getErr := tools.GetStringFromRawData(rawData, "server.smtp_auth_code")
-	if getErr != nil {
-		resp.BadRequest(ctx, "SMTP认证码配置错误", getErr.Error())
+	if anaErr := tools.AnalyzeEmail(userEmail); anaErr != nil {
+		resp.BadRequest(ctx, "用户邮箱配置错误", anaErr.Error())
 		return
 	}
 
 	// 发送验证码
 	if err = email.SendVerificationCodeByArgs(
 		ctx,
-		config.User.UserEmail,
-		smtpAccount,
-		smtpAddress,
-		smtpAuthCode,
-		smtpPort,
+		userEmail,
+		config.Server.SmtpAccount,
+		config.Server.SmtpAddress,
+		config.Server.SmtpAuthCode,
+		config.Server.SmtpPort,
 	); err != nil {
 		resp.BadRequest(ctx, "验证码发送失败", err.Error())
 		return
 	}
 
-	resp.Ok(ctx, "验证码发送成功", config.User)
+	resp.Ok(ctx, "验证码发送成功", nil)
 }
 
 // initMysql 用于初始化MySQL配置
@@ -320,7 +301,7 @@ func initMysql(ctx *gin.Context) {
 	// 保存配置
 	config.MySQL = mysqlConfig
 
-	resp.Ok(ctx, "配置完成", config.MySQL)
+	resp.Ok(ctx, "配置完成", nil)
 }
 
 // initOss 用于初始化OSS配置
@@ -364,7 +345,7 @@ func initOss(ctx *gin.Context) {
 	// 保存配置
 	config.Oss = ossConfig
 
-	resp.Ok(ctx, "配置完成", config.Oss)
+	resp.Ok(ctx, "配置完成", nil)
 }
 
 // initCache 用于初始化缓存配置
@@ -414,7 +395,7 @@ func initCache(ctx *gin.Context) {
 	// 保存配置
 	config.Cache = cacheConfig
 
-	resp.Ok(ctx, "配置完成", config.Cache)
+	resp.Ok(ctx, "配置完成", nil)
 }
 
 // initLogger 用于初始化日志配置
@@ -478,7 +459,7 @@ func initLogger(ctx *gin.Context) {
 	// 保存配置
 	config.Logger = loggerConfig
 
-	resp.Ok(ctx, "配置完成", config.Logger)
+	resp.Ok(ctx, "配置完成", nil)
 }
 
 // completeInit 用于完成所有配置并保存
