@@ -91,82 +91,60 @@ func configServer(ctx *gin.Context) {
 func configUser(ctx *gin.Context) {
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
-		resp.BadRequest(ctx, "配置解析错误", err.Error())
 		return
 	}
 
-	code := strings.TrimSpace(rawData["user.verification_code"].(string))
-
-	// 根据当前环境验证验证码
-	switch env.CurrentEnv {
-	case env.InitializedEnv:
-		if env.VerificationCode != code {
-			resp.BadRequest(ctx, "验证码错误", nil)
-			return
-		}
-	case env.ProdEnv, env.DebugEnv:
-		c, getErr := storage.Storage.Cache.GetString(ctx, storage.VerificationCodeKey)
-		if getErr != nil {
-			resp.BadRequest(ctx, "验证码过期", getErr.Error())
-			return
-		}
-		if c != code {
-			resp.BadRequest(ctx, "验证码错误", nil)
-			return
-		}
-	}
-
-	// 清除已使用的验证码
-	switch env.CurrentEnv {
-	case env.InitializedEnv:
-		env.VerificationCode = ""
-	case env.ProdEnv:
-		delErr := storage.Storage.Cache.Delete(ctx, storage.VerificationCodeKey)
-		if delErr != nil {
-			resp.Err(ctx, "验证码缓存清除失败", delErr.Error())
-			return
-		}
-	}
-
+	// 初始化用户配置结构体
 	userConfig := config.UserConfigData{}
 
-	// 设置用户名称
-	userConfig.Username = strings.TrimSpace(rawData["user.username"].(string))
-	if userConfig.Username == "" {
+	username, getErr := tools.GetStringFromRawData(rawData, "user.username")
+	if getErr != nil {
+		resp.BadRequest(ctx, "用户名配置错误", getErr.Error())
+		return
+	}
+	if username == "" {
 		resp.BadRequest(ctx, "用户名不能为空", nil)
 		return
 	}
+	userConfig.Username = username
 
-	// 从请求中获取并验证用户邮箱
-	userEmail := strings.TrimSpace(rawData["user.user_email"].(string))
-	if emailErr := tools.AnalyzeEmail(userEmail); emailErr != nil {
-		resp.BadRequest(ctx, "用户邮箱配置错误", emailErr.Error())
+	// 获取并验证用户邮箱的合法性
+	userEmail, getErr := tools.GetStringFromRawData(rawData, "user.user_email")
+	if getErr != nil {
+		resp.BadRequest(ctx, "用户邮箱配置错误", getErr.Error())
+		return
+	}
+	if anaErr := tools.AnalyzeEmail(userEmail); anaErr != nil {
+		resp.BadRequest(ctx, "用户邮箱配置错误", anaErr.Error())
 		return
 	}
 	userConfig.UserEmail = userEmail
 
-	// 从请求中获取并验证系统邮箱
-	smtpAccount := strings.TrimSpace(rawData["user.smtp_account"].(string))
-	if emailErr := tools.AnalyzeEmail(smtpAccount); emailErr != nil {
-		resp.BadRequest(ctx, "系统邮箱配置错误", emailErr.Error())
+	// 设置用户的GitHub地址
+	githubAddress, getErr := tools.GetStringFromRawData(rawData, "user.user_github_address")
+	if getErr != nil {
+		resp.BadRequest(ctx, "GitHub地址配置错误", getErr.Error())
 		return
 	}
-	userConfig.SmtpAccount = smtpAccount
+	userConfig.UserGithubAddress = githubAddress
 
-	// 获取SMTP服务器地址
-	userConfig.SmtpAddress = strings.TrimSpace(rawData["user.smtp_address"].(string))
-
-	// 从请求中获取并验证SMTP端口
-	smtpPort, err := tools.GetUInt16FromRawData(rawData, "user.smtp_port")
-	if err != nil {
-		resp.BadRequest(ctx, "系统邮箱端口配置错误", err.Error())
+	// 获取用户爱好列表
+	userHobbies, getErr := tools.GetStrListFromRawData(rawData, "user.user_hobbies")
+	if getErr != nil {
+		resp.BadRequest(ctx, "爱好配置错误", getErr.Error())
 		return
 	}
-	userConfig.SmtpPort = smtpPort
+	userConfig.UserHobbies = userHobbies
 
-	// 获取SMTP授权码
-	userConfig.SmtpAuthCode = strings.TrimSpace(rawData["user.smtp_auth_code"].(string))
+	// 获取打字机显示内容列表
+	typeWriterContent, getErr := tools.GetStrListFromRawData(rawData, "user.type_writer_content")
+	if getErr != nil {
+		resp.BadRequest(ctx, "打字机内容配置错误", getErr.Error())
+		return
+	}
+	userConfig.TypeWriterContent = typeWriterContent
 
+	// 将配置保存到全局变量
 	config.User = userConfig
 
 	// 向客户端返回成功消息及配置后的用户信息
