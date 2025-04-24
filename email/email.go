@@ -228,10 +228,10 @@ func SendVerificationCodeBySys(ctx context.Context) error {
 	if err := SendVerificationCodeByArgs(
 		ctx,
 		config.User.UserEmail,
-		config.User.SmtpAccount,
-		config.User.SmtpAddress,
-		config.User.SmtpAuthCode,
-		config.User.SmtpPort,
+		config.Server.SmtpAccount,
+		config.Server.SmtpAddress,
+		config.Server.SmtpAuthCode,
+		config.Server.SmtpPort,
 	); err != nil {
 		return err
 	}
