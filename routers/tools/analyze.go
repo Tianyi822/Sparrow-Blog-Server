@@ -14,34 +14,30 @@ import (
 	"os/user"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
 // AnalyzePort 分析端口配置
 // 分析该端口是否被占用
-func AnalyzePort(port string) (uint16, error) {
+func AnalyzePort(port uint16) error {
+	if port < 1 || port > 65535 {
+		return fmt.Errorf("端口 %v 超出范围 (1~65535)", port)
+	}
+
 	// 尝试监听端口
 	addr := fmt.Sprintf(":%v", port)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		return 0, fmt.Errorf("port %v 不可用", port)
+		return fmt.Errorf("port %v 不可用", port)
 	}
 
 	// 关闭监听，并释放端口
 	err = listener.Close()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	val, err := strconv.ParseUint(port, 10, 16)
-	if err != nil {
-		return 0, err
-	} else if val < uint64(0) && val > uint64(65535) {
-		return 0, fmt.Errorf("port %v 超出范围", port)
-	}
-
-	return uint16(val), nil
+	return nil
 }
 
 // AnalyzeTokenKey 分析 tokenKey 配置
@@ -71,14 +67,11 @@ func AnalyzeTokenKey(tokenKey string) error {
 }
 
 // AnalyzeTokenExpireDuration 分析 token 过期时间
-func AnalyzeTokenExpireDuration(tokenExpireDuration string) (uint8, error) {
-	val, err := strconv.ParseUint(tokenExpireDuration, 10, 8)
-	if err != nil {
-		return 0, err
-	} else if val < 0 || val > 90 {
-		return 0, fmt.Errorf("token 过期时间 %v 超出范围 (0~90)", tokenExpireDuration)
+func AnalyzeTokenExpireDuration(dur uint8) error {
+	if dur < 0 || dur > 90 {
+		return fmt.Errorf("token 过期时间 %v 超出范围 (0~90)", dur)
 	} else {
-		return uint8(val), nil
+		return nil
 	}
 }
 
