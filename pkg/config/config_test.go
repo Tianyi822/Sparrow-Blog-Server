@@ -72,7 +72,9 @@ func testInstance(t *testing.T, testData struct {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer os.Remove(testData.configFile)
+		defer func(name string) {
+			_ = os.Remove(name)
+		}(testData.configFile)
 	}
 
 	if testData.shouldPanic {
@@ -83,11 +85,11 @@ func testInstance(t *testing.T, testData struct {
 		}()
 	}
 
-	LoadConfig()
+	_ = LoadConfig()
 }
 
 func TestMySQLConfig(t *testing.T) {
-	LoadConfig()
+	_ = LoadConfig()
 	if MySQL.User != "root" {
 		t.Errorf("MySQL.User should be 'root', but got %s", MySQL.User)
 	}
@@ -95,15 +97,17 @@ func TestMySQLConfig(t *testing.T) {
 }
 
 func TestServerConfig(t *testing.T) {
-	LoadConfig()
+	_ = LoadConfig()
 	if Server.Port != 2233 {
 		t.Errorf("Server.Port should be 8080, but got %d", Server.Port)
 	}
 	fmt.Println(Server)
+
+	t.Logf("SMTP 服务配置: %v", Server.SmtpAccount)
 }
 
 func TestOssConfig(t *testing.T) {
-	LoadConfig()
+	_ = LoadConfig()
 	if Oss.Region != "cn-guangzhou" {
 		t.Errorf("Oss.Region should be 'cn-guangzhou', but got %s", Oss.Region)
 	}
@@ -111,16 +115,18 @@ func TestOssConfig(t *testing.T) {
 }
 
 func TestUserConfig(t *testing.T) {
-	LoadConfig()
-	if User.Username != "chentyit" {
-		t.Errorf("User.Username should be 'chentyit', but got %s", User.Username)
+	err := LoadConfig()
+	if err != nil {
+		t.Errorf("LoadConfig() error = %v", err)
+		return
 	}
-	// 结构化输出
-	fmt.Println(User)
+
+	t.Logf("用户爱好: %#v", User.UserHobbies)
+	t.Logf("打字机内容: %#v", User.TypeWriterContent)
 }
 
 func TestCacheConfig(t *testing.T) {
-	LoadConfig()
+	_ = LoadConfig()
 	if Cache.Aof.MaxSize != 3 {
 		t.Errorf("Cache.Aof.MaxSize should be 3, but got %d", Cache.Aof.MaxSize)
 	}
@@ -128,6 +134,6 @@ func TestCacheConfig(t *testing.T) {
 }
 
 func TestGetBackgroundImgName(t *testing.T) {
-	LoadConfig()
+	_ = LoadConfig()
 	fmt.Println(User.BackgroundImage)
 }

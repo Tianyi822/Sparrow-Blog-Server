@@ -68,15 +68,14 @@ func (pc *ProjectConfig) Store() error {
 
 // UserConfigData 用户配置
 type UserConfigData struct {
-	Username        string `yaml:"user_name"`        // 用户名
-	UserEmail       string `yaml:"user_email"`       // 用户邮箱
-	SmtpAccount     string `yaml:"smtp_account"`     // 邮箱 SMTP 账号
-	SmtpAddress     string `yaml:"smtp_address"`     // 邮箱 SMTP 服务器地址
-	SmtpPort        uint16 `yaml:"smtp_port"`        // 邮箱 SMTP 端口
-	SmtpAuthCode    string `yaml:"smtp_auth_code"`   // 邮箱 SMTP 密码
-	BackgroundImage string `yaml:"background_image"` // 背景图
-	AvatarImage     string `yaml:"avatar_image"`     // 头像
-	WebLogo         string `yaml:"web_logo"`         // 网站 logo
+	Username          string   `yaml:"user_name"`           // 用户名
+	UserEmail         string   `yaml:"user_email"`          // 用户邮箱
+	UserGithubAddress string   `yaml:"user_github_address"` // Github 地址
+	UserHobbies       []string `yaml:"user_hobbies"`        // 用户爱好
+	TypeWriterContent []string `yaml:"type_writer_content"` // 打字机内容
+	BackgroundImage   string   `yaml:"background_image"`    // 背景图
+	AvatarImage       string   `yaml:"avatar_image"`        // 头像
+	WebLogo           string   `yaml:"web_logo"`            // 网站 logo
 }
 
 // ServerConfigData 定义了服务器相关配置
@@ -85,6 +84,10 @@ type ServerConfigData struct {
 	TokenKey            string         `yaml:"token_key"`             // JWT签名和验证密钥
 	TokenExpireDuration uint8          `yaml:"token_expire_duration"` // Token过期时间(天)
 	Cors                CorsConfigData `yaml:"cors"`                  // CORS跨域配置
+	SmtpAccount         string         `yaml:"smtp_account"`          // 邮箱 SMTP 账号
+	SmtpAddress         string         `yaml:"smtp_address"`          // 邮箱 SMTP 服务器地址
+	SmtpPort            uint16         `yaml:"smtp_port"`             // 邮箱 SMTP 端口
+	SmtpAuthCode        string         `yaml:"smtp_auth_code"`        // 邮箱 SMTP 密码
 }
 
 // CorsConfigData 定义了跨域资源共享配置
