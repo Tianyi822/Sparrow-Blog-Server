@@ -433,36 +433,33 @@ func verifyNewSmtpConfig(ctx *gin.Context) {
 		return
 	}
 
-	// 验证并获取新的邮箱地址
-	newEmail := strings.TrimSpace(rawData["user.user_email"].(string))
-	if anaErr := tools.AnalyzeEmail(newEmail); anaErr != nil {
-		resp.BadRequest(ctx, "邮箱格式有误，请检查错误", anaErr.Error())
+	// 验证并获取SMTP账号
+	smtpAccount, getErr := tools.GetStringFromRawData(rawData, "server.smtp_account")
+	if getErr != nil {
+		resp.BadRequest(ctx, "SMTP账号配置错误", getErr.Error())
 		return
 	}
-
-	// 验证并获取SMTP账号
-	smtpAccount := strings.TrimSpace(rawData["user.smtp_account"].(string))
-	if len(smtpAccount) == 0 {
-		resp.BadRequest(ctx, "SMTP账号不能为空", "")
+	if anaErr := tools.AnalyzeEmail(smtpAccount); anaErr != nil {
+		resp.BadRequest(ctx, "SMTP账号配置错误", anaErr.Error())
 		return
 	}
 
 	// 验证并获取SMTP服务器地址
-	smtpAddress := strings.TrimSpace(rawData["user.smtp_address"].(string))
-	if len(smtpAddress) == 0 {
-		resp.BadRequest(ctx, "SMTP地址不能为空", "")
+	smtpAddress, getErr := tools.GetStringFromRawData(rawData, "server.smtp_address")
+	if getErr != nil {
+		resp.BadRequest(ctx, "SMTP服务器地址配置错误", getErr.Error())
 		return
 	}
 
 	// 验证并获取SMTP授权码
-	smtpAuthCode := strings.TrimSpace(rawData["user.smtp_auth_code"].(string))
-	if len(smtpAuthCode) == 0 {
-		resp.BadRequest(ctx, "SMTP授权码不能为空", "")
+	smtpAuthCode, getErr := tools.GetStringFromRawData(rawData, "server.smtp_auth_code")
+	if getErr != nil {
+		resp.BadRequest(ctx, "SMTP授权码配置错误", getErr.Error())
 		return
 	}
 
 	// 验证并获取SMTP端口号
-	smtpPort, err := tools.GetUInt16FromRawData(rawData, "user.smtp_port")
+	smtpPort, err := tools.GetUInt16FromRawData(rawData, "server.smtp_port")
 	if err != nil {
 		resp.BadRequest(ctx, "SMTP端口号有误，请检查错误", err.Error())
 		return
@@ -471,7 +468,7 @@ func verifyNewSmtpConfig(ctx *gin.Context) {
 	// 使用新的配置信息发送验证邮件
 	if err := email.SendVerificationCodeByArgs(
 		ctx,
-		newEmail,
+		config.User.UserEmail,
 		smtpAccount,
 		smtpAddress,
 		smtpAuthCode,
@@ -733,6 +730,9 @@ func getServerConfig(ctx *gin.Context) {
 		"port":                  config.Server.Port,
 		"token_expire_duration": config.Server.TokenExpireDuration,
 		"cors_origins":          config.Server.Cors.Origins,
+		"smtp_account":          config.Server.SmtpAccount,
+		"smtp_address":          config.Server.SmtpAddress,
+		"smtp_port":             config.Server.SmtpPort,
 	})
 }
 
@@ -756,7 +756,12 @@ func updateServerConfig(ctx *gin.Context) {
 	}
 
 	// 验证Token密钥
-	tokenKey := strings.TrimSpace(rawData["server.token_key"].(string))
+	tokenKey, getErr := tools.GetStringFromRawData(rawData, "server.token_key")
+	if getErr != nil {
+		msg := fmt.Sprintf("Token 密钥配置错误: %s", getErr.Error())
+		resp.BadRequest(ctx, msg, nil)
+		return
+	}
 	if anaErr := tools.AnalyzeTokenKey(tokenKey); anaErr != nil {
 		msg := fmt.Sprintf("Token 密钥配置错误: %s", anaErr.Error())
 		resp.BadRequest(ctx, msg, nil)
@@ -785,6 +790,67 @@ func updateServerConfig(ctx *gin.Context) {
 		return
 	}
 
+	smtpAccount := config.Server.SmtpAccount
+	smtpAddress := config.Server.SmtpAddress
+	smtpPort := config.Server.SmtpPort
+	smtpAuthCode := config.Server.SmtpAuthCode
+
+	vefCode, getErr := tools.GetStringFromRawData(rawData, "server.verification_code")
+	if getErr == nil {
+		// 从缓存中获取验证码
+		vefCodeInCache, cacheErr := storage.Storage.Cache.GetString(ctx, storage.VerificationCodeKey)
+		if cacheErr != nil {
+			msg := fmt.Sprintf("验证码失效: %v", cacheErr.Error())
+			resp.BadRequest(ctx, msg, nil)
+			return
+		}
+		// 确保验证码使用后从缓存中删除
+		defer func() {
+			if delErr := storage.Storage.Cache.Delete(ctx, storage.VerificationCodeKey); delErr != nil {
+				logger.Warn("删除验证码缓存失败: ", delErr.Error())
+			}
+		}()
+
+		if vefCodeInCache != vefCode {
+			msg := fmt.Sprintf("验证码错误")
+			resp.BadRequest(ctx, msg, nil)
+			return
+		}
+
+		smtpAccount, getErr = tools.GetStringFromRawData(rawData, "server.smtp_account")
+		if getErr != nil {
+			msg := fmt.Sprintf("SMTP账号配置错误: %s", getErr.Error())
+			resp.BadRequest(ctx, msg, nil)
+			return
+		}
+		if anaErr := tools.AnalyzeEmail(smtpAccount); anaErr != nil {
+			msg := fmt.Sprintf("SMTP账号配置错误: %s", anaErr.Error())
+			resp.BadRequest(ctx, msg, nil)
+			return
+		}
+
+		smtpAddress, getErr = tools.GetStringFromRawData(rawData, "server.smtp_address")
+		if getErr != nil {
+			msg := fmt.Sprintf("SMTP地址配置错误: %s", getErr.Error())
+			resp.BadRequest(ctx, msg, nil)
+			return
+		}
+
+		smtpPort, getErr = tools.GetUInt16FromRawData(rawData, "server.smtp_port")
+		if getErr != nil {
+			msg := fmt.Sprintf("SMTP端口配置错误: %s", getErr.Error())
+			resp.BadRequest(ctx, msg, nil)
+			return
+		}
+
+		smtpAuthCode, getErr = tools.GetStringFromRawData(rawData, "server.smtp_auth_code")
+		if getErr != nil {
+			msg := fmt.Sprintf("SMTP认证码配置错误: %s", getErr.Error())
+			resp.BadRequest(ctx, msg, nil)
+			return
+		}
+	}
+
 	// 构造新的服务器配置
 	config.Server = config.ServerConfigData{
 		Port:                config.Server.Port,
@@ -795,6 +861,10 @@ func updateServerConfig(ctx *gin.Context) {
 			Methods: config.Server.Cors.Methods,
 			Headers: config.Server.Cors.Headers,
 		},
+		SmtpAccount:  smtpAccount,
+		SmtpAddress:  smtpAddress,
+		SmtpPort:     smtpPort,
+		SmtpAuthCode: smtpAuthCode,
 	}
 
 	// 更新配置到存储系统
