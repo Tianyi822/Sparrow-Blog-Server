@@ -11,29 +11,24 @@ import (
 	"strings"
 )
 
-// initServer 是一个用于解析和配置服务器基础信息的函数。
+// initServer 用于初始化服务器配置
 // 参数:
-//
-//	ctx *gin.Context - Gin 框架的上下文对象，用于处理 HTTP 请求和响应。
-//
-// 返回值:
-//
-//	无返回值，但通过 ctx 返回 JSON 格式的响应结果。
+//   - ctx: *gin.Context Gin框架的上下文对象
 func initServer(ctx *gin.Context) {
 	serverConfig := config.ServerConfigData{}
 
-	// 配置跨域相关的固定值，这些值不需要前端传入，直接在代码中写死。
+	// 配置跨域相关的固定值
 	serverConfig.Cors.Headers = []string{"Content-Type", "Authorization", "X-CSRF-Token"}
 	serverConfig.Cors.Methods = []string{"POST", "PUT", "DELETE", "GET"}
 
-	// 从请求的原始数据中解析出配置信息，并存储为 map 格式。
+	// 解析请求数据
 	mapData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
 		resp.BadRequest(ctx, "配置解析错误", err.Error())
 		return
 	}
 
-	// 解析服务器端口配置，确保端口号合法。
+	// 解析端口配置
 	port, err := tools.AnalyzePort(mapData["server.port"].(string))
 	if err != nil {
 		resp.BadRequest(ctx, "端口配置错误", err.Error())
@@ -41,24 +36,24 @@ func initServer(ctx *gin.Context) {
 	}
 	serverConfig.Port = port
 
-	// 解析 Token 密钥配置，确保密钥符合要求。
+	// 解析Token密钥
 	tokenKey := strings.TrimSpace(mapData["server.token_key"].(string))
 	if err = tools.AnalyzeTokenKey(tokenKey); err != nil {
-		resp.BadRequest(ctx, "Token 密钥配置错误", err.Error())
+		resp.BadRequest(ctx, "Token密钥配置错误", err.Error())
 		return
 	}
 	serverConfig.TokenKey = tokenKey
 
-	// 解析 Token 过期时间配置，确保时间格式正确并转换为有效的时间间隔。
+	// 解析Token过期时间
 	tokenExpireDuration := strings.TrimSpace(mapData["server.token_expire_duration"].(string))
 	dur, err := tools.AnalyzeTokenExpireDuration(tokenExpireDuration)
 	if err != nil {
-		resp.BadRequest(ctx, "Token 过期时间配置错误", err.Error())
+		resp.BadRequest(ctx, "Token过期时间配置错误", err.Error())
 		return
 	}
 	serverConfig.TokenExpireDuration = dur
 
-	// 解析跨域源配置，生成完整的跨域源地址列表并验证其合法性。
+	// 解析跨域源配置
 	domain := mapData["server.cors.origins"].(string)
 	corsOrigins := []string{
 		"http://" + domain,
@@ -72,27 +67,25 @@ func initServer(ctx *gin.Context) {
 	}
 	serverConfig.Cors.Origins = corsOrigins
 
-	// 将解析完成的服务器配置存储到全局变量中，供后续使用。
+	// 保存配置
 	config.Server = serverConfig
 
-	// 返回成功响应，包含配置完成的信息和最终的服务器配置。
 	resp.Ok(ctx, "配置完成", config.Server)
 }
 
-// initUser 配置用户信息，包括验证验证码和设置用户名。
-// 该函数根据当前环境（配置服务器环境或运行时环境）来决定如何处理验证码的验证与清除。
+// initUser 用于初始化用户配置
 // 参数:
-//   - ctx: *gin.Context, Gin框架的上下文对象，包含了请求和响应的信息。
+//   - ctx: *gin.Context Gin框架的上下文对象
 func initUser(ctx *gin.Context) {
-	// 从请求中解析原始数据为map格式
+	// 解析请求数据
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
 		return
 	}
 
-	// 初始化用户配置结构体
 	userConfig := config.UserConfigData{}
 
+	// 解析用户名
 	username, getErr := tools.GetStringFromRawData(rawData, "user.username")
 	if getErr != nil {
 		resp.BadRequest(ctx, "用户名配置错误", getErr.Error())
@@ -104,7 +97,7 @@ func initUser(ctx *gin.Context) {
 	}
 	userConfig.Username = username
 
-	// 获取并验证用户邮箱的合法性
+	// 解析用户邮箱
 	userEmail, getErr := tools.GetStringFromRawData(rawData, "user.user_email")
 	if getErr != nil {
 		resp.BadRequest(ctx, "用户邮箱配置错误", getErr.Error())
@@ -116,7 +109,7 @@ func initUser(ctx *gin.Context) {
 	}
 	userConfig.UserEmail = userEmail
 
-	// 设置用户的GitHub地址
+	// 解析GitHub地址
 	githubAddress, getErr := tools.GetStringFromRawData(rawData, "user.user_github_address")
 	if getErr != nil {
 		resp.BadRequest(ctx, "GitHub地址配置错误", getErr.Error())
@@ -124,7 +117,7 @@ func initUser(ctx *gin.Context) {
 	}
 	userConfig.UserGithubAddress = githubAddress
 
-	// 获取用户爱好列表
+	// 解析用户爱好
 	userHobbies, getErr := tools.GetStrListFromRawData(rawData, "user.user_hobbies")
 	if getErr != nil {
 		resp.BadRequest(ctx, "爱好配置错误", getErr.Error())
@@ -132,7 +125,7 @@ func initUser(ctx *gin.Context) {
 	}
 	userConfig.UserHobbies = userHobbies
 
-	// 获取打字机显示内容列表
+	// 解析打字机内容
 	typeWriterContent, getErr := tools.GetStrListFromRawData(rawData, "user.type_writer_content")
 	if getErr != nil {
 		resp.BadRequest(ctx, "打字机内容配置错误", getErr.Error())
@@ -140,273 +133,232 @@ func initUser(ctx *gin.Context) {
 	}
 	userConfig.TypeWriterContent = typeWriterContent
 
-	// 将配置保存到全局变量
+	// 保存配置
 	config.User = userConfig
 
-	// 向客户端返回成功消息及配置后的用户信息
 	resp.Ok(ctx, "配置完成", config.User)
 }
 
-// sendCode 处理发送验证码的请求。
-// 该函数从请求中获取用户邮箱、SMTP账户等信息，验证这些信息的有效性，并将有效的配置保存到全局配置中。
-// 最后，通过电子邮件发送验证码。如果过程中出现任何错误，将返回相应的错误信息。
+// sendCode 用于发送验证码
 // 参数:
-//   - ctx: *gin.Context, 用于处理HTTP请求的上下文。
-//
-// 返回值:
-//
-//	无直接返回值，但会通过ctx对象响应客户端。
+//   - ctx: *gin.Context Gin框架的上下文对象
 func sendCode(ctx *gin.Context) {
+	// 解析请求数据
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
 		resp.BadRequest(ctx, "配置解析错误", err.Error())
 		return
 	}
 
-	// 从请求中获取并验证用户邮箱
+	// 解析用户邮箱
 	userEmail := strings.TrimSpace(rawData["user.user_email"].(string))
 	if emailErr := tools.AnalyzeEmail(userEmail); emailErr != nil {
 		resp.BadRequest(ctx, "用户邮箱配置错误", emailErr.Error())
 		return
 	}
 
-	// 从请求中获取并验证系统邮箱
+	// 解析SMTP账户
 	smtpAccount := strings.TrimSpace(rawData["user.smtp_account"].(string))
 	if emailErr := tools.AnalyzeEmail(smtpAccount); emailErr != nil {
 		resp.BadRequest(ctx, "系统邮箱配置错误", emailErr.Error())
 		return
 	}
 
-	// 获取SMTP服务器地址
+	// 解析SMTP服务器配置
 	smtpAddress := strings.TrimSpace(rawData["user.smtp_address"].(string))
-
-	// 从请求中获取并验证SMTP端口
 	smtpPort, err := tools.GetUInt16FromRawData(rawData, "user.smtp_port")
 	if err != nil {
 		resp.BadRequest(ctx, "系统邮箱端口配置错误", err.Error())
 		return
 	}
-
-	// 获取SMTP授权码
 	smtpAuthCode := strings.TrimSpace(rawData["user.smtp_auth_code"].(string))
 
-	// 发送验证码邮件
+	// 发送验证码
 	if err = email.SendVerificationCodeByArgs(ctx, userEmail, smtpAccount, smtpAddress, smtpAuthCode, smtpPort); err != nil {
 		resp.BadRequest(ctx, "验证码发送失败", err.Error())
 		return
 	}
 
-	// 响应客户端验证码发送成功
 	resp.Ok(ctx, "验证码发送成功", config.User)
 }
 
-// initMysql 配置MySQL数据库连接信息。
-// 该函数从HTTP请求上下文中提取MySQL配置数据，验证并解析这些数据，然后更新全局MySQL配置。
+// initMysql 用于初始化MySQL配置
 // 参数:
-//
-//	ctx *gin.Context: HTTP请求上下文，用于处理响应和获取请求数据。
+//   - ctx: *gin.Context Gin框架的上下文对象
 func initMysql(ctx *gin.Context) {
-	// 初始化MySQL配置结构体。
 	mysqlConfig := config.MySQLConfigData{}
 
-	// 从请求中获取原始数据并解析为map形式。
+	// 解析请求数据
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
-		// 如果数据解析失败，返回400错误响应。
 		resp.BadRequest(ctx, "请求数据解析错误", err.Error())
 		return
 	}
 
-	// 从原始数据中提取并修剪MySQL用户和密码。
+	// 解析基本配置
 	mysqlConfig.User = strings.TrimSpace(rawData["mysql.user"].(string))
 	mysqlConfig.Password = strings.TrimSpace(rawData["mysql.password"].(string))
 
-	// 提取并验证MySQL主机地址。
+	// 解析主机地址
 	host := strings.TrimSpace(rawData["mysql.host"].(string))
 	if err = tools.AnalyzeHostAddress(host); err != nil {
-		// 如果主机地址配置错误，返回400错误响应。
 		resp.BadRequest(ctx, "数据库主机地址配置错误", err.Error())
 		return
 	}
 	mysqlConfig.Host = host
 
-	// 解析MySQL端口。
+	// 解析端口
 	port, err := tools.GetUInt16FromRawData(rawData, "mysql.port")
 	if err != nil {
-		// 如果端口配置错误，返回400错误响应。
 		resp.BadRequest(ctx, "端口配置错误", err.Error())
 		return
 	}
 	mysqlConfig.Port = port
 
-	// 提取MySQL数据库名称。
+	// 解析数据库名
 	mysqlConfig.DB = strings.TrimSpace(rawData["mysql.database"].(string))
 
-	// 解析最大打开连接数。
+	// 解析连接池配置
 	maxOpen, err := tools.GetUInt16FromRawData(rawData, "mysql.max_open")
 	if err != nil {
-		// 如果最大打开连接数配置错误，返回400错误响应。
 		resp.BadRequest(ctx, "最大打开连接数配置错误", err.Error())
 		return
 	}
 	mysqlConfig.MaxOpen = maxOpen
 
-	// 解析最大空闲连接数。
 	maxIdle, err := tools.GetUInt16FromRawData(rawData, "mysql.max_idle")
 	if err != nil {
-		// 如果最大空闲连接数配置错误，返回400错误响应。
 		resp.BadRequest(ctx, "最大空闲连接数配置错误", err.Error())
 		return
 	}
 	mysqlConfig.MaxIdle = maxIdle
 
-	// 检查最大空闲连接数是否大于最大打开连接数。
+	// 验证连接池配置
 	if maxIdle > maxOpen {
 		resp.BadRequest(ctx, "最大空闲连接数不能大于最大打开连接数", nil)
 		return
 	}
 
-	// 验证MySQL连接配置。
+	// 验证连接配置
 	if err = tools.AnalyzeMySqlConnect(&mysqlConfig); err != nil {
-		// 如果连接配置验证失败，返回400错误响应。
 		resp.BadRequest(ctx, "数据库连接配置错误", err.Error())
 		return
 	}
 
-	// 完成配置，将配置添加到全局。
+	// 保存配置
 	config.MySQL = mysqlConfig
 
-	// 返回成功响应，通知客户端配置完成。
 	resp.Ok(ctx, "配置完成", config.MySQL)
 }
 
-// initOss 从请求中解析并配置 OSS（对象存储服务）相关参数。
+// initOss 用于初始化OSS配置
 // 参数:
-//
-//	ctx *gin.Context - HTTP 请求上下文，包含请求数据和响应方法。
-//
-// 返回值:
-//
-//	无直接返回值，但通过 ctx 返回 JSON 响应，指示配置成功或失败的原因。
+//   - ctx: *gin.Context Gin框架的上下文对象
 func initOss(ctx *gin.Context) {
 	ossConfig := config.OssConfig{}
 
-	// 从请求中提取原始数据并解析为 map
+	// 解析请求数据
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
 		return
 	}
 
-	// 配置 OSS 基础信息，包括 endpoint、region、access key 等
+	// 解析基本配置
 	ossConfig.Endpoint = strings.TrimSpace(rawData["oss.endpoint"].(string))
 	ossConfig.Region = strings.TrimSpace(rawData["oss.region"].(string))
 	ossConfig.AccessKeyId = strings.TrimSpace(rawData["oss.access_key_id"].(string))
 	ossConfig.AccessKeySecret = strings.TrimSpace(rawData["oss.access_key_secret"].(string))
 	ossConfig.Bucket = strings.TrimSpace(rawData["oss.bucket"].(string))
 	if err = tools.AnalyzeOssConfig(&ossConfig); err != nil {
-		resp.BadRequest(ctx, "OSS 配置错误", err.Error())
+		resp.BadRequest(ctx, "OSS配置错误", err.Error())
 		return
 	}
 
-	// 配置 OSS 图片路径，并验证路径的合法性
+	// 解析路径配置
 	imageOssPath := strings.TrimSpace(rawData["oss.image_oss_path"].(string))
 	if err := tools.AnalyzeOssPath(imageOssPath); err != nil {
-		resp.BadRequest(ctx, "图片 OSS 路径配置错误", err.Error())
+		resp.BadRequest(ctx, "图片OSS路径配置错误", err.Error())
 		return
 	}
 	ossConfig.ImageOssPath = imageOssPath
 
-	// 配置 OSS 博客路径，并验证路径的合法性
 	blogOssPath := strings.TrimSpace(rawData["oss.blog_oss_path"].(string))
 	if err := tools.AnalyzeOssPath(blogOssPath); err != nil {
-		resp.BadRequest(ctx, "博客 OSS 路径配置错误", err.Error())
+		resp.BadRequest(ctx, "博客OSS路径配置错误", err.Error())
 		return
 	}
 	ossConfig.BlogOssPath = blogOssPath
 
-	// 将配置完成的 OSS 配置对象保存到全局变量中
+	// 保存配置
 	config.Oss = ossConfig
 
-	// 返回成功响应，包含配置完成的 OSS 配置信息
 	resp.Ok(ctx, "配置完成", config.Oss)
 }
 
-// initCache 从请求上下文中解析缓存配置，并将其存储到全局配置中。
+// initCache 用于初始化缓存配置
 // 参数:
-//
-//	ctx - *gin.Context: HTTP 请求上下文，用于获取请求数据和返回响应。
-//
-// 返回值:
-//
-//	无直接返回值，但通过 ctx 返回 HTTP 响应。
+//   - ctx: *gin.Context Gin框架的上下文对象
 func initCache(ctx *gin.Context) {
 	cacheConfig := config.CacheConfig{}
 
-	// 从请求中提取原始数据并解析为 map
+	// 解析请求数据
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
 		resp.BadRequest(ctx, "请求数据解析错误", err.Error())
 		return
 	}
 
-	// 解析 AOF 启用配置
+	// 解析AOF配置
 	aofEnable, err := tools.GetBoolFromRawData(rawData, "cache.aof.enable")
 	if err != nil {
-		resp.BadRequest(ctx, "AOF 启用配置错误", err.Error())
+		resp.BadRequest(ctx, "AOF启用配置错误", err.Error())
 		return
 	}
 	cacheConfig.Aof.Enable = aofEnable
 
-	// 解析 AOF 文件路径，并生成绝对路径
+	// 解析AOF路径
 	projPath, err := tools.AnalyzeAbsolutePath(strings.TrimSpace(rawData["cache.aof.path"].(string)))
 	if err != nil {
-		resp.BadRequest(ctx, "AOF 路径配置错误", err.Error())
+		resp.BadRequest(ctx, "AOF路径配置错误", err.Error())
 		return
 	}
 	cacheConfig.Aof.Path = filepath.Join(projPath, "aof", "h2blog.aof")
 
-	// 解析 AOF 文件的最大大小配置
+	// 解析AOF文件配置
 	maxSize, err := tools.GetUInt16FromRawData(rawData, "cache.aof.max_size")
 	if err != nil {
-		resp.BadRequest(ctx, "AOF 最大文件大小配置错误", err.Error())
+		resp.BadRequest(ctx, "AOF最大文件大小配置错误", err.Error())
 		return
 	}
 	cacheConfig.Aof.MaxSize = maxSize
 
-	// 解析 AOF 文件压缩配置
 	aofCompress, err := tools.GetBoolFromRawData(rawData, "cache.aof.compress")
 	if err != nil {
-		resp.BadRequest(ctx, "AOF 文件压缩配置错误", err.Error())
+		resp.BadRequest(ctx, "AOF文件压缩配置错误", err.Error())
 		return
 	}
 	cacheConfig.Aof.Compress = aofCompress
 
-	// 将解析完成的缓存配置存储到全局配置中
+	// 保存配置
 	config.Cache = cacheConfig
 
-	// 返回成功响应，包含配置信息
 	resp.Ok(ctx, "配置完成", config.Cache)
 }
 
-// initLogger 从请求上下文中解析日志配置参数，并将其设置为全局日志配置。
+// initLogger 用于初始化日志配置
 // 参数:
-//
-//	ctx - gin.Context，包含请求的上下文信息，用于解析请求数据和返回响应。
-//
-// 返回值:
-//
-//	无直接返回值，但通过 ctx 返回 HTTP 响应，指示配置成功或失败的具体原因。
+//   - ctx: *gin.Context Gin框架的上下文对象
 func initLogger(ctx *gin.Context) {
 	loggerConfig := config.LoggerConfigData{}
 
-	// 从请求中提取原始数据并解析为 map 结构
+	// 解析请求数据
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
 		resp.BadRequest(ctx, "配置解析错误", err.Error())
 		return
 	}
 
-	// 解析日志级别配置，并验证其合法性
+	// 解析日志级别
 	level := strings.TrimSpace(rawData["logger.level"].(string))
 	if anaErr := tools.AnalyzeLoggerLevel(level); anaErr != nil {
 		resp.BadRequest(ctx, "日志级别配置错误", anaErr.Error())
@@ -414,7 +366,7 @@ func initLogger(ctx *gin.Context) {
 	}
 	loggerConfig.Level = level
 
-	// 解析日志路径配置，并生成绝对路径
+	// 解析日志路径
 	projPath, err := tools.AnalyzeAbsolutePath(strings.TrimSpace(rawData["logger.path"].(string)))
 	if err != nil {
 		resp.BadRequest(ctx, "日志路径配置错误", err.Error())
@@ -422,7 +374,7 @@ func initLogger(ctx *gin.Context) {
 	}
 	loggerConfig.Path = filepath.Join(projPath, "log", "h2blog.log")
 
-	// 解析日志文件最大大小配置
+	// 解析日志文件配置
 	maxSize, err := tools.GetUInt16FromRawData(rawData, "logger.max_size")
 	if err != nil {
 		resp.BadRequest(ctx, "日志最大文件大小配置错误", err.Error())
@@ -430,7 +382,6 @@ func initLogger(ctx *gin.Context) {
 	}
 	loggerConfig.MaxSize = maxSize
 
-	// 解析日志文件最大备份数量配置
 	maxBackups, err := tools.GetUInt16FromRawData(rawData, "logger.max_backups")
 	if err != nil {
 		resp.BadRequest(ctx, "日志最大备份数量配置错误", err.Error())
@@ -438,7 +389,6 @@ func initLogger(ctx *gin.Context) {
 	}
 	loggerConfig.MaxBackups = maxBackups
 
-	// 解析日志文件最大保存天数配置
 	maxAge, err := tools.GetUInt16FromRawData(rawData, "logger.max_age")
 	if err != nil {
 		resp.BadRequest(ctx, "日志最大保存天数配置错误", err.Error())
@@ -446,7 +396,6 @@ func initLogger(ctx *gin.Context) {
 	}
 	loggerConfig.MaxAge = maxAge
 
-	// 解析日志文件是否启用压缩配置
 	compress, err := tools.GetBoolFromRawData(rawData, "logger.compress")
 	if err != nil {
 		resp.BadRequest(ctx, "日志文件压缩配置错误", err.Error())
@@ -454,16 +403,17 @@ func initLogger(ctx *gin.Context) {
 	}
 	loggerConfig.Compress = compress
 
-	// 将解析完成的日志配置设置为全局配置
+	// 保存配置
 	config.Logger = loggerConfig
 
-	// 返回成功响应，包含配置完成的信息
 	resp.Ok(ctx, "配置完成", config.Logger)
 }
 
-// completeInit 完成配置，将配置保存到本地文件中
+// completeInit 用于完成所有配置并保存
+// 参数:
+//   - ctx: *gin.Context Gin框架的上下文对象
 func completeInit(ctx *gin.Context) {
-
+	// 整合所有配置
 	projConfig := config.ProjectConfig{
 		User:   config.User,
 		Server: config.Server,
@@ -473,6 +423,7 @@ func completeInit(ctx *gin.Context) {
 		Logger: config.Logger,
 	}
 
+	// 保存配置到文件
 	err := projConfig.Store()
 	if err != nil {
 		resp.Err(ctx, "配置保存失败", err.Error())
@@ -481,7 +432,7 @@ func completeInit(ctx *gin.Context) {
 
 	resp.Ok(ctx, "完成并保存配置", nil)
 
-	// 若当前为初始化环境，则发送信号通知关闭配置服务
+	// 发送完成信号
 	if env.CurrentEnv == env.InitializedEnv {
 		env.CompletedConfigSign <- true
 	}
