@@ -22,22 +22,30 @@ func initServer(ctx *gin.Context) {
 	serverConfig.Cors.Methods = []string{"POST", "PUT", "DELETE", "GET"}
 
 	// 解析请求数据
-	mapData, err := tools.GetMapFromRawData(ctx)
+	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
-		resp.BadRequest(ctx, "配置解析错误", err.Error())
 		return
 	}
 
 	// 解析端口配置
-	port, err := tools.AnalyzePort(mapData["server.port"].(string))
+	port, err := tools.GetUInt16FromRawData(rawData, "server.port")
 	if err != nil {
 		resp.BadRequest(ctx, "端口配置错误", err.Error())
+		return
+	}
+	anaErr := tools.AnalyzePort(port)
+	if anaErr != nil {
+		resp.BadRequest(ctx, "端口配置错误", anaErr.Error())
 		return
 	}
 	serverConfig.Port = port
 
 	// 解析Token密钥
-	tokenKey := strings.TrimSpace(mapData["server.token_key"].(string))
+	tokenKey, getErr := tools.GetStringFromRawData(rawData, "server.token_key")
+	if getErr != nil {
+		resp.BadRequest(ctx, "Token密钥配置错误", getErr.Error())
+		return
+	}
 	if err = tools.AnalyzeTokenKey(tokenKey); err != nil {
 		resp.BadRequest(ctx, "Token密钥配置错误", err.Error())
 		return
@@ -45,16 +53,24 @@ func initServer(ctx *gin.Context) {
 	serverConfig.TokenKey = tokenKey
 
 	// 解析Token过期时间
-	tokenExpireDuration := strings.TrimSpace(mapData["server.token_expire_duration"].(string))
-	dur, err := tools.AnalyzeTokenExpireDuration(tokenExpireDuration)
-	if err != nil {
-		resp.BadRequest(ctx, "Token过期时间配置错误", err.Error())
+	dur, getErr := tools.GetUInt8FromRawData(rawData, "server.token_expire_duration")
+	if getErr != nil {
+		resp.BadRequest(ctx, "Token过期时间配置错误", getErr.Error())
+		return
+	}
+	anaErr = tools.AnalyzeTokenExpireDuration(dur)
+	if anaErr != nil {
+		resp.BadRequest(ctx, "Token过期时间配置错误", anaErr.Error())
 		return
 	}
 	serverConfig.TokenExpireDuration = dur
 
 	// 解析跨域源配置
-	domain := mapData["server.cors.origins"].(string)
+	domain, getErr := tools.GetStringFromRawData(rawData, "server.cors.origins")
+	if getErr != nil {
+		resp.BadRequest(ctx, "跨域源配置错误", getErr.Error())
+		return
+	}
 	corsOrigins := []string{
 		"http://" + domain,
 		"http://www." + domain,
@@ -66,6 +82,46 @@ func initServer(ctx *gin.Context) {
 		return
 	}
 	serverConfig.Cors.Origins = corsOrigins
+
+	// 解析 SMTP 账号
+	smtpAccount, getErr := tools.GetStringFromRawData(rawData, "server.smtp_account")
+	if getErr != nil {
+		resp.BadRequest(ctx, "SMTP账号配置错误", getErr.Error())
+		return
+	}
+	if anaErr := tools.AnalyzeEmail(smtpAccount); anaErr != nil {
+		resp.BadRequest(ctx, "SMTP账号配置错误", anaErr.Error())
+		return
+	}
+	serverConfig.SmtpAccount = smtpAccount
+
+	// 解析 SMTP 地址
+	smtpAddress, getErr := tools.GetStringFromRawData(rawData, "server.smtp_address")
+	if getErr != nil {
+		resp.BadRequest(ctx, "SMTP地址配置错误", getErr.Error())
+		return
+	}
+	serverConfig.SmtpAddress = smtpAddress
+
+	// 解析 SMTP 端口
+	smtpPort, getErr := tools.GetUInt16FromRawData(rawData, "server.smtp_port")
+	if getErr != nil {
+		resp.BadRequest(ctx, "SMTP端口配置错误", getErr.Error())
+		return
+	}
+	if anaErr := tools.AnalyzePort(smtpPort); anaErr != nil {
+		resp.BadRequest(ctx, "SMTP端口配置错误", anaErr.Error())
+		return
+	}
+	serverConfig.SmtpPort = smtpPort
+
+	// 解析 SMTP 认证码
+	smtpAuthCode, getErr := tools.GetStringFromRawData(rawData, "server.smtp_auth_code")
+	if getErr != nil {
+		resp.BadRequest(ctx, "SMTP认证码配置错误", getErr.Error())
+		return
+	}
+	serverConfig.SmtpAuthCode = smtpAuthCode
 
 	// 保存配置
 	config.Server = serverConfig
@@ -150,31 +206,47 @@ func sendCode(ctx *gin.Context) {
 		return
 	}
 
-	// 解析用户邮箱
-	userEmail := strings.TrimSpace(rawData["user.user_email"].(string))
-	if emailErr := tools.AnalyzeEmail(userEmail); emailErr != nil {
-		resp.BadRequest(ctx, "用户邮箱配置错误", emailErr.Error())
+	// 解析SMTP账户
+	smtpAccount, getErr := tools.GetStringFromRawData(rawData, "server.smtp_account")
+	if getErr != nil {
+		resp.BadRequest(ctx, "SMTP 账户配置错误", getErr.Error())
 		return
 	}
-
-	// 解析SMTP账户
-	smtpAccount := strings.TrimSpace(rawData["user.smtp_account"].(string))
 	if emailErr := tools.AnalyzeEmail(smtpAccount); emailErr != nil {
 		resp.BadRequest(ctx, "系统邮箱配置错误", emailErr.Error())
 		return
 	}
 
 	// 解析SMTP服务器配置
-	smtpAddress := strings.TrimSpace(rawData["user.smtp_address"].(string))
-	smtpPort, err := tools.GetUInt16FromRawData(rawData, "user.smtp_port")
+	smtpAddress, getErr := tools.GetStringFromRawData(rawData, "server.smtp_address")
+	if getErr != nil {
+		resp.BadRequest(ctx, "SMTP 服务器配置错误", getErr.Error())
+		return
+	}
+
+	// 解析SMTP端口
+	smtpPort, err := tools.GetUInt16FromRawData(rawData, "server.smtp_port")
 	if err != nil {
 		resp.BadRequest(ctx, "系统邮箱端口配置错误", err.Error())
 		return
 	}
-	smtpAuthCode := strings.TrimSpace(rawData["user.smtp_auth_code"].(string))
+
+	// 解析SMTP认证码
+	smtpAuthCode, getErr := tools.GetStringFromRawData(rawData, "server.smtp_auth_code")
+	if getErr != nil {
+		resp.BadRequest(ctx, "SMTP认证码配置错误", getErr.Error())
+		return
+	}
 
 	// 发送验证码
-	if err = email.SendVerificationCodeByArgs(ctx, userEmail, smtpAccount, smtpAddress, smtpAuthCode, smtpPort); err != nil {
+	if err = email.SendVerificationCodeByArgs(
+		ctx,
+		config.User.UserEmail,
+		smtpAccount,
+		smtpAddress,
+		smtpAuthCode,
+		smtpPort,
+	); err != nil {
 		resp.BadRequest(ctx, "验证码发送失败", err.Error())
 		return
 	}
