@@ -7,12 +7,11 @@ import (
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/resp"
 	"h2blog_server/routers/tools"
-	"h2blog_server/storage"
 	"path/filepath"
 	"strings"
 )
 
-// configServer 是一个用于解析和配置服务器基础信息的函数。
+// initServer 是一个用于解析和配置服务器基础信息的函数。
 // 参数:
 //
 //	ctx *gin.Context - Gin 框架的上下文对象，用于处理 HTTP 请求和响应。
@@ -20,7 +19,7 @@ import (
 // 返回值:
 //
 //	无返回值，但通过 ctx 返回 JSON 格式的响应结果。
-func configServer(ctx *gin.Context) {
+func initServer(ctx *gin.Context) {
 	serverConfig := config.ServerConfigData{}
 
 	// 配置跨域相关的固定值，这些值不需要前端传入，直接在代码中写死。
@@ -80,15 +79,12 @@ func configServer(ctx *gin.Context) {
 	resp.Ok(ctx, "配置完成", config.Server)
 }
 
-// configUser 配置用户信息，包括验证验证码和设置用户名。
+// initUser 配置用户信息，包括验证验证码和设置用户名。
 // 该函数根据当前环境（配置服务器环境或运行时环境）来决定如何处理验证码的验证与清除。
 // 参数:
 //   - ctx: *gin.Context, Gin框架的上下文对象，包含了请求和响应的信息。
-//
-// 返回值:
-//
-//	无直接返回值，通过ctx对象向客户端发送响应。
-func configUser(ctx *gin.Context) {
+func initUser(ctx *gin.Context) {
+	// 从请求中解析原始数据为map格式
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
 		return
@@ -151,7 +147,7 @@ func configUser(ctx *gin.Context) {
 	resp.Ok(ctx, "配置完成", config.User)
 }
 
-// configEmailAndSendCode 处理发送验证码的请求。
+// sendCode 处理发送验证码的请求。
 // 该函数从请求中获取用户邮箱、SMTP账户等信息，验证这些信息的有效性，并将有效的配置保存到全局配置中。
 // 最后，通过电子邮件发送验证码。如果过程中出现任何错误，将返回相应的错误信息。
 // 参数:
@@ -160,7 +156,7 @@ func configUser(ctx *gin.Context) {
 // 返回值:
 //
 //	无直接返回值，但会通过ctx对象响应客户端。
-func configEmailAndSendCode(ctx *gin.Context) {
+func sendCode(ctx *gin.Context) {
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
 		resp.BadRequest(ctx, "配置解析错误", err.Error())
@@ -204,12 +200,12 @@ func configEmailAndSendCode(ctx *gin.Context) {
 	resp.Ok(ctx, "验证码发送成功", config.User)
 }
 
-// configMysql 配置MySQL数据库连接信息。
+// initMysql 配置MySQL数据库连接信息。
 // 该函数从HTTP请求上下文中提取MySQL配置数据，验证并解析这些数据，然后更新全局MySQL配置。
 // 参数:
 //
 //	ctx *gin.Context: HTTP请求上下文，用于处理响应和获取请求数据。
-func configMysql(ctx *gin.Context) {
+func initMysql(ctx *gin.Context) {
 	// 初始化MySQL配置结构体。
 	mysqlConfig := config.MySQLConfigData{}
 
@@ -284,7 +280,7 @@ func configMysql(ctx *gin.Context) {
 	resp.Ok(ctx, "配置完成", config.MySQL)
 }
 
-// configOss 从请求中解析并配置 OSS（对象存储服务）相关参数。
+// initOss 从请求中解析并配置 OSS（对象存储服务）相关参数。
 // 参数:
 //
 //	ctx *gin.Context - HTTP 请求上下文，包含请求数据和响应方法。
@@ -292,7 +288,7 @@ func configMysql(ctx *gin.Context) {
 // 返回值:
 //
 //	无直接返回值，但通过 ctx 返回 JSON 响应，指示配置成功或失败的原因。
-func configOss(ctx *gin.Context) {
+func initOss(ctx *gin.Context) {
 	ossConfig := config.OssConfig{}
 
 	// 从请求中提取原始数据并解析为 map
@@ -335,7 +331,7 @@ func configOss(ctx *gin.Context) {
 	resp.Ok(ctx, "配置完成", config.Oss)
 }
 
-// configCache 从请求上下文中解析缓存配置，并将其存储到全局配置中。
+// initCache 从请求上下文中解析缓存配置，并将其存储到全局配置中。
 // 参数:
 //
 //	ctx - *gin.Context: HTTP 请求上下文，用于获取请求数据和返回响应。
@@ -343,7 +339,7 @@ func configOss(ctx *gin.Context) {
 // 返回值:
 //
 //	无直接返回值，但通过 ctx 返回 HTTP 响应。
-func configCache(ctx *gin.Context) {
+func initCache(ctx *gin.Context) {
 	cacheConfig := config.CacheConfig{}
 
 	// 从请求中提取原始数据并解析为 map
@@ -392,7 +388,7 @@ func configCache(ctx *gin.Context) {
 	resp.Ok(ctx, "配置完成", config.Cache)
 }
 
-// configLogger 从请求上下文中解析日志配置参数，并将其设置为全局日志配置。
+// initLogger 从请求上下文中解析日志配置参数，并将其设置为全局日志配置。
 // 参数:
 //
 //	ctx - gin.Context，包含请求的上下文信息，用于解析请求数据和返回响应。
@@ -400,7 +396,7 @@ func configCache(ctx *gin.Context) {
 // 返回值:
 //
 //	无直接返回值，但通过 ctx 返回 HTTP 响应，指示配置成功或失败的具体原因。
-func configLogger(ctx *gin.Context) {
+func initLogger(ctx *gin.Context) {
 	loggerConfig := config.LoggerConfigData{}
 
 	// 从请求中提取原始数据并解析为 map 结构
@@ -465,8 +461,8 @@ func configLogger(ctx *gin.Context) {
 	resp.Ok(ctx, "配置完成", config.Logger)
 }
 
-// completeConfig 完成配置，将配置保存到本地文件中
-func completeConfig(ctx *gin.Context) {
+// completeInit 完成配置，将配置保存到本地文件中
+func completeInit(ctx *gin.Context) {
 
 	projConfig := config.ProjectConfig{
 		User:   config.User,
