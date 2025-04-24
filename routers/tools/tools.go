@@ -133,6 +133,39 @@ func rowDataToDto(ctx *gin.Context, dto dto.Dto) error {
 	return nil
 }
 
+// GetStringFromRawData 从原始数据中提取指定键的值并将其转换为字符串类型。
+// 参数:
+//   - rawData: 包含键值对的 map，值可以是任意类型。
+//   - key: 要提取的键名。
+//
+// 返回值:
+//   - string: 提取并转换成功的字符串值。
+//   - error: 如果键不存在或值类型不支持，则返回相应的错误信息。
+func GetStringFromRawData(rawData map[string]any, key string) (string, error) {
+	// 检查键是否存在，如果不存在则返回错误
+	val, ok := rawData[key]
+	if !ok {
+		return "", fmt.Errorf("'%s' 为空", key)
+	}
+
+	// 根据值的实际类型进行处理
+	switch v := val.(type) {
+	case string:
+		// 如果值是字符串类型，直接返回
+		return v, nil
+	case float64:
+		// 处理指数表示法的浮点数
+		// 使用 FormatFloat 将浮点数转换为字符串，'f' 表示普通十进制格式，-1 表示保留所有有效数字
+		return strconv.FormatFloat(v, 'f', -1, 64), nil
+	case int:
+		// 处理整数，将其转换为字符串
+		return strconv.Itoa(v), nil
+	default:
+		// 如果值的类型不被支持，返回错误
+		return "", fmt.Errorf("'%s' 类型不支持", key)
+	}
+}
+
 // GetUInt16FromRawData 从原始数据中提取指定键的值并将其转换为 uint16 类型。
 // 参数:
 //   - reqData: 包含键值对的 map，值可以是任意类型。
