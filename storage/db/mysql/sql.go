@@ -27,6 +27,7 @@ const createH2BlogTableSQL = `
 	(
 	    blog_id         	VARCHAR(16)      	PRIMARY KEY NOT NULL  											COMMENT '博客ID',
 	    blog_title    	 	VARCHAR(50)      	NOT NULL UNIQUE       											COMMENT '博客标题',
+	    blog_image_id		VARCHAR(16)			NOT NULL														COMMENT '博客图片 ID',
 	    blog_brief    	 	VARCHAR(255)     	NOT NULL              											COMMENT '博客简介',
 	    category_id     	VARCHAR(16)      	NOT NULL              											COMMENT '分类ID（逻辑外键）',
 	    blog_state        	TINYINT(1)       	NOT NULL              											COMMENT '博客状态（0-禁用 1-启用）',
