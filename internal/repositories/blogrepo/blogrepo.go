@@ -58,6 +58,7 @@ func FindBlogById(ctx context.Context, id string) (*dto.BlogDto, error) {
 	return &dto.BlogDto{
 		BlogId:       blog.BlogId,
 		BlogTitle:    blog.BlogTitle,
+		BlogImageId:  blog.BlogImageId,
 		BlogBrief:    blog.BlogBrief,
 		BlogWordsNum: blog.BlogWordsNum,
 		CategoryId:   blog.CategoryId,
@@ -84,6 +85,7 @@ func FindAllBlogs(ctx context.Context, needBrief bool) ([]*dto.BlogDto, error) {
 			Select(
 				"blog_id",
 				"blog_title",
+				"blog_image_id",
 				"blog_brief",
 				"category_id",
 				"blog_state",
@@ -138,6 +140,7 @@ func FindAllBlogs(ctx context.Context, needBrief bool) ([]*dto.BlogDto, error) {
 		}
 		if needBrief {
 			blogDto.BlogBrief = blog.BlogBrief
+			blogDto.BlogImageId = blog.BlogImageId
 		}
 		blogDtos = append(blogDtos, blogDto)
 	}
@@ -169,6 +172,7 @@ func AddBlog(tx *gorm.DB, blogDto *dto.BlogDto) error {
 	if err := tx.Create(&po.Blog{
 		BlogId:       bid,
 		BlogTitle:    blogDto.BlogTitle,
+		BlogImageId:  blogDto.BlogImageId,
 		BlogBrief:    blogDto.BlogBrief,
 		CategoryId:   blogDto.CategoryId,
 		BlogState:    blogDto.BlogState,
@@ -196,6 +200,7 @@ func UpdateBlog(tx *gorm.DB, blogDto *dto.BlogDto) error {
 	logger.Info("开始更新播客数据")
 	// 更新博客信息。
 	if err := tx.Model(&po.Blog{}).Where("blog_id = ?", blogDto.BlogId).Updates(po.Blog{
+		BlogImageId:  blogDto.BlogImageId,
 		BlogBrief:    blogDto.BlogBrief,
 		CategoryId:   blogDto.CategoryId,
 		BlogTitle:    blogDto.BlogTitle,

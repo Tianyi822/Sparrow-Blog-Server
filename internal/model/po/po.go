@@ -5,6 +5,7 @@ import "time"
 type Blog struct {
 	BlogId       string    `gorm:"column:blog_id;primaryKey"`                                   // 博客 ID
 	BlogTitle    string    `gorm:"column:blog_title;unique"`                                    // 博客标题
+	BlogImageId  string    `gorm:"column:blog_image_id"`                                        // 博客图片
 	BlogBrief    string    `gorm:"column:blog_brief"`                                           // 博客简介
 	CategoryId   string    `gorm:"column:category_id"`                                          // 逻辑外键字段（无约束）
 	BlogState    bool      `gorm:"column:blog_state"`                                           // 博客状态
