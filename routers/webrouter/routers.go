@@ -3,8 +3,17 @@ package webrouter
 import "github.com/gin-gonic/gin"
 
 func Router(e *gin.Engine) {
-	configGroup := e.Group("/web")
+	webGroup := e.Group("/web")
 
-	// 获取用户基本信息
-	configGroup.GET("/user-basic-info", userBasicInfo)
+	{
+		configGroup := webGroup.Group("/config")
+
+		configGroup.GET("/user-basic-info", userBasicInfo)
+	}
+
+	{
+		imageGroup := webGroup.Group("/img")
+
+		imageGroup.GET("/get/:img_id", redirectImgReq)
+	}
 }

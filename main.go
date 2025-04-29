@@ -9,7 +9,6 @@ import (
 	"h2blog_server/pkg/logger"
 	"h2blog_server/routers"
 	"h2blog_server/routers/adminrouter"
-	"h2blog_server/routers/imgrouter"
 	"h2blog_server/routers/initrouter"
 	"h2blog_server/routers/webrouter"
 	"h2blog_server/storage"
@@ -42,7 +41,6 @@ func loadComponent(ctx context.Context) {
 func runServer() *http.Server {
 	logger.Info("加载路由信息")
 	routers.IncludeOpts(
-		imgrouter.Routers,
 		webrouter.Router,
 		adminrouter.Routers,
 	)
