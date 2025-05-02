@@ -148,7 +148,7 @@ func getAllBlogs(ctx *gin.Context) {
 			BlogId:       blogDto.BlogId,
 			BlogTitle:    blogDto.BlogTitle,
 			BlogImageId:  blogDto.BlogImageId,
-			Category:     category,
+			Category:     &category,
 			Tags:         tags,
 			BlogState:    blogDto.BlogState,
 			BlogWordsNum: blogDto.BlogWordsNum,
@@ -292,7 +292,7 @@ func getBlogData(ctx *gin.Context) {
 		BlogTitle:   blogDto.BlogTitle,
 		BlogImageId: blogDto.BlogImageId,
 		BlogBrief:   blogDto.BlogBrief,
-		Category: vo.CategoryVo{
+		Category: &vo.CategoryVo{
 			CategoryId:   blogDto.Category.CategoryId,
 			CategoryName: blogDto.Category.CategoryName,
 		},
