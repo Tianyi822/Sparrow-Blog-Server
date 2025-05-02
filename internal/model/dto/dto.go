@@ -12,18 +12,18 @@ type Dto interface {
 }
 
 type BlogDto struct {
-	BlogId       string      `json:"blog_id,omitempty"`
-	BlogTitle    string      `json:"blog_title,omitempty"`
-	BlogImageId  string      `json:"blog_image_id,omitempty"`
-	BlogBrief    string      `json:"blog_brief,omitempty"`
-	CategoryId   string      `json:"category_id,omitempty"`
-	Category     CategoryDto `json:"category,omitempty"`
-	Tags         []TagDto    `json:"tags,omitempty"`
-	BlogState    bool        `json:"blog_state,omitempty"`
-	BlogWordsNum uint16      `json:"blog_words_num,omitempty"`
-	BlogIsTop    bool        `json:"blog_is_top,omitempty"`
-	CreateTime   time.Time   `json:"create_time,omitempty"`
-	UpdateTime   time.Time   `json:"update_time,omitempty"`
+	BlogId       string       `json:"blog_id,omitempty"`
+	BlogTitle    string       `json:"blog_title,omitempty"`
+	BlogImageId  string       `json:"blog_image_id,omitempty"`
+	BlogBrief    string       `json:"blog_brief,omitempty"`
+	CategoryId   string       `json:"category_id,omitempty"`
+	Category     *CategoryDto `json:"category,omitempty"`
+	Tags         []TagDto     `json:"tags,omitempty"`
+	BlogState    bool         `json:"blog_state,omitempty"`
+	BlogWordsNum uint16       `json:"blog_words_num,omitempty"`
+	BlogIsTop    bool         `json:"blog_is_top,omitempty"`
+	CreateTime   time.Time    `json:"create_time,omitempty"`
+	UpdateTime   time.Time    `json:"update_time,omitempty"`
 }
 
 func (hb *BlogDto) DtoFlag() string {
