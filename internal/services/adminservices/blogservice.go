@@ -41,10 +41,7 @@ func GetBlogsToAdminPosts(ctx context.Context) ([]*dto.BlogDto, error) {
 		if err != nil {
 			return nil, err
 		}
-		blogDto.Category = dto.CategoryDto{
-			CategoryId:   category.CategoryId,
-			CategoryName: category.CategoryName,
-		}
+		blogDto.Category = category
 	}
 
 	return blogDtos, nil
@@ -79,10 +76,7 @@ func GetBlogData(ctx context.Context, id string) (*dto.BlogDto, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	blogDto.Category = dto.CategoryDto{
-		CategoryId:   category.CategoryId,
-		CategoryName: category.CategoryName,
-	}
+	blogDto.Category = category
 
 	// 获取预签名 URL，用于读取 OSS 中文章内容
 	presignUrl, err := storage.Storage.GenPreSignUrl(
