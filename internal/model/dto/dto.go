@@ -19,9 +19,9 @@ type BlogDto struct {
 	CategoryId   string       `json:"category_id,omitempty"`
 	Category     *CategoryDto `json:"category,omitempty"`
 	Tags         []TagDto     `json:"tags,omitempty"`
-	BlogState    bool         `json:"blog_state,omitempty"`
+	BlogState    bool         `json:"blog_state"`
 	BlogWordsNum uint16       `json:"blog_words_num,omitempty"`
-	BlogIsTop    bool         `json:"blog_is_top,omitempty"`
+	BlogIsTop    bool         `json:"blog_is_top"`
 	CreateTime   time.Time    `json:"create_time,omitempty"`
 	UpdateTime   time.Time    `json:"update_time,omitempty"`
 }

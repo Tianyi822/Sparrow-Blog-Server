@@ -22,4 +22,6 @@ func Router(e *gin.Engine) {
 
 		imageGroup.GET("/get/:img_id", redirectImgReq)
 	}
+
+	webGroup.GET("/home", getHomeData)
 }

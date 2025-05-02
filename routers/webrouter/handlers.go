@@ -3,6 +3,7 @@ package webrouter
 import (
 	"github.com/gin-gonic/gin"
 	"h2blog_server/internal/services/sysservices"
+	"h2blog_server/internal/services/webservice"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/resp"
 )
@@ -29,6 +30,16 @@ func userBasicInfo(ctx *gin.Context) {
 		"avatar_image":        config.User.AvatarImage,
 		"web_logo":            config.User.WebLogo,
 	})
+}
+
+func getHomeData(ctx *gin.Context) {
+	data, err := webservice.GetHomeData(ctx)
+	if err != nil {
+		resp.Err(ctx, "获取失败", err.Error())
+		return
+	}
+
+	resp.Ok(ctx, "获取成功", data)
 }
 
 func redirectImgReq(ctx *gin.Context) {
