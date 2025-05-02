@@ -10,6 +10,7 @@ type Vo interface {
 type BlogVo struct {
 	BlogId       string     `json:"blog_id,omitempty"`
 	BlogTitle    string     `json:"blog_title,omitempty"`
+	BlogImageId  string     `json:"blog_image_id,omitempty"`
 	BlogBrief    string     `json:"blog_brief,omitempty"`
 	Category     CategoryVo `json:"category,omitempty"`
 	Tags         []TagVo    `json:"tags,omitempty"`

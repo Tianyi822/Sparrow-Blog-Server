@@ -148,6 +148,7 @@ func getAllBlogs(ctx *gin.Context) {
 		blogVo := vo.BlogVo{
 			BlogId:       blogDto.BlogId,
 			BlogTitle:    blogDto.BlogTitle,
+			BlogImageId:  blogDto.BlogImageId,
 			Category:     category,
 			Tags:         tags,
 			BlogState:    blogDto.BlogState,
@@ -248,6 +249,11 @@ func updateOrAddBlog(ctx *gin.Context) {
 		return
 	}
 
+	if blogDto.BlogImageId == "" {
+		resp.BadRequest(ctx, "博客封面不能为空", "")
+		return
+	}
+
 	if blogDto.BlogWordsNum == 0 {
 		resp.BadRequest(ctx, "博客不能为空", "")
 		return
@@ -283,9 +289,10 @@ func getBlogData(ctx *gin.Context) {
 	}
 
 	blogVo := vo.BlogVo{
-		BlogId:    blogDto.BlogId,
-		BlogTitle: blogDto.BlogTitle,
-		BlogBrief: blogDto.BlogBrief,
+		BlogId:      blogDto.BlogId,
+		BlogTitle:   blogDto.BlogTitle,
+		BlogImageId: blogDto.BlogImageId,
+		BlogBrief:   blogDto.BlogBrief,
 		Category: vo.CategoryVo{
 			CategoryId:   blogDto.Category.CategoryId,
 			CategoryName: blogDto.Category.CategoryName,
