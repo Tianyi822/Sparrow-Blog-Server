@@ -48,7 +48,7 @@ func GetAllCategories(ctx context.Context) ([]*dto.CategoryDto, error) {
 // 返回值:
 //   - *po.Category: 找到的分类指针，如果未找到则返回nil。
 //   - error: 如果发生错误，则返回错误信息。
-func FindCategoryById(ctx context.Context, id string) (*po.Category, error) {
+func FindCategoryById(ctx context.Context, id string) (*dto.CategoryDto, error) {
 	// 初始化一个Category类型变量以存储查询结果。
 	var category po.Category
 
@@ -62,7 +62,10 @@ func FindCategoryById(ctx context.Context, id string) (*po.Category, error) {
 	}
 
 	// 返回找到的分类信息。
-	return &category, nil
+	return &dto.CategoryDto{
+		CategoryId:   category.CategoryId,
+		CategoryName: category.CategoryName,
+	}, nil
 }
 
 // AddCategory 添加一个新的播客分类到数据库中。
