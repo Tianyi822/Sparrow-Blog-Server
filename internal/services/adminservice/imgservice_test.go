@@ -1,4 +1,4 @@
-package imgservice
+package adminservice
 
 import (
 	"context"

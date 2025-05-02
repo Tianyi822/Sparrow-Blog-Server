@@ -2,7 +2,7 @@ package webrouter
 
 import (
 	"github.com/gin-gonic/gin"
-	"h2blog_server/internal/services/imgservice"
+	"h2blog_server/internal/services/adminservice"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/resp"
 )
@@ -34,7 +34,7 @@ func userBasicInfo(ctx *gin.Context) {
 func redirectImgReq(ctx *gin.Context) {
 	imgId := ctx.Param("img_id")
 
-	url, err := imgservice.GetPresignUrlById(ctx, imgId)
+	url, err := adminservice.GetPresignUrlById(ctx, imgId)
 	if err != nil {
 		resp.Err(ctx, "获取失败", err.Error())
 	}

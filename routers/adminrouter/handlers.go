@@ -5,7 +5,6 @@ import (
 	"h2blog_server/email"
 	"h2blog_server/internal/model/vo"
 	"h2blog_server/internal/services/adminservice"
-	"h2blog_server/internal/services/imgservice"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
 	"h2blog_server/pkg/resp"
@@ -314,7 +313,7 @@ func addImgs(ctx *gin.Context) {
 		return
 	}
 
-	if err := imgservice.AddImgs(ctx, imgsDto.Imgs); err != nil {
+	if err := adminservice.AddImgs(ctx, imgsDto.Imgs); err != nil {
 		resp.Err(ctx, "添加失败", err.Error())
 		return
 	}
