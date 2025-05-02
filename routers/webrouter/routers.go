@@ -12,12 +12,6 @@ func Router(e *gin.Engine) {
 	}
 
 	{
-		configGroup := webGroup.Group("/config")
-
-		configGroup.GET("/user", userBasicInfo)
-	}
-
-	{
 		imageGroup := webGroup.Group("/img")
 
 		imageGroup.GET("/get/:img_id", redirectImgReq)
