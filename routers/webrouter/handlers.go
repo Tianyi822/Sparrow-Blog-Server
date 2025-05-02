@@ -7,6 +7,15 @@ import (
 	"h2blog_server/pkg/resp"
 )
 
+func getSysStatus(ctx *gin.Context) {
+	if config.User.Username == "" {
+		resp.Err(ctx, "服务状态异常，请检查配置文件", nil)
+		return
+	}
+
+	resp.Ok(ctx, "获取成功", nil)
+}
+
 // userBasicInfo 返回用户的基本信息。
 func userBasicInfo(ctx *gin.Context) {
 	// 构造并返回成功的 JSON 响应，包含用户名和用户邮箱信息。

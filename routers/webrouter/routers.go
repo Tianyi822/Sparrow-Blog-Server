@@ -6,9 +6,15 @@ func Router(e *gin.Engine) {
 	webGroup := e.Group("/web")
 
 	{
+		sysGroup := webGroup.Group("/sys")
+
+		sysGroup.GET("/status", getSysStatus)
+	}
+
+	{
 		configGroup := webGroup.Group("/config")
 
-		configGroup.GET("/user-basic-info", userBasicInfo)
+		configGroup.GET("/user", userBasicInfo)
 	}
 
 	{
