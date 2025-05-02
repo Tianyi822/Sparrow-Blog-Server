@@ -1,11 +1,10 @@
-package adminservice
+package adminservices
 
 import (
 	"context"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
 	"h2blog_server/storage"
-	"testing"
 )
 
 func init() {
@@ -18,15 +17,4 @@ func init() {
 	}
 	// 初始化数据库组件
 	_ = storage.InitStorage(context.Background())
-}
-
-func TestGetPresignUrlById(t *testing.T) {
-	ctx := context.Background()
-	url, err := GetPresignUrlById(ctx, "0ab6f800e0ea3270")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Logf("url = %v\n", url)
-	storage.Storage.Close(ctx)
 }

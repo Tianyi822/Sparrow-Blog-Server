@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"h2blog_server/email"
 	"h2blog_server/internal/model/vo"
-	"h2blog_server/internal/services/adminservice"
+	"h2blog_server/internal/services/adminservices"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/logger"
 	"h2blog_server/pkg/resp"
@@ -74,7 +74,7 @@ func login(ctx *gin.Context) {
 		return
 	}
 
-	token, err := adminservice.Login(ctx, userEmail, verificationCode)
+	token, err := adminservices.Login(ctx, userEmail, verificationCode)
 	if err != nil {
 		resp.Err(ctx, "登录失败", err.Error())
 		return
@@ -117,9 +117,9 @@ func genPresignPutUrl(ctx *gin.Context) {
 // 参数:
 //   - ctx: Gin 框架的上下文对象，用于处理 HTTP 请求和响应。
 func getAllBlogs(ctx *gin.Context) {
-	// 调用 adminservice.GetBlogsToAdminPosts 获取博客数据的 DTO 列表。
+	// 调用 adminservices.GetBlogsToAdminPosts 获取博客数据的 DTO 列表。
 	// 如果发生错误，则返回错误响应。
-	blogDtos, err := adminservice.GetBlogsToAdminPosts(ctx)
+	blogDtos, err := adminservices.GetBlogsToAdminPosts(ctx)
 	if err != nil {
 		resp.Err(ctx, "获取博客失败", err.Error())
 		return
@@ -164,7 +164,7 @@ func getAllBlogs(ctx *gin.Context) {
 }
 
 func deleteBlog(ctx *gin.Context) {
-	if err := adminservice.DeleteBlogById(ctx, ctx.Param("blog_id")); err != nil {
+	if err := adminservices.DeleteBlogById(ctx, ctx.Param("blog_id")); err != nil {
 		resp.Err(ctx, "删除博客失败", err.Error())
 		return
 	}
@@ -173,7 +173,7 @@ func deleteBlog(ctx *gin.Context) {
 }
 
 func changeBlogState(ctx *gin.Context) {
-	if err := adminservice.ChangeBlogState(ctx, ctx.Param("blog_id")); err != nil {
+	if err := adminservices.ChangeBlogState(ctx, ctx.Param("blog_id")); err != nil {
 		resp.Err(ctx, "修改博客状态失败", err.Error())
 		return
 	}
@@ -182,7 +182,7 @@ func changeBlogState(ctx *gin.Context) {
 }
 
 func setTop(ctx *gin.Context) {
-	if err := adminservice.SetTop(ctx, ctx.Param("blog_id")); err != nil {
+	if err := adminservices.SetTop(ctx, ctx.Param("blog_id")); err != nil {
 		resp.Err(ctx, "修改置顶失败", err.Error())
 		return
 	}
@@ -196,7 +196,7 @@ func setTop(ctx *gin.Context) {
 func getAllTagsCategories(ctx *gin.Context) {
 	// 调用adminService的GetAllCategoriesAndTags方法获取分类和标签数据。
 	// 如果发生错误，则返回错误信息。
-	categories, tags, err := adminservice.GetAllCategoriesAndTags(ctx)
+	categories, tags, err := adminservices.GetAllCategoriesAndTags(ctx)
 	if err != nil {
 		resp.Err(ctx, "获取失败", err.Error())
 		return
@@ -259,7 +259,7 @@ func updateOrAddBlog(ctx *gin.Context) {
 	}
 
 	// 调用服务层方法更新或添加博客，如果操作失败则返回错误响应。
-	err = adminservice.UpdateOrAddBlog(ctx, blogDto)
+	err = adminservices.UpdateOrAddBlog(ctx, blogDto)
 	if err != nil {
 		resp.Err(ctx, "添加或更新失败", err.Error())
 		return
@@ -273,7 +273,7 @@ func updateOrAddBlog(ctx *gin.Context) {
 
 func getBlogData(ctx *gin.Context) {
 	blogId := ctx.Param("blog_id")
-	blogDto, url, err := adminservice.GetBlogData(ctx, blogId)
+	blogDto, url, err := adminservices.GetBlogData(ctx, blogId)
 	if err != nil {
 		resp.Err(ctx, "获取失败", err.Error())
 		return
@@ -313,7 +313,7 @@ func addImgs(ctx *gin.Context) {
 		return
 	}
 
-	if err := adminservice.AddImgs(ctx, imgsDto.Imgs); err != nil {
+	if err := adminservices.AddImgs(ctx, imgsDto.Imgs); err != nil {
 		resp.Err(ctx, "添加失败", err.Error())
 		return
 	}
@@ -322,7 +322,7 @@ func addImgs(ctx *gin.Context) {
 }
 
 func getAllImgs(ctx *gin.Context) {
-	imgDtos, err := adminservice.GetAllImgs(ctx)
+	imgDtos, err := adminservices.GetAllImgs(ctx)
 	if err != nil {
 		resp.Err(ctx, "获取失败", err.Error())
 		return
@@ -342,7 +342,7 @@ func getAllImgs(ctx *gin.Context) {
 }
 
 func deleteImg(ctx *gin.Context) {
-	if err := adminservice.DeleteImg(ctx, ctx.Param("img_id")); err != nil {
+	if err := adminservices.DeleteImg(ctx, ctx.Param("img_id")); err != nil {
 		resp.Err(ctx, "删除失败", err.Error())
 		return
 	}
@@ -357,7 +357,7 @@ func deleteImg(ctx *gin.Context) {
 // 功能描述:
 //  1. 从请求上下文中解析图片数据传输对象 (ImgDto)。
 //  2. 验证请求路径中的图片ID与解析出的图片ID是否一致。
-//  3. 调用 adminservice.RenameImgById 方法修改图片名称。
+//  3. 调用 adminservices.RenameImgById 方法修改图片名称。
 //  4. 根据操作结果返回成功或失败的响应。
 func renameImg(ctx *gin.Context) {
 	// 从请求上下文中获取图片数据传输对象 (ImgDto)
@@ -379,7 +379,7 @@ func renameImg(ctx *gin.Context) {
 	}
 
 	// 调用服务层方法修改图片名称，并处理可能的错误
-	if err := adminservice.RenameImgById(ctx, imgDto.ImgId, imgDto.ImgName); err != nil {
+	if err := adminservices.RenameImgById(ctx, imgDto.ImgId, imgDto.ImgName); err != nil {
 		resp.Err(ctx, "修改失败", err.Error())
 		return
 	}
@@ -389,7 +389,7 @@ func renameImg(ctx *gin.Context) {
 }
 
 func isExist(ctx *gin.Context) {
-	flag, err := adminservice.IsExistImgByName(ctx, ctx.Param("img_name"))
+	flag, err := adminservices.IsExistImgByName(ctx, ctx.Param("img_name"))
 	if err != nil {
 		resp.Err(ctx, "查询失败", err.Error())
 		return
@@ -593,7 +593,7 @@ func updateUserConfig(ctx *gin.Context) {
 	config.User = userConfig
 
 	// 更新配置到存储系统
-	if upErr := adminservice.UpdateConfig(); upErr != nil {
+	if upErr := adminservices.UpdateConfig(); upErr != nil {
 		msg := fmt.Sprintf("更新配置失败: %v", upErr.Error())
 		resp.Err(ctx, msg, nil)
 		return
@@ -664,7 +664,7 @@ func updateUserVisuals(ctx *gin.Context) {
 	logoImgId := strings.TrimSpace(rawData["user.web_logo"].(string))
 
 	// 验证背景图片是否存在
-	flag, bkgErr := adminservice.IsExistImgById(ctx, backgroundImgId)
+	flag, bkgErr := adminservices.IsExistImgById(ctx, backgroundImgId)
 	if bkgErr != nil {
 		// 查询过程发生错误时返回错误信息
 		msg := fmt.Sprintf("查找图片报错: %v", bkgErr.Error())
@@ -679,7 +679,7 @@ func updateUserVisuals(ctx *gin.Context) {
 	}
 
 	// 验证头像图片是否存在
-	flag, avatarErr := adminservice.IsExistImgById(ctx, avatarImgId)
+	flag, avatarErr := adminservices.IsExistImgById(ctx, avatarImgId)
 	if avatarErr != nil {
 		// 查询过程发生错误时返回错误信息
 		msg := fmt.Sprintf("查找图片报错: %v", avatarErr.Error())
@@ -694,7 +694,7 @@ func updateUserVisuals(ctx *gin.Context) {
 	}
 
 	// 验证网站logo图片是否存在
-	flag, logoErr := adminservice.IsExistImgById(ctx, logoImgId)
+	flag, logoErr := adminservices.IsExistImgById(ctx, logoImgId)
 	if logoErr != nil {
 		// 查询过程发生错误时返回错误信息
 		msg := fmt.Sprintf("查找图片报错: %v", logoErr.Error())
@@ -714,7 +714,7 @@ func updateUserVisuals(ctx *gin.Context) {
 	config.User.WebLogo = logoImgId
 
 	// 保存更新后的配置到存储系统
-	if upErr := adminservice.UpdateConfig(); upErr != nil {
+	if upErr := adminservices.UpdateConfig(); upErr != nil {
 		msg := fmt.Sprintf("更新配置失败: %v", upErr.Error())
 		resp.Err(ctx, msg, nil)
 		return
@@ -874,7 +874,7 @@ func updateServerConfig(ctx *gin.Context) {
 	}
 
 	// 更新配置到存储系统
-	if upErr := adminservice.UpdateConfig(); upErr != nil {
+	if upErr := adminservices.UpdateConfig(); upErr != nil {
 		resp.Err(ctx, "更新失败", upErr.Error())
 		return
 	}
@@ -983,7 +983,7 @@ func updateLoggerConfig(ctx *gin.Context) {
 	}
 
 	// 更新配置到存储系统
-	if upErr := adminservice.UpdateConfig(); upErr != nil {
+	if upErr := adminservices.UpdateConfig(); upErr != nil {
 		resp.Err(ctx, "更新失败", upErr.Error())
 		return
 	}
@@ -1115,7 +1115,7 @@ func updateMysqlConfig(ctx *gin.Context) {
 	config.MySQL = mysqlConfig
 
 	// 更新配置到存储系统
-	if upErr := adminservice.UpdateConfig(); upErr != nil {
+	if upErr := adminservices.UpdateConfig(); upErr != nil {
 		msg := fmt.Sprintf("更新失败: %s", upErr.Error())
 		resp.Err(ctx, msg, nil)
 		return
@@ -1210,7 +1210,7 @@ func updateOssConfig(ctx *gin.Context) {
 	config.Oss = ossConfig
 
 	// 更新配置到存储系统
-	if upErr := adminservice.UpdateConfig(); upErr != nil {
+	if upErr := adminservices.UpdateConfig(); upErr != nil {
 		msg := fmt.Sprintf("更新失败: %s", upErr.Error())
 		resp.Err(ctx, msg, nil)
 		return
@@ -1303,7 +1303,7 @@ func updateCacheConfig(ctx *gin.Context) {
 	config.Cache = cacheConfig
 
 	// 更新配置到存储系统
-	if upErr := adminservice.UpdateConfig(); upErr != nil {
+	if upErr := adminservices.UpdateConfig(); upErr != nil {
 		msg := fmt.Sprintf("更新失败: %s", upErr.Error())
 		resp.Err(ctx, msg, nil)
 		return

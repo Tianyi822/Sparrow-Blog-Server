@@ -1,4 +1,4 @@
-package adminservice
+package adminservices
 
 import (
 	"context"
@@ -19,19 +19,6 @@ func init() {
 	}
 	// 初始化数据库组件
 	_ = storage.InitStorage(context.Background())
-	// 初始化转换器
-}
-
-func TestGetBlogsInPage(t *testing.T) {
-	blogDtos, err := GetBlogsToAdminPosts(context.Background())
-
-	if err != nil {
-		t.Error(err)
-	}
-
-	for _, blogDto := range blogDtos {
-		t.Log(blogDto)
-	}
 }
 
 func TestUpdateBlogData(t *testing.T) {
@@ -97,50 +84,4 @@ func TestGetBlogData(t *testing.T) {
 	// 格式化输出
 	t.Logf("%+v", blogDto)
 	t.Log(url)
-}
-
-func TestGetAllImgs(t *testing.T) {
-	ctx := context.Background()
-
-	imgs, err := GetAllImgs(ctx)
-	if err != nil {
-		t.Error(err)
-	}
-
-	for _, img := range imgs {
-		url, err := storage.Storage.Cache.GetString(ctx, storage.BuildImgCacheKey(img.ImgId))
-		if err != nil {
-			t.Error(err)
-		}
-		t.Log(url)
-	}
-}
-
-func TestDeleteImg(t *testing.T) {
-	err := DeleteImg(context.Background(), "cbbc9654d0219858")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	t.Log("success")
-}
-
-func TestRenameImgById(t *testing.T) {
-	ctx := context.Background()
-	err := RenameImgById(ctx, "6c76a6ece25a36c2", "test2")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("rename success")
-	storage.Storage.Close(ctx)
-}
-
-func TestIsExistImg(t *testing.T) {
-	ctx := context.Background()
-	exist, err := IsExistImgByName(ctx, "test22")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Logf("exist: %v", exist)
 }
