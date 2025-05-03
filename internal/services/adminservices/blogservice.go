@@ -267,13 +267,31 @@ func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) error {
 			return err
 		}
 	} else {
+		// 更新博客信息
+		// 需要删除 OSS 中原有的文章，先从数据库中拿到原来的标题
+		title, err := blogrepo.FindBlogTitleById(ctx, blogDto.BlogId)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		logger.Info("删除 OSS 中的旧文章: %s", title)
+		if err := storage.Storage.DeleteObject(ctx, ossstore.GenOssSavePath(title, ossstore.MarkDown)); err != nil {
+			logger.Warn("删除 OSS 中的旧文章失败: %v", err)
+			tx.Rollback()
+			return err
+		}
+		logger.Info("删除 OSS 中的旧文章成功")
+
+		// 再更新数据库元数据
 		if err := blogrepo.UpdateBlog(tx, blogDto); err != nil {
+			logger.Warn("更新博客数据失败: %v", err)
 			tx.Rollback()
 			return err
 		}
 
 		// 更新标签与博客的关联关系
 		if err := tagrepo.UpdateBlogTagAssociation(tx, blogDto.BlogId, blogDto.Tags); err != nil {
+			logger.Warn("更新标签与博客的关联关系失败: %v", err)
 			tx.Rollback()
 			return err
 		}
