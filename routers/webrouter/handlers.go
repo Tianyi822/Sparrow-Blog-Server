@@ -30,7 +30,7 @@ func getHomeData(ctx *gin.Context) {
 func redirectImgReq(ctx *gin.Context) {
 	imgId := ctx.Param("img_id")
 
-	url, err := sysservices.GetPresignUrlById(ctx, imgId)
+	url, err := sysservices.GetImgPresignUrlById(ctx, imgId)
 	if err != nil {
 		resp.Err(ctx, "获取失败", err.Error())
 	}

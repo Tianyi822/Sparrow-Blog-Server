@@ -22,7 +22,7 @@ func init() {
 
 func TestGetPresignUrlById(t *testing.T) {
 	ctx := context.Background()
-	url, err := GetPresignUrlById(ctx, "0ab6f800e0ea3270")
+	url, err := GetImgPresignUrlById(ctx, "0ab6f800e0ea3270")
 	if err != nil {
 		t.Fatal(err)
 	}
