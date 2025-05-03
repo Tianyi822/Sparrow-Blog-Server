@@ -274,13 +274,17 @@ func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) error {
 			tx.Rollback()
 			return err
 		}
-		logger.Info("删除 OSS 中的旧文章: %s", title)
-		if err := storage.Storage.DeleteObject(ctx, ossstore.GenOssSavePath(title, ossstore.MarkDown)); err != nil {
-			logger.Warn("删除 OSS 中的旧文章失败: %v", err)
-			tx.Rollback()
-			return err
+
+		if title != blogDto.BlogTitle {
+			// 如果标题有变化，则需要删除 OSS 中的旧文章
+			logger.Info("删除 OSS 中的旧文章: %s", title)
+			if err := storage.Storage.DeleteObject(ctx, ossstore.GenOssSavePath(title, ossstore.MarkDown)); err != nil {
+				logger.Warn("删除 OSS 中的旧文章失败: %v", err)
+				tx.Rollback()
+				return err
+			}
+			logger.Info("删除 OSS 中的旧文章成功")
 		}
-		logger.Info("删除 OSS 中的旧文章成功")
 
 		// 再更新数据库元数据
 		if err := blogrepo.UpdateBlog(tx, blogDto); err != nil {
