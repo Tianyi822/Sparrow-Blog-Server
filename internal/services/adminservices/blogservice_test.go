@@ -26,7 +26,7 @@ func TestUpdateBlogData(t *testing.T) {
 		BlogId:     "blog00006",
 		BlogTitle:  "test6",
 		BlogBrief:  "test",
-		Category:   dto.CategoryDto{CategoryName: "测试分类 7"},
+		Category:   &dto.CategoryDto{CategoryName: "测试分类 7"},
 		CategoryId: "",
 		BlogIsTop:  false,
 		BlogState:  true,
@@ -47,7 +47,7 @@ func TestAddBlog(t *testing.T) {
 	blogDto := &dto.BlogDto{
 		BlogTitle: "test6",
 		BlogBrief: "test",
-		Category: dto.CategoryDto{
+		Category: &dto.CategoryDto{
 			CategoryName: "测试分类 6",
 		},
 		CategoryId: "",
