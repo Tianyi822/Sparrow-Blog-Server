@@ -37,3 +37,25 @@ func redirectImgReq(ctx *gin.Context) {
 
 	resp.RedirectUrl(ctx, url)
 }
+
+// getBlogData 获取博客详细数据
+// @param ctx *gin.Context - Gin上下文
+// @return 无返回值，通过resp包响应数据
+func getBlogData(ctx *gin.Context) {
+	// 从URL参数中获取博客ID
+	blogId := ctx.Param("blog_id")
+
+	// 调用service层获取博客数据和预签名URL
+	blogData, preUrl, err := webservice.GetBlogDataById(ctx, blogId)
+	if err != nil {
+		// 如果获取失败，返回错误信息
+		resp.Err(ctx, "获取失败", err.Error())
+		return
+	}
+
+	// 获取成功，返回博客数据和预签名URL
+	resp.Ok(ctx, "获取成功", map[string]any{
+		"blog_data":    blogData,
+		"pre_sign_url": preUrl,
+	})
+}

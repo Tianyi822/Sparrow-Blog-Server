@@ -2,12 +2,19 @@ package webservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"h2blog_server/cache"
 	"h2blog_server/internal/model/dto"
+	"h2blog_server/internal/model/vo"
 	"h2blog_server/internal/repositories/blogrepo"
 	"h2blog_server/internal/repositories/categoryrepo"
 	"h2blog_server/internal/repositories/tagrepo"
 	"h2blog_server/pkg/config"
+	"h2blog_server/pkg/logger"
+	"h2blog_server/storage"
+	"h2blog_server/storage/ossstore"
+	"time"
 )
 
 // GetHomeData 获取首页数据。
@@ -136,4 +143,115 @@ func GetHomeData(ctx context.Context) (map[string]any, error) {
 
 	// 返回包含所有首页数据的映射。
 	return result, nil
+}
+
+// GetBlogDataById 根据博客ID获取博客详细数据。
+// 该函数通过博客ID查询博客信息，包括博客基本信息、分类信息、标签信息以及博客内容的预签名URL。
+//
+// 参数:
+//   - ctx context.Context: 上下文对象，用于传递请求范围的 deadline、取消信号等
+//   - id string: 博客的唯一标识符
+//
+// 返回值:
+//   - *vo.BlogVo: 包含博客详细信息的视图对象，包括博客基本信息、分类和标签
+//   - string: 博客内容的预签名URL，用于访问存储在对象存储中的博客内容
+//   - error: 如果查询过程中发生错误，则返回该错误
+//
+// 函数逻辑:
+// 1. 根据博客ID查询博客基本信息
+// 2. 如果博客存在:
+//   - 查询博客关联的分类信息
+//   - 查询博客关联的标签信息
+//   - 构建博客视图对象(BlogVo)
+//   - 尝试从缓存获取预签名URL
+//   - 如果缓存未命中:
+//   - 生成OSS存储路径
+//   - 生成新的预签名URL(有效期20分钟)
+//   - 将URL存入缓存
+//
+// 3. 如果博客不存在:
+//   - 记录警告日志
+//   - 返回错误信息
+func GetBlogDataById(ctx context.Context, id string) (*vo.BlogVo, string, error) {
+	// 根据ID查询博客信息
+	blogDto, err := blogrepo.FindBlogById(ctx, id)
+	if err != nil {
+		return nil, "", err
+	}
+
+	var blogVo *vo.BlogVo
+	var preUrl string
+
+	if blogDto != nil {
+		// 查询博客关联的分类信息
+		cat, err := categoryrepo.FindCategoryById(ctx, blogDto.CategoryId)
+		if err != nil {
+			return nil, "", err
+		}
+		// 构建分类视图对象
+		catVo := &vo.CategoryVo{
+			CategoryId:   cat.CategoryId,
+			CategoryName: cat.CategoryName,
+		}
+
+		// 查询博客关联的标签信息
+		tags, err := tagrepo.FindTagsByBlogId(ctx, blogDto.BlogId)
+		if err != nil {
+			return nil, "", err
+		}
+		// 构建标签视图对象列表
+		var tagVos []vo.TagVo
+		for _, tag := range tags {
+			tagVo := vo.TagVo{
+				TagId:   tag.TagId,
+				TagName: tag.TagName,
+			}
+			tagVos = append(tagVos, tagVo)
+		}
+
+		// 构建博客视图对象，包含基本信息、分类和标签
+		blogVo = &vo.BlogVo{
+			BlogId:       blogDto.BlogId,
+			BlogTitle:    blogDto.BlogTitle,
+			BlogImageId:  blogDto.BlogImageId,
+			BlogBrief:    blogDto.BlogBrief,
+			BlogWordsNum: blogDto.BlogWordsNum,
+			BlogIsTop:    blogDto.BlogIsTop,
+			BlogState:    blogDto.BlogState,
+			Category:     catVo,
+			Tags:         tagVos,
+		}
+
+		// 尝试从缓存获取预签名URL
+		preUrl, err = storage.Storage.Cache.GetString(ctx, storage.BuildBlogCacheKey(blogDto.BlogId))
+		if errors.Is(err, cache.ErrNotFound) {
+			// 缓存未命中，生成OSS存储路径
+			ossPath := ossstore.GenOssSavePath(blogDto.BlogImageId, ossstore.MarkDown)
+
+			// 生成新的预签名URL，有效期20分钟
+			presign, err := storage.Storage.GenPreSignUrl(
+				ctx,
+				ossPath,
+				ossstore.MarkDown,
+				ossstore.Get,
+				20*time.Minute,
+			)
+			if err != nil {
+				return nil, "", err
+			} else {
+				preUrl = presign.URL
+			}
+
+			// 将生成的URL存入缓存，过期时间20分钟
+			err = storage.Storage.Cache.SetWithExpired(ctx, storage.BuildBlogCacheKey(blogDto.BlogId), preUrl, 20*time.Minute)
+		}
+	} else {
+		// 博客不存在，记录警告日志并返回错误
+		msg := fmt.Sprintf("博客不存在，id: %s", id)
+		logger.Warn(msg)
+		return nil, "", errors.New(msg)
+	}
+
+	// 返回博客视图对象和预签名URL
+	return blogVo, preUrl, nil
 }
