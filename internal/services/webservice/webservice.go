@@ -226,7 +226,7 @@ func GetBlogDataById(ctx context.Context, id string) (*vo.BlogVo, string, error)
 		preUrl, err = storage.Storage.Cache.GetString(ctx, storage.BuildBlogCacheKey(blogDto.BlogId))
 		if errors.Is(err, cache.ErrNotFound) {
 			// 缓存未命中，生成OSS存储路径
-			ossPath := ossstore.GenOssSavePath(blogDto.BlogImageId, ossstore.MarkDown)
+			ossPath := ossstore.GenOssSavePath(blogDto.BlogTitle, ossstore.MarkDown)
 
 			// 生成新的预签名URL，有效期20分钟
 			presign, err := storage.Storage.GenPreSignUrl(
