@@ -65,6 +65,10 @@ func FindBlogById(ctx context.Context, id string) (*dto.BlogDto, error) {
 		BlogBrief:    blog.BlogBrief,
 		BlogWordsNum: blog.BlogWordsNum,
 		CategoryId:   blog.CategoryId,
+		BlogState:    blog.BlogState,
+		BlogIsTop:    blog.BlogIsTop,
+		CreateTime:   blog.CreateTime,
+		UpdateTime:   blog.UpdateTime,
 	}, nil
 }
 

@@ -220,6 +220,8 @@ func GetBlogDataById(ctx context.Context, id string) (*vo.BlogVo, string, error)
 			BlogState:    blogDto.BlogState,
 			Category:     catVo,
 			Tags:         tagVos,
+			CreateTime:   blogDto.CreateTime,
+			UpdateTime:   blogDto.UpdateTime,
 		}
 
 		// 尝试从缓存获取预签名URL
