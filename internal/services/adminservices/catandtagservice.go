@@ -17,12 +17,12 @@ import (
 //   - []*dto.TagDto: 包含所有标签信息的 DTO 列表。
 //   - error: 如果在获取分类或标签时发生错误，则返回具体的错误信息；否则返回 nil。
 func GetAllCategoriesAndTags(ctx context.Context) ([]*dto.CategoryDto, []*dto.TagDto, error) {
-	categories, err := categoryrepo.GetAllCategories(ctx)
+	categories, err := categoryrepo.FindAllCategories(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	tags, err := tagrepo.GetAllTags(ctx)
+	tags, err := tagrepo.FindAllTags(ctx)
 	if err != nil {
 		return nil, nil, err
 	}

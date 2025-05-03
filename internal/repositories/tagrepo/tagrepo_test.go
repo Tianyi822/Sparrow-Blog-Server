@@ -107,10 +107,10 @@ func TestAddBlogTagAssociation(t *testing.T) {
 func TestGetAllTags(t *testing.T) {
 	ctx := context.Background()
 
-	tags, err := GetAllTags(ctx)
+	tags, err := FindAllTags(ctx)
 
 	if err != nil {
-		t.Errorf("GetAllTags() error = %v", err)
+		t.Errorf("FindAllTags() error = %v", err)
 	}
 
 	for _, tag := range tags {

@@ -12,14 +12,14 @@ import (
 	"h2blog_server/storage"
 )
 
-// GetAllTags 查询数据库中的所有标签，并将其转换为 DTO（数据传输对象）格式返回。
+// FindAllTags 查询数据库中的所有标签，并将其转换为 DTO（数据传输对象）格式返回。
 // 参数:
 //   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据。
 //
 // 返回值:
 //   - []*dto.TagDto: 包含所有标签的 DTO 列表，每个 DTO 包含标签的 ID 和名称。
 //   - error: 如果查询过程中发生错误，则返回错误信息；否则返回 nil。
-func GetAllTags(ctx context.Context) ([]*dto.TagDto, error) {
+func FindAllTags(ctx context.Context) ([]*dto.TagDto, error) {
 	// 创建一个空的标签列表，用于存储从数据库中查询到的标签数据。
 	var tags []*po.Tag
 

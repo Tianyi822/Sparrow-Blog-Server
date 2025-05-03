@@ -12,14 +12,14 @@ import (
 	"h2blog_server/storage"
 )
 
-// GetAllCategories 获取所有分类数据
+// FindAllCategories 获取所有分类数据
 // 参数:
 //   - ctx context.Context: 上下文，用于控制请求的生命周期和取消
 //
 // 返回值:
 //   - []*dto.CategoryDto: 分类数据列表
 //   - error: 错误信息，若查询失败则返回具体错误
-func GetAllCategories(ctx context.Context) ([]*dto.CategoryDto, error) {
+func FindAllCategories(ctx context.Context) ([]*dto.CategoryDto, error) {
 	// 执行数据库查询以获取所有分类数据，并处理可能的错误
 	var categories []*po.Category
 	if err := storage.Storage.Db.WithContext(ctx).Find(&categories).Error; err != nil {

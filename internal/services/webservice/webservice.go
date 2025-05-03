@@ -83,7 +83,7 @@ func GetHomeData(ctx context.Context) (map[string]any, error) {
 	}()
 
 	go func() {
-		categories, err := categoryrepo.GetAllCategories(ctx)
+		categories, err := categoryrepo.FindAllCategories(ctx)
 		if err != nil {
 			ch <- resultData{Err: fmt.Errorf("failed to get all categories: %w", err)}
 			return
@@ -102,7 +102,7 @@ func GetHomeData(ctx context.Context) (map[string]any, error) {
 	}()
 
 	go func() {
-		tags, err := tagrepo.GetAllTags(ctx)
+		tags, err := tagrepo.FindAllTags(ctx)
 		if err != nil {
 			ch <- resultData{Err: fmt.Errorf("failed to get all tags: %w", err)}
 			return

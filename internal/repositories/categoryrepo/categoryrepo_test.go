@@ -49,7 +49,7 @@ func TestAddCategory(t *testing.T) {
 }
 
 func TestGetAllCategories(t *testing.T) {
-	categories, err := GetAllCategories(context.Background())
+	categories, err := FindAllCategories(context.Background())
 	if err != nil {
 		t.Error(err)
 	}
