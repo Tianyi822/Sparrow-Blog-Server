@@ -246,6 +246,11 @@ func GetBlogDataById(ctx context.Context, id string) (*vo.BlogVo, string, error)
 
 			// 将生成的URL存入缓存，过期时间20分钟
 			err = storage.Storage.Cache.SetWithExpired(ctx, storage.BuildBlogCacheKey(blogDto.BlogId), preUrl, 20*time.Minute)
+			if err != nil {
+				msg := fmt.Sprintf("缓存预签名URL失败: %v", err)
+				logger.Warn(msg)
+				return nil, "", errors.New(msg)
+			}
 		}
 	} else {
 		// 博客不存在，记录警告日志并返回错误
