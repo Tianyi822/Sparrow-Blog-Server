@@ -301,7 +301,7 @@ func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) error {
 		}
 
 		// 删除缓存中的博客预签名 URL
-		if err := storage.Storage.Cache.Delete(ctx, storage.BuildImgCacheKey(blogDto.BlogId)); err != nil {
+		if err = storage.Storage.Cache.Delete(ctx, storage.BuildBlogCacheKey(blogDto.BlogId)); err != nil {
 			logger.Warn("删除缓存中的博客预签名 URL 失败: %v", err)
 			tx.Rollback()
 			return err
