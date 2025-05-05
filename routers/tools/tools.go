@@ -145,7 +145,7 @@ func GetStringFromRawData(rawData map[string]any, key string) (string, error) {
 	// 检查键是否存在，如果不存在则返回错误
 	val, ok := rawData[key]
 	if !ok {
-		return "", fmt.Errorf("'%s' 为空", key)
+		return "", fmt.Errorf("'%s' 字段不存在", key)
 	}
 
 	// 根据值的实际类型进行处理
@@ -178,7 +178,7 @@ func GetUInt16FromRawData(reqData map[string]any, key string) (uint16, error) {
 	// 检查键是否存在，如果不存在则返回错误。
 	val, ok := reqData[key]
 	if !ok {
-		return 0, fmt.Errorf("'%s' 为空", key)
+		return 0, fmt.Errorf("'%s' 字段不存在", key)
 	}
 
 	// 根据值的实际类型进行处理。
@@ -224,7 +224,7 @@ func GetUInt8FromRawData(reqData map[string]any, key string) (uint8, error) {
 	// 检查键是否存在，如果不存在则返回错误
 	val, ok := reqData[key]
 	if !ok {
-		return 0, fmt.Errorf("'%s' 为空", key)
+		return 0, fmt.Errorf("'%s' 字段不存在", key)
 	}
 
 	// 根据值的实际类型进行处理
@@ -270,7 +270,7 @@ func GetFloatFromRawData(reqData map[string]any, key string) (float32, error) {
 	// 检查键是否存在，如果不存在则返回错误。
 	val, ok := reqData[key]
 	if !ok {
-		return 0, fmt.Errorf("'%s' 为空", key)
+		return 0, fmt.Errorf("'%s' 字段不存在", key)
 	}
 
 	// 根据值的实际类型进行处理。
@@ -305,7 +305,7 @@ func GetFloatFromRawData(reqData map[string]any, key string) (float32, error) {
 func GetBoolFromRawData(reqData map[string]any, key string) (bool, error) {
 	val, ok := reqData[key]
 	if !ok {
-		return false, fmt.Errorf("'%s' 为空", key)
+		return false, fmt.Errorf("'%s' 字段不存在", key)
 	}
 	switch v := val.(type) {
 	case bool:
@@ -335,7 +335,7 @@ func GetStrListFromRawData(reqData map[string]any, key string) ([]string, error)
 	// 检查键是否存在，如果不存在则返回错误
 	val, ok := reqData[key]
 	if !ok {
-		return nil, fmt.Errorf("'%s' 为空", key)
+		return nil, fmt.Errorf("'%s' 字段不存在", key)
 	}
 
 	switch v := val.(type) {
