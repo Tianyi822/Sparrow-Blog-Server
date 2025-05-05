@@ -23,5 +23,5 @@ func Router(e *gin.Engine) {
 		blogGroup.GET("/:blog_id", getBlogData)
 	}
 
-	webGroup.GET("/home", getHomeData)
+	webGroup.GET("/basic-data", getBasicData)
 }

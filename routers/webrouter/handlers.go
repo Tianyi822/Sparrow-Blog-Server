@@ -17,7 +17,7 @@ func getSysStatus(ctx *gin.Context) {
 	resp.Ok(ctx, "获取成功", nil)
 }
 
-func getHomeData(ctx *gin.Context) {
+func getBasicData(ctx *gin.Context) {
 	data, err := webservice.GetHomeData(ctx)
 	if err != nil {
 		resp.Err(ctx, "获取失败", err.Error())

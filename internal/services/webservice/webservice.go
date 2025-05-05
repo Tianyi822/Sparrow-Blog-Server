@@ -36,6 +36,7 @@ func GetHomeData(ctx context.Context) (map[string]any, error) {
 		"background_image":    config.User.BackgroundImage,
 		"avatar_image":        config.User.AvatarImage,
 		"web_logo":            config.User.WebLogo,
+		"icp_filing_number":   config.User.ICPFilingNumber,
 	}
 
 	// 定义一个结构体用于存储查询结果和可能的错误。
