@@ -420,6 +420,7 @@ func getUserConfig(ctx *gin.Context) {
 		"background_image":    config.User.BackgroundImage,
 		"avatar_image":        config.User.AvatarImage,
 		"web_logo":            config.User.WebLogo,
+		"icp_filing_number":   config.User.ICPFilingNumber,
 	})
 }
 
@@ -577,6 +578,12 @@ func updateUserConfig(ctx *gin.Context) {
 		userEmail = newEmail
 	}
 
+	icpFilingNumber, getErr := tools.GetStringFromRawData(rawData, "user.icp_filing_number")
+	if getErr != nil {
+		resp.BadRequest(ctx, "ICP备案号配置错误", getErr.Error())
+		return
+	}
+
 	// 构造新的用户配置对象
 	// 保持原有的背景图、头像和网站logo不变
 	userConfig := config.UserConfigData{
@@ -588,6 +595,7 @@ func updateUserConfig(ctx *gin.Context) {
 		BackgroundImage:   config.User.BackgroundImage,
 		AvatarImage:       config.User.AvatarImage,
 		WebLogo:           config.User.WebLogo,
+		ICPFilingNumber:   icpFilingNumber,
 	}
 	// 更新全局用户配置
 	config.User = userConfig

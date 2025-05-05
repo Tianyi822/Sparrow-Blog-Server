@@ -76,6 +76,7 @@ type UserConfigData struct {
 	BackgroundImage   string   `yaml:"background_image"`    // 背景图
 	AvatarImage       string   `yaml:"avatar_image"`        // 头像
 	WebLogo           string   `yaml:"web_logo"`            // 网站 logo
+	ICPFilingNumber   string   `yaml:"icp_filing_number"`   // 网站备案号
 }
 
 // ServerConfigData 定义了服务器相关配置
