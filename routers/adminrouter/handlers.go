@@ -58,7 +58,6 @@ func login(ctx *gin.Context) {
 	// 从请求中解析原始数据为 Map 格式
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
-		resp.BadRequest(ctx, "登录信息解析错误", err.Error())
 		return
 	}
 

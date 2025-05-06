@@ -83,5 +83,5 @@ func ParseJWTToken(tokenString string) (*CustomClaims, error) {
 	}
 
 	// 如果声明类型不匹配或令牌无效，返回错误。
-	return nil, errors.New("invalid token")
+	return nil, errors.New("token 无效")
 }

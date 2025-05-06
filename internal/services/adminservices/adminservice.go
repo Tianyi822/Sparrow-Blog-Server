@@ -23,7 +23,7 @@ import (
 func Login(ctx context.Context, email, verificationCode string) (string, error) {
 	// 检查用户邮箱是否与配置中的邮箱一致
 	if email != config.User.UserEmail {
-		msg := "用户邮箱不一致"
+		msg := fmt.Sprintf("登录邮箱 %v 与配置邮箱不一致", email)
 		logger.Warn(msg)
 		return "", errors.New(msg)
 	}
