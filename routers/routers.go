@@ -3,7 +3,7 @@ package routers
 import (
 	"github.com/gin-gonic/gin"
 	"h2blog_server/env"
-	"h2blog_server/pkg/middleware"
+	middleware2 "h2blog_server/routers/middleware"
 )
 
 // Option 接受一个 *gin.Engine 类型的参数
@@ -24,9 +24,9 @@ func InitRouter() *gin.Engine {
 	// 添加自定义的中间件
 	switch env.CurrentEnv {
 	case env.ProdEnv, env.DebugEnv:
-		r.Use(middleware.Logger(), middleware.RunTimeCors(), gin.Recovery())
+		r.Use(middleware2.Logger(), middleware2.RunTimeCors(), gin.Recovery())
 	case env.InitializedEnv:
-		r.Use(middleware.InitiatedStepCors(), gin.Recovery())
+		r.Use(middleware2.InitiatedStepCors(), gin.Recovery())
 	}
 
 	for _, opt := range options {

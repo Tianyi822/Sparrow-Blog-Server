@@ -5,7 +5,7 @@ import (
 	"h2blog_server/internal/services/adminservices"
 	"h2blog_server/internal/services/webservice"
 	"h2blog_server/pkg/config"
-	"h2blog_server/pkg/resp"
+	"h2blog_server/routers/resp"
 )
 
 func getSysStatus(ctx *gin.Context) {

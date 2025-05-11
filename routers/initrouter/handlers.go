@@ -5,7 +5,7 @@ import (
 	"h2blog_server/email"
 	"h2blog_server/env"
 	"h2blog_server/pkg/config"
-	"h2blog_server/pkg/resp"
+	"h2blog_server/routers/resp"
 	"h2blog_server/routers/tools"
 	"path/filepath"
 	"strings"
