@@ -18,6 +18,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func getUserInfo(ctx *gin.Context) {
+	resp.Ok(ctx, "获取用户信息成功", map[string]string{
+		"user_name": config.User.Username,
+	})
+}
+
 // sendLoginVerificationCode 处理发送验证码的请求。
 // 参数:
 //   - *gin.Context: HTTP 请求上下文，包含请求数据和响应方法。
@@ -84,29 +90,45 @@ func login(ctx *gin.Context) {
 	})
 }
 
+// genPresignPutUrl 生成预签名的文件上传URL
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从请求参数中获取文件名和文件类型
+//  2. 根据文件类型生成对应的OSS存储路径
+//  3. 生成预签名的上传URL
+//  4. 返回预签名URL给客户端
 func genPresignPutUrl(ctx *gin.Context) {
+	// 从请求参数中获取文件名和文件类型
 	fileName := ctx.Param("file_name")
 	fileType := ctx.Param("file_type")
 
+	// 根据文件类型生成存储路径
 	var path string
 	switch strings.ToLower(fileType) {
 	case ossstore.MarkDown:
+		// Markdown文件处理
 		fileType = ossstore.MarkDown
 		path = ossstore.GenOssSavePath(fileName, ossstore.MarkDown)
 	case ossstore.Webp:
+		// Webp图片处理
 		fileType = ossstore.Webp
 		path = ossstore.GenOssSavePath(fileName, ossstore.Webp)
 	default:
+		// 不支持的文件类型返回错误
 		resp.BadRequest(ctx, "文件类型错误", nil)
 		return
 	}
 
+	// 生成预签名URL，有效期2分钟
 	presign, err := storage.Storage.GenPreSignUrl(ctx, path, fileType, ossstore.Put, 2*time.Minute)
 	if err != nil {
 		resp.Err(ctx, "获取预签名URL失败", err.Error())
 		return
 	}
 
+	// 返回预签名URL给客户端
 	resp.Ok(ctx, "获取成功", map[string]string{
 		"pre_sign_put_url": presign.URL,
 	})
@@ -387,6 +409,17 @@ func renameImg(ctx *gin.Context) {
 	resp.Ok(ctx, "修改成功", nil)
 }
 
+// isExist 检查指定名称的图片是否存在
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从请求参数中获取图片名称
+//  2. 调用服务层方法检查图片是否存在
+//  3. 根据检查结果返回相应的响应
+//     - 如果图片存在，返回成功响应并设置flag为true
+//     - 如果图片不存在，返回成功响应并设置flag为false
+//     - 如果查询过程发生错误，返回错误响应
 func isExist(ctx *gin.Context) {
 	flag, err := adminservices.IsExistImgByName(ctx, ctx.Param("img_name"))
 	if err != nil {
@@ -569,9 +602,9 @@ func updateUserConfig(ctx *gin.Context) {
 		}
 
 		// 获取新的邮箱地址
-		newEmail, getErr := tools.GetStringFromRawData(rawData, "user.user_email")
-		if getErr != nil {
-			resp.BadRequest(ctx, "用户邮箱配置错误", getErr.Error())
+		newEmail, err := tools.GetStringFromRawData(rawData, "user.user_email")
+		if err != nil {
+			resp.BadRequest(ctx, "用户邮箱配置错误", err.Error())
 			return
 		}
 		userEmail = newEmail
