@@ -91,13 +91,6 @@ func ConnectMysql(ctx context.Context) (*gorm.DB, error) {
 	}
 
 	// 创建相关基础数据表
-	if !tableExists(db, "H2_LOGIN_RECORD") {
-		// 创建 H2_LOGIN_RECORD 表
-		err = db.Exec(createLoginRecordTable).Error
-		if err != nil {
-			handleError("创建 H2_LOGIN_RECORD 表失败", err)
-		}
-	}
 	if !tableExists(db, "H2_BLOG") {
 		// 创建 H2_BLOG 表
 		err = db.Exec(createH2BlogTableSQL).Error

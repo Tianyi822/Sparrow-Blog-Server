@@ -3,24 +3,6 @@ package mysql
 // 创建表
 const createDatabaseSql = `CREATE DATABASE IF NOT EXISTS %s DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
 
-// 创建一个名为 LOGIN_RECORD 的表，如果该表不存在则创建
-const createLoginRecordTable = `
-	CREATE TABLE IF NOT EXISTS H2_LOGIN_RECORD
-	(
-		id          INT 		 PRIMARY KEY AUTO_INCREMENT NOT NULL       					     	COMMENT '记录ID',
-		ipv4        VARCHAR(15)                             NOT NULL						     	COMMENT 'IPv4地址',
-		ipv6        VARCHAR(39)                             NOT NULL						     	COMMENT 'IPv6地址',
-		login_time  TIMESTAMP 								NOT NULL 	DEFAULT CURRENT_TIMESTAMP	COMMENT '登录时间',
-		logout_time TIMESTAMP 								  	  		DEFAULT NULL             	COMMENT '登出时间',
-		INDEX (ipv4),
-		INDEX (ipv6),
-		INDEX (login_time)
-	) COMMENT = '登录记录表'
-	  ENGINE = InnoDB
-	  DEFAULT CHARSET = utf8mb4
-	  COLLATE = utf8mb4_unicode_ci;
-`
-
 // 创建一个名为 H2_BLOG_INFO 的表，如果该表不存在则创建
 const createH2BlogTableSQL = `
 	CREATE TABLE IF NOT EXISTS H2_BLOG
