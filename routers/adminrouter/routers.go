@@ -1,12 +1,16 @@
 package adminrouter
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+)
 
 func Routers(e *gin.Engine) {
 	adminGroup := e.Group("/admin")
 
 	{
 		loginGroup := adminGroup.Group("/login")
+
+		loginGroup.GET("/user-info", getUserInfo)
 
 		loginGroup.POST("/verification-code", sendLoginVerificationCode)
 
