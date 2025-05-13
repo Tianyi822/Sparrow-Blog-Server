@@ -278,26 +278,26 @@ func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) error {
 		if title != blogDto.BlogTitle {
 			// 如果标题有变化，则需要删除 OSS 中的旧文章
 			logger.Info("删除 OSS 中的旧文章: %s", title)
-			if err := storage.Storage.DeleteObject(ctx, ossstore.GenOssSavePath(title, ossstore.MarkDown)); err != nil {
-				logger.Warn("删除 OSS 中的旧文章失败: %v", err)
+			if deleteErr := storage.Storage.DeleteObject(ctx, ossstore.GenOssSavePath(title, ossstore.MarkDown)); deleteErr != nil {
+				logger.Warn("删除 OSS 中的旧文章失败: %v", deleteErr)
 				tx.Rollback()
-				return err
+				return deleteErr
 			}
 			logger.Info("删除 OSS 中的旧文章成功")
 		}
 
 		// 再更新数据库元数据
-		if err := blogrepo.UpdateBlog(tx, blogDto); err != nil {
-			logger.Warn("更新博客数据失败: %v", err)
+		if updateErr := blogrepo.UpdateBlog(tx, blogDto); updateErr != nil {
+			logger.Warn("更新博客数据失败: %v", updateErr)
 			tx.Rollback()
-			return err
+			return updateErr
 		}
 
 		// 更新标签与博客的关联关系
-		if err := tagrepo.UpdateBlogTagAssociation(tx, blogDto.BlogId, blogDto.Tags); err != nil {
-			logger.Warn("更新标签与博客的关联关系失败: %v", err)
+		if updateTagErr := tagrepo.UpdateBlogTagAssociation(tx, blogDto.BlogId, blogDto.Tags); updateTagErr != nil {
+			logger.Warn("更新标签与博客的关联关系失败: %v", updateTagErr)
 			tx.Rollback()
-			return err
+			return updateTagErr
 		}
 
 		// 删除缓存中的博客预签名 URL
