@@ -32,6 +32,8 @@ func Routers(e *gin.Engine) {
 	{
 		postsGroup := adminGroup.Group("/posts")
 
+		postsGroup.Use(middleware.AnalyzeJWT())
+
 		postsGroup.GET("/all-blogs", getAllBlogs)
 
 		postsGroup.GET("/change-blog-state/:blog_id", changeBlogState)
@@ -44,6 +46,8 @@ func Routers(e *gin.Engine) {
 	{
 		editGroup := adminGroup.Group("/edit")
 
+		editGroup.Use(middleware.AnalyzeJWT())
+
 		editGroup.GET("/all-tags-categories", getAllTagsCategories)
 
 		editGroup.POST("/update-or-add-blog", updateOrAddBlog)
@@ -53,6 +57,8 @@ func Routers(e *gin.Engine) {
 
 	{
 		galleryGroup := adminGroup.Group("/gallery")
+
+		galleryGroup.Use(middleware.AnalyzeJWT())
 
 		galleryGroup.POST("/add", addImgs)
 
@@ -67,6 +73,8 @@ func Routers(e *gin.Engine) {
 
 	{
 		settingGroup := adminGroup.Group("/setting")
+
+		settingGroup.Use(middleware.AnalyzeJWT())
 
 		settingGroup.GET("/user/config", getUserConfig)
 
