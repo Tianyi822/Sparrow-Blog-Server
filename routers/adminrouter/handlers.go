@@ -90,6 +90,16 @@ func login(ctx *gin.Context) {
 	})
 }
 
+func logout(ctx *gin.Context) {
+	token := ctx.GetString("token")
+	err := adminservices.Logout(ctx, token)
+	if err != nil {
+		resp.Err(ctx, "退出登录失败", err.Error())
+		return
+	}
+	resp.Ok(ctx, "退出登录成功", nil)
+}
+
 // genPresignPutUrl 生成预签名的文件上传URL
 // 参数:
 //   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法

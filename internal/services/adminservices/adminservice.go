@@ -9,6 +9,7 @@ import (
 	"h2blog_server/pkg/logger"
 	"h2blog_server/pkg/webjwt"
 	"h2blog_server/storage"
+	"time"
 )
 
 // Login 函数用于验证用户登录信息。
@@ -64,6 +65,30 @@ func Login(ctx context.Context, email, verificationCode string) (string, error) 
 	}
 
 	return token, nil
+}
+
+// Logout 函数用于处理用户登出操作。
+// 参数：
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据。
+//   - token: 用户当前的登录令牌，用于标识要登出的用户会话。
+//
+// 返回值：
+//   - error: 如果登出过程中发生错误，返回相应的错误信息；否则返回 nil。
+//
+// 函数流程：
+//  1. 从缓存中删除用户的登录令牌
+//  2. 将令牌加入黑名单，防止令牌被重复使用
+func Logout(ctx context.Context, token string) error {
+	logger.Info("将当前 token 加入黑名单")
+	revokedTokenKey := fmt.Sprintf("%v%v", storage.UserRevokedTokenKeyPre, token)
+	err := storage.Storage.Cache.SetWithExpired(ctx, revokedTokenKey, token, time.Duration(config.Server.TokenExpireDuration)*24*time.Hour)
+	if err != nil {
+		msg := fmt.Sprintf("缓存 token 黑名单失败: %v", err.Error())
+		logger.Warn(msg)
+		return errors.New(msg)
+	}
+
+	return nil
 }
 
 // UpdateConfig 更新项目配置信息。

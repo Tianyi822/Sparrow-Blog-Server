@@ -2,6 +2,7 @@ package adminrouter
 
 import (
 	"github.com/gin-gonic/gin"
+	"h2blog_server/routers/middleware"
 )
 
 func Routers(e *gin.Engine) {
@@ -10,11 +11,14 @@ func Routers(e *gin.Engine) {
 	{
 		loginGroup := adminGroup.Group("/login")
 
+		loginGroup.POST("", login)
+
 		loginGroup.GET("/user-info", getUserInfo)
 
 		loginGroup.POST("/verification-code", sendLoginVerificationCode)
 
-		loginGroup.POST("/login", login)
+		// 退出登录需要鉴权 token
+		adminGroup.Use(middleware.AnalyzeJWT()).GET("/logout", logout)
 	}
 
 	{
