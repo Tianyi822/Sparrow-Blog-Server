@@ -83,6 +83,7 @@ func GetHomeData(ctx context.Context) (map[string]any, error) {
 				Category:     cat,
 				Tags:         tags,
 				CreateTime:   blogDto.CreateTime,
+				UpdateTime:   blogDto.UpdateTime,
 			}
 			blogVos = append(blogVos, blogVo)
 		}
