@@ -1,10 +1,12 @@
 package middleware
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"h2blog_server/pkg/config"
 	"h2blog_server/pkg/webjwt"
 	"h2blog_server/routers/resp"
+	"h2blog_server/storage"
 	"strings"
 )
 
@@ -18,6 +20,16 @@ func AnalyzeJWT() gin.HandlerFunc {
 		if len(strings.TrimSpace(authorization)) == 0 {
 			// 如果为空，则返回未授权的错误响应，并中断请求处理
 			resp.TokenIsUnauthorized(ctx, "请先登录", nil)
+			ctx.Abort()
+			return
+		}
+
+		// 判断该 token 是否在黑名单中
+		userRevokedTokenKey := fmt.Sprintf("%v%v", storage.UserRevokedTokenKeyPre, authorization)
+		getString, cacheErr := storage.Storage.Cache.GetString(ctx, userRevokedTokenKey)
+		// 如果在黑名单中，则返回错误信息，并中断请求处理
+		if cacheErr == nil && getString != "" {
+			resp.TokenIsUnauthorized(ctx, "token 已被禁用", nil)
 			ctx.Abort()
 			return
 		}
@@ -46,6 +58,9 @@ func AnalyzeJWT() gin.HandlerFunc {
 			ctx.Abort()
 			return
 		}
+
+		// 将 token 值放置到全局中，方便后续使用
+		ctx.Set("token", authorization)
 
 		// 如果所有验证都通过，则继续执行下一个中间件或处理函数
 		ctx.Next()
