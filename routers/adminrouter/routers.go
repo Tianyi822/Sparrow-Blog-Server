@@ -24,6 +24,8 @@ func Routers(e *gin.Engine) {
 	{
 		ossGroup := adminGroup.Group("/oss")
 
+		ossGroup.Use(middleware.AnalyzeJWT())
+
 		ossGroup.GET("/pre_sign_url/:file_name/type/:file_type", genPresignPutUrl)
 	}
 
