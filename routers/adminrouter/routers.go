@@ -2,7 +2,7 @@ package adminrouter
 
 import (
 	"github.com/gin-gonic/gin"
-	"h2blog_server/routers/middleware"
+	"sparrow_blog_server/routers/middleware"
 )
 
 func Routers(e *gin.Engine) {

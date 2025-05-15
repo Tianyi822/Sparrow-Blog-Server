@@ -2,10 +2,10 @@ package tagrepo
 
 import (
 	"context"
-	"h2blog_server/internal/model/dto"
-	"h2blog_server/pkg/config"
-	"h2blog_server/pkg/logger"
-	"h2blog_server/storage"
+	"sparrow_blog_server/internal/model/dto"
+	"sparrow_blog_server/pkg/config"
+	"sparrow_blog_server/pkg/logger"
+	"sparrow_blog_server/storage"
 	"testing"
 )
 

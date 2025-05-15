@@ -2,13 +2,13 @@ package adminservices
 
 import (
 	"context"
-	"h2blog_server/internal/model/dto"
-	"h2blog_server/internal/repositories/blogrepo"
-	"h2blog_server/internal/repositories/categoryrepo"
-	"h2blog_server/internal/repositories/tagrepo"
-	"h2blog_server/pkg/logger"
-	"h2blog_server/storage"
-	"h2blog_server/storage/ossstore"
+	"sparrow_blog_server/internal/model/dto"
+	"sparrow_blog_server/internal/repositories/blogrepo"
+	"sparrow_blog_server/internal/repositories/categoryrepo"
+	"sparrow_blog_server/internal/repositories/tagrepo"
+	"sparrow_blog_server/pkg/logger"
+	"sparrow_blog_server/storage"
+	"sparrow_blog_server/storage/ossstore"
 	"time"
 )
 

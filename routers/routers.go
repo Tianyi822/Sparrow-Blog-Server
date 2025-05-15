@@ -2,8 +2,8 @@ package routers
 
 import (
 	"github.com/gin-gonic/gin"
-	"h2blog_server/env"
-	middleware2 "h2blog_server/routers/middleware"
+	"sparrow_blog_server/env"
+	middleware2 "sparrow_blog_server/routers/middleware"
 )
 
 // Option 接受一个 *gin.Engine 类型的参数

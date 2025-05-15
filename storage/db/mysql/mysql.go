@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"h2blog_server/pkg/config"
-	"h2blog_server/pkg/logger"
-	"h2blog_server/storage/db/dblogger"
+	"sparrow_blog_server/pkg/config"
+	"sparrow_blog_server/pkg/logger"
+	"sparrow_blog_server/storage/db/dblogger"
 )
 
 // createLoginRecordTableSQL 是用于创建库
@@ -91,47 +91,46 @@ func ConnectMysql(ctx context.Context) (*gorm.DB, error) {
 	}
 
 	// 创建相关基础数据表
-	if !tableExists(db, "H2_BLOG") {
-		// 创建 H2_BLOG 表
-		err = db.Exec(createH2BlogTableSQL).Error
+	if !tableExists(db, "BLOG") {
+		err = db.Exec(createBlogTableSQL).Error
 		if err != nil {
-			handleError("创建 H2_BLOG 表失败", err)
+			handleError("创建 BLOG 表失败", err)
 		}
 	}
-	if !tableExists(db, "H2_CATEGORY") {
-		err = db.Exec(createH2CategoryTableSQL).Error
+	if !tableExists(db, "CATEGORY") {
+		err = db.Exec(createCategoryTableSQL).Error
 		if err != nil {
-			handleError("创建 H2_CATEGORY 表失败", err)
+			handleError("创建 CATEGORY 表失败", err)
 		}
 	}
-	if !tableExists(db, "H2_TAG") {
-		err = db.Exec(createH2TagTableSQL).Error
+	if !tableExists(db, "TAG") {
+		err = db.Exec(createTagTableSQL).Error
 		if err != nil {
-			handleError("创建 H2_TAG 表失败", err)
+			handleError("创建 TAG 表失败", err)
 		}
 	}
-	if !tableExists(db, "H2_BLOG_TAG") {
-		err = db.Exec(createH2BlogTagTableSQL).Error
+	if !tableExists(db, "BLOG_TAG") {
+		err = db.Exec(createBlogTagTableSQL).Error
 		if err != nil {
-			handleError("创建 H2_BLOG_TAG 表失败", err)
+			handleError("创建 BLOG_TAG 表失败", err)
 		}
 	}
-	if !tableExists(db, "H2_IMG") {
-		err = db.Exec(createH2ImgTableSQL).Error
+	if !tableExists(db, "IMG") {
+		err = db.Exec(createImgTableSQL).Error
 		if err != nil {
-			handleError("创建 H2_IMG 表失败", err)
+			handleError("创建 IMG 表失败", err)
 		}
 	}
-	if !tableExists(db, "H2_COMMENT") {
-		err = db.Exec(createH2CommentTableSQL).Error
+	if !tableExists(db, "COMMENT") {
+		err = db.Exec(createCommentTableSQL).Error
 		if err != nil {
-			handleError("创建 H2_COMMENT 表失败", err)
+			handleError("创建 COMMENT 表失败", err)
 		}
 	}
-	if !tableExists(db, "H2_FRIEND_LINK") {
-		err = db.Exec(createH2FriendLinkTableSQL).Error
+	if !tableExists(db, "FRIEND_LINK") {
+		err = db.Exec(createFriendLinkTableSQL).Error
 		if err != nil {
-			handleError("创建 H2_FRIEND_LINK 表失败", err)
+			handleError("创建 FRIEND_LINK 表失败", err)
 		}
 	}
 

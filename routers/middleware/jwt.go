@@ -3,10 +3,10 @@ package middleware
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"h2blog_server/pkg/config"
-	"h2blog_server/pkg/webjwt"
-	"h2blog_server/routers/resp"
-	"h2blog_server/storage"
+	"sparrow_blog_server/pkg/config"
+	"sparrow_blog_server/pkg/webjwt"
+	"sparrow_blog_server/routers/resp"
+	"sparrow_blog_server/storage"
 	"strings"
 )
 

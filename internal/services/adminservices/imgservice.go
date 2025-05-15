@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"h2blog_server/cache"
-	"h2blog_server/internal/model/dto"
-	"h2blog_server/internal/repositories/imgrepo"
-	"h2blog_server/pkg/logger"
-	"h2blog_server/storage"
-	"h2blog_server/storage/ossstore"
+	"sparrow_blog_server/cache"
+	"sparrow_blog_server/internal/model/dto"
+	"sparrow_blog_server/internal/repositories/imgrepo"
+	"sparrow_blog_server/pkg/logger"
+	"sparrow_blog_server/storage"
+	"sparrow_blog_server/storage/ossstore"
 	"time"
 )
 

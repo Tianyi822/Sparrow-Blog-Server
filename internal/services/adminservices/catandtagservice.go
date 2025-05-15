@@ -2,9 +2,9 @@ package adminservices
 
 import (
 	"context"
-	"h2blog_server/internal/model/dto"
-	"h2blog_server/internal/repositories/categoryrepo"
-	"h2blog_server/internal/repositories/tagrepo"
+	"sparrow_blog_server/internal/model/dto"
+	"sparrow_blog_server/internal/repositories/categoryrepo"
+	"sparrow_blog_server/internal/repositories/tagrepo"
 )
 
 // GetAllCategoriesAndTags 获取所有的分类和标签信息。

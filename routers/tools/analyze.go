@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss/credentials"
-	"h2blog_server/pkg/config"
 	"math"
 	"net"
 	"net/http"
@@ -14,6 +13,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"regexp"
+	"sparrow_blog_server/pkg/config"
 	"strings"
 )
 

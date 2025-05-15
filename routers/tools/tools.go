@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"h2blog_server/internal/model/dto"
-	"h2blog_server/routers/resp"
 	"math"
+	"sparrow_blog_server/internal/model/dto"
+	"sparrow_blog_server/routers/resp"
 	"strconv"
 
 	"github.com/gin-gonic/gin"

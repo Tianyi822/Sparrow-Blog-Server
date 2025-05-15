@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss/credentials"
-	"h2blog_server/pkg/config"
-	"h2blog_server/pkg/logger"
+	"sparrow_blog_server/pkg/config"
+	"sparrow_blog_server/pkg/logger"
 )
 
 // ConnectOss 连接 Oss

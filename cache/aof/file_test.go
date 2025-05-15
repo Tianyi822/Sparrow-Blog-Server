@@ -3,13 +3,13 @@ package aof
 import (
 	"bytes"
 	"context"
-	"h2blog_server/pkg/config"
-	"h2blog_server/pkg/logger"
+	"sparrow_blog_server/pkg/config"
+	"sparrow_blog_server/pkg/logger"
 	"testing"
 )
 
 func init() {
-	config.LoadConfig()
+	_ = config.LoadConfig()
 	_ = logger.InitLogger(context.Background())
 }
 

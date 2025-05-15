@@ -2,10 +2,10 @@ package config
 
 import (
 	"fmt"
-	"h2blog_server/pkg/filetool"
 	"os"
 	"os/user"
 	"path/filepath"
+	"sparrow_blog_server/pkg/filetool"
 	"sync"
 
 	"gopkg.in/yaml.v3"

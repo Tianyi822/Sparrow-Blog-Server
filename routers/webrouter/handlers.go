@@ -2,10 +2,10 @@ package webrouter
 
 import (
 	"github.com/gin-gonic/gin"
-	"h2blog_server/internal/services/adminservices"
-	"h2blog_server/internal/services/webservice"
-	"h2blog_server/pkg/config"
-	"h2blog_server/routers/resp"
+	"sparrow_blog_server/internal/services/adminservices"
+	"sparrow_blog_server/internal/services/webservice"
+	"sparrow_blog_server/pkg/config"
+	"sparrow_blog_server/routers/resp"
 )
 
 func getSysStatus(ctx *gin.Context) {

@@ -3,9 +3,9 @@ package mysql
 // 创建表
 const createDatabaseSql = `CREATE DATABASE IF NOT EXISTS %s DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
 
-// 创建一个名为 H2_BLOG_INFO 的表，如果该表不存在则创建
-const createH2BlogTableSQL = `
-	CREATE TABLE IF NOT EXISTS H2_BLOG
+// 创建一个名为 BLOG_INFO 的表，如果该表不存在则创建
+const createBlogTableSQL = `
+	CREATE TABLE IF NOT EXISTS BLOG
 	(
 	    blog_id         	VARCHAR(16)      	PRIMARY KEY NOT NULL  											COMMENT '博客ID',
 	    blog_title    	 	VARCHAR(50)      	NOT NULL UNIQUE       											COMMENT '博客标题',
@@ -27,8 +27,8 @@ const createH2BlogTableSQL = `
 	  COLLATE = utf8mb4_unicode_ci;
 `
 
-const createH2CategoryTableSQL = `
-	CREATE TABLE IF NOT EXISTS H2_CATEGORY
+const createCategoryTableSQL = `
+	CREATE TABLE IF NOT EXISTS CATEGORY
 	(
 	    category_id   	VARCHAR(16)  PRIMARY KEY NOT NULL 											COMMENT '分类ID',
 	    category_name 	VARCHAR(50)  NOT NULL UNIQUE 												COMMENT '分类名称',
@@ -40,8 +40,8 @@ const createH2CategoryTableSQL = `
 	  COLLATE = utf8mb4_unicode_ci;
 `
 
-const createH2TagTableSQL = `
-	CREATE TABLE IF NOT EXISTS H2_TAG
+const createTagTableSQL = `
+	CREATE TABLE IF NOT EXISTS TAG
 	(
 	    tag_id     	VARCHAR(16)  PRIMARY KEY NOT NULL 											COMMENT '标签ID',
 	    tag_name  	VARCHAR(50)  NOT NULL UNIQUE 												COMMENT '标签名称',
@@ -54,8 +54,8 @@ const createH2TagTableSQL = `
 `
 
 // 多对多关联表
-const createH2BlogTagTableSQL = `
-	CREATE TABLE IF NOT EXISTS H2_BLOG_TAG
+const createBlogTagTableSQL = `
+	CREATE TABLE IF NOT EXISTS BLOG_TAG
 	(
 	    blog_id 	VARCHAR(16) NOT NULL COMMENT '博客ID',
 	    tag_id 		VARCHAR(16) NOT NULL COMMENT '标签ID',
@@ -65,8 +65,8 @@ const createH2BlogTagTableSQL = `
 	  COLLATE = utf8mb4_unicode_ci;
 `
 
-const createH2ImgTableSQL = `
-	CREATE TABLE H2_IMG
+const createImgTableSQL = `
+	CREATE TABLE IMG
 	(
 	    img_id 			VARCHAR(16) 	PRIMARY KEY NOT NULL															COMMENT '图片ID',
 	    img_name 		VARCHAR(255) 				NOT NULL	UNIQUE 													COMMENT '图片名称',
@@ -82,8 +82,8 @@ const createH2ImgTableSQL = `
 	  COLLATE = utf8mb4_unicode_ci;
 `
 
-const createH2CommentTableSQL = `
-	CREATE TABLE IF NOT EXISTS H2_COMMENT
+const createCommentTableSQL = `
+	CREATE TABLE IF NOT EXISTS COMMENT
 	(
 		comment_id 			VARCHAR(16) 	PRIMARY KEY NOT NULL 															COMMENT '评论ID',
 		user_name     		VARCHAR(50)     			NOT NULL 															COMMENT '用户名',
@@ -103,8 +103,8 @@ const createH2CommentTableSQL = `
 	  COLLATE = utf8mb4_unicode_ci;
 `
 
-const createH2FriendLinkTableSQL = `
-	CREATE TABLE IF NOT EXISTS H2_FRIEND_LINK
+const createFriendLinkTableSQL = `
+	CREATE TABLE IF NOT EXISTS FRIEND_LINK
 	(
 		friend_link_id 		VARCHAR(16) 	PRIMARY KEY NOT NULL 															COMMENT '友情链接ID',
 		friend_link_name 	VARCHAR(50) 				NOT NULL 															COMMENT '友情链接名称',

@@ -3,7 +3,7 @@ package dblogger
 import (
 	"context"
 	"errors"
-	"h2blog_server/pkg/logger"
+	"sparrow_blog_server/pkg/logger"
 	"time"
 
 	"go.uber.org/zap"

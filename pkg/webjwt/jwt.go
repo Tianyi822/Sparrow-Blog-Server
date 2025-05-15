@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
-	"h2blog_server/pkg/config"
-	"h2blog_server/pkg/utils"
+	"sparrow_blog_server/pkg/config"
+	"sparrow_blog_server/pkg/utils"
 	"time"
 )
 

@@ -2,13 +2,13 @@ package logger
 
 import (
 	"context"
-	"h2blog_server/pkg/config"
+	"sparrow_blog_server/pkg/config"
 	"testing"
 )
 
 func init() {
 	// 加载配置文件
-	config.LoadConfig()
+	_ = config.LoadConfig()
 	// 初始化 Logger 组件
 	_ = InitLogger(context.Background())
 }

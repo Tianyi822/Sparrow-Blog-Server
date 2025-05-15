@@ -4,18 +4,18 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"h2blog_server/cache/common"
-	"h2blog_server/pkg/config"
-	"h2blog_server/pkg/logger"
 	"math/big"
 	"path/filepath"
 	"sort"
+	"sparrow_blog_server/cache/common"
+	"sparrow_blog_server/pkg/config"
+	"sparrow_blog_server/pkg/logger"
 	"testing"
 	"time"
 )
 
 func init() {
-	config.LoadConfig()
+	_ = config.LoadConfig()
 	_ = logger.InitLogger(context.Background())
 }
 

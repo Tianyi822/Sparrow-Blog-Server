@@ -3,8 +3,8 @@ package middleware
 import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
-	"h2blog_server/pkg/logger"
 	"net/http"
+	"sparrow_blog_server/pkg/logger"
 )
 
 type RequestInfo struct {

@@ -16,7 +16,7 @@ type Blog struct {
 }
 
 func (hb *Blog) TableName() string {
-	return "H2_BLOG"
+	return "BLOG"
 }
 
 type Category struct {
@@ -27,7 +27,7 @@ type Category struct {
 }
 
 func (c *Category) TableName() string {
-	return "H2_CATEGORY"
+	return "CATEGORY"
 }
 
 type Tag struct {
@@ -38,7 +38,7 @@ type Tag struct {
 }
 
 func (t *Tag) TableName() string {
-	return "H2_TAG"
+	return "TAG"
 }
 
 type BlogTag struct {
@@ -47,7 +47,7 @@ type BlogTag struct {
 }
 
 func (hb *BlogTag) TableName() string {
-	return "H2_BLOG_TAG"
+	return "BLOG_TAG"
 }
 
 type H2Img struct {
@@ -59,7 +59,7 @@ type H2Img struct {
 }
 
 func (ii *H2Img) TableName() string {
-	return "H2_IMG"
+	return "IMG"
 }
 
 type Comment struct {
@@ -75,7 +75,7 @@ type Comment struct {
 }
 
 func (c *Comment) TableName() string {
-	return "H2_COMMENT"
+	return "COMMENT"
 }
 
 type FriendLink struct {
@@ -87,5 +87,5 @@ type FriendLink struct {
 }
 
 func (fl *FriendLink) TableName() string {
-	return "H2_FRIEND_LINK"
+	return "FRIEND_LINK"
 }

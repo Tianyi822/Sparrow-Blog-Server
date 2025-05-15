@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"h2blog_server/internal/model/dto"
-	"h2blog_server/internal/model/po"
-	"h2blog_server/pkg/logger"
-	"h2blog_server/pkg/utils"
-	"h2blog_server/storage"
+	"sparrow_blog_server/internal/model/dto"
+	"sparrow_blog_server/internal/model/po"
+	"sparrow_blog_server/pkg/logger"
+	"sparrow_blog_server/pkg/utils"
+	"sparrow_blog_server/storage"
 )
 
 // UpdateFriendLinkByID 根据友链ID更新友链信息。

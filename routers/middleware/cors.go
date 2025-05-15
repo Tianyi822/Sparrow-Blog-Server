@@ -3,7 +3,7 @@ package middleware
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"h2blog_server/pkg/config"
+	"sparrow_blog_server/pkg/config"
 )
 
 // InitiatedStepCors 初始化阶段的CORS中间件

@@ -3,14 +3,14 @@ package cache
 import (
 	"context"
 	"errors"
-	"h2blog_server/pkg/config"
-	"h2blog_server/pkg/logger"
+	"sparrow_blog_server/pkg/config"
+	"sparrow_blog_server/pkg/logger"
 	"testing"
 	"time"
 )
 
 func init() {
-	config.LoadConfig()
+	_ = config.LoadConfig()
 	_ = logger.InitLogger(context.Background())
 }
 

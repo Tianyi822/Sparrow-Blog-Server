@@ -6,9 +6,9 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"h2blog_server/env"
-	"h2blog_server/pkg/config"
 	"os"
+	"sparrow_blog_server/env"
+	"sparrow_blog_server/pkg/config"
 	"strings"
 	"sync"
 )

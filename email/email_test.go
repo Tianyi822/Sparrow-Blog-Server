@@ -2,7 +2,7 @@ package email
 
 import (
 	"context"
-	"h2blog_server/pkg/config"
+	"sparrow_blog_server/pkg/config"
 	"testing"
 )
 

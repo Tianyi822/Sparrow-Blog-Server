@@ -2,12 +2,12 @@ package initrouter
 
 import (
 	"github.com/gin-gonic/gin"
-	"h2blog_server/email"
-	"h2blog_server/env"
-	"h2blog_server/pkg/config"
-	"h2blog_server/routers/resp"
-	"h2blog_server/routers/tools"
 	"path/filepath"
+	"sparrow_blog_server/email"
+	"sparrow_blog_server/env"
+	"sparrow_blog_server/pkg/config"
+	"sparrow_blog_server/routers/resp"
+	"sparrow_blog_server/routers/tools"
 	"strings"
 )
 
