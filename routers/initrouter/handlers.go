@@ -109,10 +109,6 @@ func initServer(ctx *gin.Context) {
 		resp.BadRequest(ctx, "SMTP端口配置错误", getErr.Error())
 		return
 	}
-	if anaErr := tools.AnalyzePort(smtpPort); anaErr != nil {
-		resp.BadRequest(ctx, "SMTP端口配置错误", anaErr.Error())
-		return
-	}
 	serverConfig.SmtpPort = smtpPort
 
 	// 解析 SMTP 认证码
