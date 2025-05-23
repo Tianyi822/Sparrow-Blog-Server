@@ -13,7 +13,7 @@ func InitiatedStepCors() gin.HandlerFunc {
 	c := cors.Config{
 		AllowAllOrigins: true, // 允许所有来源
 		AllowMethods:    []string{"GET", "POST"},
-		AllowHeaders:    []string{"Origin", "Content-Type"},
+		AllowHeaders:    []string{"Origin", "Content-Type", "Authorization"},
 	}
 
 	return cors.New(c)
