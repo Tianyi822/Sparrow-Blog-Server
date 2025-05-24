@@ -22,7 +22,7 @@ type ProjectConfig struct {
 }
 
 func (pc *ProjectConfig) Store() error {
-	h2BlogHomePath, err := getH2BlogDir()
+	h2BlogHomePath, err := getProjDir()
 	if err != nil {
 		return fmt.Errorf("获取或创建 H2Blog 目录失败: %w", err)
 	}
@@ -175,7 +175,7 @@ var (
 // - error: 如果配置文件不存在，返回 NoConfigFileErr 错误；否则返回 nil。
 func LoadConfig() {
 	// 获取 H2Blog 的用户目录路径。如果获取失败，直接触发 panic。
-	userHomePath, err := getH2BlogDir()
+	userHomePath, err := getProjDir()
 	if err != nil {
 		panic(err)
 	}
@@ -197,15 +197,15 @@ func LoadConfig() {
 	)
 }
 
-// getH2BlogDir 返回h2blog配置和数据的基础目录
+// getProjDir 返回h2blog配置和数据的基础目录
 // 它使用用户的主目录作为基础路径
 //
 // 返回:
 //   - string: h2blog目录的完整路径
 //   - error: 获取用户主目录时遇到的任何错误
-func getH2BlogDir() (string, error) {
-	// 从环境变量中获取 H2BLOG_HOME
-	if h2blogHome := os.Getenv("H2BLOG_HOME"); h2blogHome != "" {
+func getProjDir() (string, error) {
+	// 从环境变量中获取
+	if h2blogHome := os.Getenv("SPARROW_BLOG_HOME"); h2blogHome != "" {
 		return h2blogHome, nil
 	}
 
@@ -216,7 +216,7 @@ func getH2BlogDir() (string, error) {
 	}
 
 	// 将主目录与.h2blog连接
-	return filepath.Join(usr.HomeDir, ".h2blog"), nil
+	return filepath.Join(usr.HomeDir, ".sparrow_blog"), nil
 }
 
 // loadConfigFromFile 尝试从文件中加载配置。
@@ -227,7 +227,7 @@ func getH2BlogDir() (string, error) {
 // - error: 如果加载配置失败或配置文件不存在，则返回相应的错误信息。
 func loadConfigFromFile() error {
 	// 尝试获取用户的主目录下的 h2blog 目录路径
-	h2blogDir, err := getH2BlogDir()
+	h2blogDir, err := getProjDir()
 	if err != nil {
 		return fmt.Errorf("获取h2blog目录失败: %w", err)
 	}
