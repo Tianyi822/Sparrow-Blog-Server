@@ -181,7 +181,7 @@ func LoadConfig() {
 	}
 
 	// 检查配置文件是否存在。如果不存在，返回 NoConfigFileErr 错误。
-	configPath := filepath.Join(userHomePath, "config", "h2blog_config.yaml")
+	configPath := filepath.Join(userHomePath, "config", "sparrow_blog_config.yaml")
 	if !filetool.IsExist(configPath) {
 		panic("配置文件不存在: " + configPath)
 	}
@@ -228,13 +228,13 @@ func getProjDir() (string, error) {
 // - error: 如果加载配置失败或配置文件不存在，则返回相应的错误信息。
 func loadConfigFromFile() error {
 	// 尝试获取用户的主目录下的 h2blog 目录路径
-	h2blogDir, err := getProjDir()
+	projDir, err := getProjDir()
 	if err != nil {
 		return fmt.Errorf("获取h2blog目录失败: %w", err)
 	}
 
 	// 构造配置文件的路径，并检查该路径下的配置文件是否存在
-	configPath := filepath.Join(h2blogDir, "config", "h2blog_config.yaml")
+	configPath := filepath.Join(projDir, "config", "sparrow_blog_config.yaml")
 	if filetool.IsExist(configPath) {
 		// 如果配置文件存在，则尝试从该路径加载配置
 		return loadConfigFromPath(configPath)
@@ -246,12 +246,9 @@ func loadConfigFromFile() error {
 
 // loadConfigFromPath 从指定路径加载配置文件。
 // 参数:
+// - configPath: 配置文件的路径。
 //
-//	configPath - 配置文件的路径。
-//
-// 返回值:
-//
-//	如果加载或解析配置文件时发生错误，则返回错误。
+// 返回值: 如果加载或解析配置文件时发生错误，则返回错误。
 func loadConfigFromPath(configPath string) error {
 	// 读取配置文件内容
 	data, err := os.ReadFile(configPath)
