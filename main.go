@@ -12,7 +12,6 @@ import (
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/routers"
 	"sparrow_blog_server/routers/adminrouter"
-	"sparrow_blog_server/routers/initrouter"
 	"sparrow_blog_server/routers/webrouter"
 	"sparrow_blog_server/storage"
 	"syscall"
@@ -96,83 +95,15 @@ func closeWebServer(srv *http.Server) {
 	logger.Info("服务已退出")
 }
 
-func startInitiateConfigServer() *http.Server {
-	// 加载配置接口
-	routers.IncludeOpts(initrouter.Routers)
-
-	// 将当前环境设置为初始化环境
-	env.CurrentEnv = env.InitializedEnv
-
-	// 初始化路由
-	r := routers.InitRouter()
-
-	// 配置 HTTP 服务
-	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%v", Args["init-server-port"]),
-		Handler: r,
-	}
-
-	// 开启一个 goroutine 启动服务
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			panic(fmt.Sprintf("配置服务报错: %v", err.Error()))
-		}
-	}()
-
-	env.CompletedConfigSign = make(chan bool)
-
-	return srv
-}
-
-func closeInitiateConfigServer(srv *http.Server) {
-	// 等待配置完成
-	sign := <-env.CompletedConfigSign
-
-	if !sign {
-		panic("配置服务关闭出错")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
-
-	// 定时优雅关闭服务（将未处理完的请求处理完再关闭服务），超时就退出
-	if err := srv.Shutdown(ctx); err != nil {
-		panic(fmt.Sprintf("配置服务关闭超时, 哥们已强制关闭: %v", err.Error()))
-	}
-}
-
-// checkConfigOrStartInitiateConfigServer 检查配置文件，若未找到配置文件，则开启配置服务
-func checkConfigOrStartInitiateConfigServer() {
-	// 优先去本地默认路径加载配置文件
-	err := config.LoadConfig()
-	if err != nil {
-		var configErr *config.Err
-		errors.As(err, &configErr)
-		if configErr.IsNoConfigFileErr() {
-			// 若未找到配置文件，则单独开启配置服务，与业务端口分开使用
-			server := startInitiateConfigServer()
-			// 等待配置服务关闭
-			closeInitiateConfigServer(server)
-		}
-	}
-}
-
 // getArgsFromTerminal 从终端获取参数
 func getArgsFromTerminal() {
 	Args = make(map[string]string)
 
 	for i := 0; i < len(os.Args); i++ {
-		if os.Args[i] == "--init-server-port" {
-			Args["init-server-port"] = os.Args[i+1]
-			i++
-		} else if os.Args[i] == "--env" {
+		if os.Args[i] == "--env" {
 			Args["env"] = os.Args[i+1]
 			i++
 		}
-	}
-
-	if _, ok := Args["init-server-port"]; !ok {
-		Args["init-server-port"] = "2234"
 	}
 
 	if _, ok := Args["env"]; !ok {
@@ -183,7 +114,8 @@ func getArgsFromTerminal() {
 func main() {
 	getArgsFromTerminal()
 
-	checkConfigOrStartInitiateConfigServer()
+	// 加载配置文件
+	config.LoadConfig()
 
 	// 加载基础组件
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
