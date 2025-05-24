@@ -173,7 +173,7 @@ var (
 //
 // 返回值:
 // - error: 如果配置文件不存在，返回 NoConfigFileErr 错误；否则返回 nil。
-func LoadConfig() error {
+func LoadConfig() {
 	// 获取 H2Blog 的用户目录路径。如果获取失败，直接触发 panic。
 	userHomePath, err := getH2BlogDir()
 	if err != nil {
@@ -182,7 +182,7 @@ func LoadConfig() error {
 
 	// 检查配置文件是否存在。如果不存在，返回 NoConfigFileErr 错误。
 	if !filetool.IsExist(filepath.Join(userHomePath, "config", "h2blog_config.yaml")) {
-		return NewNoConfigFileErr("配置文件不存在")
+		panic("配置文件不存在")
 	}
 
 	// 使用 sync.Once 确保配置文件只加载一次。
@@ -195,9 +195,6 @@ func LoadConfig() error {
 			}
 		},
 	)
-
-	// 如果一切正常，返回 nil 表示加载成功。
-	return nil
 }
 
 // getH2BlogDir 返回h2blog配置和数据的基础目录
