@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"sparrow_blog_server/env"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/utils"
 	"sparrow_blog_server/storage"
@@ -33,29 +32,16 @@ func SendVerificationCodeByArgs(ctx context.Context, email, smtpAccount, smtpAdd
 		return err
 	}
 
-	// 根据当前运行环境处理验证码的存储和获取逻辑。
-	switch env.CurrentEnv {
-	case env.InitializedEnv:
-		// 在配置服务器环境中，优先使用环境变量中的验证码。
-		// 如果环境变量中没有验证码，则将生成的验证码存储到环境变量中。
-		if env.VerificationCode == "" {
-			env.VerificationCode = code
-		} else {
-			code = env.VerificationCode
+	// 如果缓存中不存在验证码，则将生成的验证码存储到缓存中，并设置5分钟的过期时间。
+	c, getErr := storage.Storage.Cache.GetString(ctx, storage.VerificationCodeKey)
+	if getErr != nil {
+		setErr := storage.Storage.Cache.SetWithExpired(ctx, storage.VerificationCodeKey, code, 5*time.Minute)
+		if setErr != nil {
+			msg := fmt.Sprintf("缓存验证码失败: %v", err)
+			return errors.New(msg)
 		}
-	case env.ProdEnv, env.DebugEnv:
-		// 在生产或调试环境中，尝试从缓存中获取验证码。
-		// 如果缓存中不存在验证码，则将生成的验证码存储到缓存中，并设置5分钟的过期时间。
-		c, getErr := storage.Storage.Cache.GetString(ctx, storage.VerificationCodeKey)
-		if getErr != nil {
-			setErr := storage.Storage.Cache.SetWithExpired(ctx, storage.VerificationCodeKey, code, 5*time.Minute)
-			if setErr != nil {
-				msg := fmt.Sprintf("缓存验证码失败: %v", err)
-				return errors.New(msg)
-			}
-		} else {
-			code = c
-		}
+	} else {
+		code = c
 	}
 
 	// 定义HTML邮件模板，包含验证码的展示样式和提示信息。

@@ -2,7 +2,6 @@ package routers
 
 import (
 	"github.com/gin-gonic/gin"
-	"sparrow_blog_server/env"
 	middleware2 "sparrow_blog_server/routers/middleware"
 )
 
@@ -22,12 +21,7 @@ func InitRouter() *gin.Engine {
 	r := gin.New()
 
 	// 添加自定义的中间件
-	switch env.CurrentEnv {
-	case env.ProdEnv, env.DebugEnv:
-		r.Use(middleware2.Logger(), middleware2.RunTimeCors(), gin.Recovery())
-	case env.InitializedEnv:
-		r.Use(middleware2.InitiatedStepCors(), gin.Recovery())
-	}
+	r.Use(middleware2.Logger(), middleware2.RunTimeCors(), gin.Recovery())
 
 	for _, opt := range options {
 		opt(r)
