@@ -174,23 +174,11 @@ var (
 // 返回值:
 // - error: 如果配置文件不存在，返回 NoConfigFileErr 错误；否则返回 nil。
 func LoadConfig() {
-	// 获取 H2Blog 的用户目录路径。如果获取失败，直接触发 panic。
-	userHomePath, err := getProjDir()
-	if err != nil {
-		panic(err)
-	}
-
-	// 检查配置文件是否存在。如果不存在，返回 NoConfigFileErr 错误。
-	configPath := filepath.Join(userHomePath, "config", "sparrow_blog_config.yaml")
-	if !filetool.IsExist(configPath) {
-		panic("配置文件不存在: " + configPath)
-	}
-
 	// 使用 sync.Once 确保配置文件只加载一次。
 	// 如果加载过程中发生错误，直接触发 panic。
 	loadConfigLock.Do(
 		func() {
-			err = loadConfigFromFile()
+			err := loadConfigFromFile()
 			if err != nil {
 				panic(err)
 			}
@@ -230,7 +218,7 @@ func loadConfigFromFile() error {
 	// 尝试获取用户的主目录下的 h2blog 目录路径
 	projDir, err := getProjDir()
 	if err != nil {
-		return fmt.Errorf("获取h2blog目录失败: %w", err)
+		return fmt.Errorf("获取配置目录失败: %w", err)
 	}
 
 	// 构造配置文件的路径，并检查该路径下的配置文件是否存在
@@ -241,7 +229,7 @@ func loadConfigFromFile() error {
 	}
 
 	// 如果未找到配置文件，返回错误
-	return fmt.Errorf("config file not found")
+	return fmt.Errorf("配置文件不存在")
 }
 
 // loadConfigFromPath 从指定路径加载配置文件。
