@@ -181,8 +181,9 @@ func LoadConfig() {
 	}
 
 	// 检查配置文件是否存在。如果不存在，返回 NoConfigFileErr 错误。
-	if !filetool.IsExist(filepath.Join(userHomePath, "config", "h2blog_config.yaml")) {
-		panic("配置文件不存在")
+	configPath := filepath.Join(userHomePath, "config", "h2blog_config.yaml")
+	if !filetool.IsExist(configPath) {
+		panic("配置文件不存在: " + configPath)
 	}
 
 	// 使用 sync.Once 确保配置文件只加载一次。
