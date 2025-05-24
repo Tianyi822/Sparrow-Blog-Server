@@ -632,7 +632,7 @@ func updateUserConfig(ctx *gin.Context) {
 		Username:          username,
 		UserEmail:         userEmail,
 		UserGithubAddress: userGithubAddress,
-		UserHobbies:       userHobbies,
+		UserHobbies:       userHobbies[:10],
 		TypeWriterContent: typeWriterContent,
 		BackgroundImage:   config.User.BackgroundImage,
 		AvatarImage:       config.User.AvatarImage,
