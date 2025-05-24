@@ -229,7 +229,7 @@ func loadConfigFromFile() error {
 	}
 
 	// 如果未找到配置文件，返回错误
-	return fmt.Errorf("配置文件不存在")
+	return fmt.Errorf("配置文件不存在: " + configPath)
 }
 
 // loadConfigFromPath 从指定路径加载配置文件。
