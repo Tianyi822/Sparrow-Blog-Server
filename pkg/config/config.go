@@ -34,7 +34,7 @@ func (pc *ProjectConfig) Store() error {
 	}
 
 	// 生成配置文件路径
-	configPath := filepath.Join(h2BlogHomePath, "config", "h2blog_config.yaml")
+	configPath := filepath.Join(h2BlogHomePath, "config", "sparrow_blog_config.yaml")
 
 	// 删除原有的配置文件
 	if filetool.IsExist(configPath) {
