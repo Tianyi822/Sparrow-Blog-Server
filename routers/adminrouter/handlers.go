@@ -571,6 +571,9 @@ func updateUserConfig(ctx *gin.Context) {
 		resp.BadRequest(ctx, "爱好配置错误", getErr.Error())
 		return
 	}
+	if len(userHobbies) > 10 {
+		userHobbies = userHobbies[:10]
+	}
 
 	// 获取并验证打字机内容列表
 	// 打字机内容为可选项,但需要是字符串数组格式
@@ -632,7 +635,7 @@ func updateUserConfig(ctx *gin.Context) {
 		Username:          username,
 		UserEmail:         userEmail,
 		UserGithubAddress: userGithubAddress,
-		UserHobbies:       userHobbies[:10],
+		UserHobbies:       userHobbies,
 		TypeWriterContent: typeWriterContent,
 		BackgroundImage:   config.User.BackgroundImage,
 		AvatarImage:       config.User.AvatarImage,
