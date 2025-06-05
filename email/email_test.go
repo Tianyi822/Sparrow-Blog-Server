@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	_ = config.LoadConfig()
+	config.LoadConfig()
 }
 
 func TestSendVerificationCodeEmail(t *testing.T) {

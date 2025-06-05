@@ -9,7 +9,7 @@ import (
 
 func init() {
 	// 加载配置文件
-	_ = config.LoadConfig()
+	config.LoadConfig()
 	// 初始化 Logger 组件
 	err := logger.InitLogger(context.Background())
 	if err != nil {
