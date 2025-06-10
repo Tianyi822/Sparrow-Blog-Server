@@ -2,12 +2,16 @@ package searchengine
 
 import (
 	"context"
-	"github.com/blevesearch/bleve/v2"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/filetool"
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/searchengine/mapping"
+	"sparrow_blog_server/searchengine/tokenizer"
 	"sync"
+
+	"github.com/blevesearch/bleve/v2"
+	"github.com/blevesearch/bleve/v2/analysis"
+	"github.com/blevesearch/bleve/v2/registry"
 )
 
 var (
@@ -25,6 +29,13 @@ func LoadingIndex(ctx context.Context) error {
 	}
 
 	loadingOnce.Do(func() {
+		// 首先注册中文分词器，确保无论是创建新索引还是加载已存在索引都能正常工作
+		if err := registry.RegisterTokenizer("chinese", func(config map[string]interface{}, cache *registry.Cache) (analysis.Tokenizer, error) {
+			return tokenizer.NewChineseTokenizer(), nil
+		}); err != nil {
+			logger.Panic("注册中文分词器失败: " + err.Error())
+		}
+
 		if filetool.IsExist(config.SearchEngine.IndexPath) {
 			logger.Info("加载本地索引文件")
 			index, err := bleve.Open(config.SearchEngine.IndexPath)
