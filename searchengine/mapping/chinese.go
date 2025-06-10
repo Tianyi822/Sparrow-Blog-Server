@@ -49,9 +49,11 @@ func CreateChineseMapping() (mapping.IndexMapping, error) {
 	// 对"Title"和"Content"字段应用之前定义的中文分析器，以优化中文文本的搜索
 	titleField := bleve.NewTextFieldMapping()
 	titleField.Analyzer = "chinese_analyzer"
+	titleField.Store = true // 设置为存储，以便在搜索结果中返回字段内容
 
 	contentField := bleve.NewTextFieldMapping()
 	contentField.Analyzer = "chinese_analyzer"
+	contentField.Store = true // 设置为存储，以便在搜索结果中返回字段内容
 
 	// 6. 将字段映射添加到文档
 	// 这一步将之前定义的字段映射到文档映射中，以便在索引时应用这些配置
