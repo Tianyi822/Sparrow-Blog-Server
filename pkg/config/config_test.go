@@ -129,6 +129,12 @@ func TestCacheConfig(t *testing.T) {
 	fmt.Println(Cache)
 }
 
+func TestSearchEngineConfig(t *testing.T) {
+	LoadConfig()
+
+	fmt.Println(SearchEngine)
+}
+
 func TestGetBackgroundImgName(t *testing.T) {
 	LoadConfig()
 	fmt.Println(User.BackgroundImage)
