@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	_ = config.LoadConfig()
+	config.LoadConfig()
 	_ = logger.InitLogger(context.Background())
 }
 

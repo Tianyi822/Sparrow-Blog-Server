@@ -139,7 +139,7 @@ func Error(format string, args ...any) {
 }
 
 func Panic(format string, args ...any) {
-	logger.Fatalf(format, args...)
+	logger.Panicf(format, args...)
 }
 
 func Fatal(format string, args ...any) {

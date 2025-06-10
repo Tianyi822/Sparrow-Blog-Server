@@ -13,12 +13,13 @@ import (
 
 // ProjectConfig 定义了所有配置数据的结构
 type ProjectConfig struct {
-	User   UserConfigData   `yaml:"user"`   // 用户配置
-	Server ServerConfigData `yaml:"server"` // 服务器配置
-	Logger LoggerConfigData `yaml:"logger"` // 日志配置
-	MySQL  MySQLConfigData  `yaml:"mysql"`  // MySQL数据库配置
-	Oss    OssConfig        `yaml:"oss"`    // OSS对象存储配置
-	Cache  CacheConfig      `yaml:"cache"`  // 缓存配置
+	User         UserConfigData   `yaml:"user"`   // 用户配置
+	Server       ServerConfigData `yaml:"server"` // 服务器配置
+	Logger       LoggerConfigData `yaml:"logger"` // 日志配置
+	SearchEngine SearchEngineData `yaml:"search_engine"`
+	MySQL        MySQLConfigData  `yaml:"mysql"` // MySQL数据库配置
+	Oss          OssConfig        `yaml:"oss"`   // OSS对象存储配置
+	Cache        CacheConfig      `yaml:"cache"` // 缓存配置
 }
 
 func (pc *ProjectConfig) Store() error {
@@ -108,6 +109,11 @@ type LoggerConfigData struct {
 	Compress   bool   `yaml:"compress"`    // 是否压缩日志文件
 }
 
+// SearchEngineData 搜索引擎配置
+type SearchEngineData struct {
+	IndexPath string `yaml:"index_path"`
+}
+
 // MySQLConfigData 定义了MySQL数据库配置
 type MySQLConfigData struct {
 	User     string `yaml:"user"`     // 数据库用户名
@@ -156,6 +162,9 @@ var (
 
 	// Logger 保存全局日志配置
 	Logger LoggerConfigData
+
+	// SearchEngine 搜索引擎配置
+	SearchEngine SearchEngineData
 
 	// MySQL 保存全局MySQL数据库配置
 	MySQL MySQLConfigData
@@ -256,6 +265,7 @@ func loadConfigFromPath(configPath string) error {
 	User = conf.User
 	Server = conf.Server
 	Logger = conf.Logger
+	SearchEngine = conf.SearchEngine
 	MySQL = conf.MySQL
 	Oss = conf.Oss
 	Cache = conf.Cache

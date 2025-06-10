@@ -85,11 +85,11 @@ func testInstance(t *testing.T, testData struct {
 		}()
 	}
 
-	_ = LoadConfig()
+	LoadConfig()
 }
 
 func TestMySQLConfig(t *testing.T) {
-	_ = LoadConfig()
+	LoadConfig()
 	if MySQL.User != "root" {
 		t.Errorf("MySQL.User should be 'root', but got %s", MySQL.User)
 	}
@@ -97,7 +97,7 @@ func TestMySQLConfig(t *testing.T) {
 }
 
 func TestServerConfig(t *testing.T) {
-	_ = LoadConfig()
+	LoadConfig()
 	if Server.Port != 2233 {
 		t.Errorf("Server.Port should be 8080, but got %d", Server.Port)
 	}
@@ -107,7 +107,7 @@ func TestServerConfig(t *testing.T) {
 }
 
 func TestOssConfig(t *testing.T) {
-	_ = LoadConfig()
+	LoadConfig()
 	if Oss.Region != "cn-guangzhou" {
 		t.Errorf("Oss.Region should be 'cn-guangzhou', but got %s", Oss.Region)
 	}
@@ -115,25 +115,27 @@ func TestOssConfig(t *testing.T) {
 }
 
 func TestUserConfig(t *testing.T) {
-	err := LoadConfig()
-	if err != nil {
-		t.Errorf("LoadConfig() error = %v", err)
-		return
-	}
+	LoadConfig()
 
 	t.Logf("用户爱好: %#v", User.UserHobbies)
 	t.Logf("打字机内容: %#v", User.TypeWriterContent)
 }
 
 func TestCacheConfig(t *testing.T) {
-	_ = LoadConfig()
+	LoadConfig()
 	if Cache.Aof.MaxSize != 3 {
 		t.Errorf("Cache.Aof.MaxSize should be 3, but got %d", Cache.Aof.MaxSize)
 	}
 	fmt.Println(Cache)
 }
 
+func TestSearchEngineConfig(t *testing.T) {
+	LoadConfig()
+
+	fmt.Println(SearchEngine)
+}
+
 func TestGetBackgroundImgName(t *testing.T) {
-	_ = LoadConfig()
+	LoadConfig()
 	fmt.Println(User.BackgroundImage)
 }
