@@ -41,7 +41,9 @@ require (
 	github.com/blevesearch/bleve_index_api v1.2.8 // indirect
 	github.com/blevesearch/geo v0.2.3 // indirect
 	github.com/blevesearch/go-faiss v1.0.25 // indirect
+	github.com/blevesearch/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/blevesearch/go-porterstemmer v1.0.3 // indirect
+	github.com/blevesearch/goleveldb v1.0.1 // indirect
 	github.com/blevesearch/gtreap v0.1.1 // indirect
 	github.com/blevesearch/mmap-go v1.0.4 // indirect
 	github.com/blevesearch/scorch_segment_api/v2 v2.3.10 // indirect
@@ -58,6 +60,8 @@ require (
 	github.com/bytedance/sonic v1.13.2 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
+	github.com/couchbase/ghistogram v0.1.0 // indirect
+	github.com/couchbase/moss v0.2.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.9 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
@@ -65,6 +69,7 @@ require (
 	github.com/go-playground/validator/v10 v10.26.0 // indirect
 	github.com/go-sql-driver/mysql v1.9.2 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
+	github.com/golang/protobuf v1.5.0 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
