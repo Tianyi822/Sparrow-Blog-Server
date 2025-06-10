@@ -29,7 +29,7 @@ func TestIndex(t *testing.T) {
 		t.Fatal(err)
 	}
 	stats := Index.Stats()
-	json, err := stats.MarshalJSON()
+	json, _ := stats.MarshalJSON()
 	t.Logf("索引统计信息: %v", string(json))
 }
 
