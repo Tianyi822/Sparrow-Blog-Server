@@ -41,28 +41,44 @@ func CreateChineseMapping() (mapping.IndexMapping, error) {
 		return nil, err
 	}
 
-	// 4. 创建文档映射
+	// 4. 创建默认文档映射（而不是特定类型的文档映射）
 	// 文档映射定义了索引中文档的结构，这里我们关注的是如何处理文档中的字段
-	articleMapping := bleve.NewDocumentMapping()
+	defaultMapping := bleve.NewDocumentMapping()
 
 	// 5. 配置字段使用自定义分析器
 	// 对"Title"和"Content"字段应用之前定义的中文分析器，以优化中文文本的搜索
 	titleField := bleve.NewTextFieldMapping()
 	titleField.Analyzer = "chinese_analyzer"
 	titleField.Store = true // 设置为存储，以便在搜索结果中返回字段内容
+	titleField.Index = true // 确保字段被索引
 
 	contentField := bleve.NewTextFieldMapping()
 	contentField.Analyzer = "chinese_analyzer"
 	contentField.Store = true // 设置为存储，以便在搜索结果中返回字段内容
+	contentField.Index = true // 确保字段被索引
 
-	// 6. 将字段映射添加到文档
+	// ID字段配置（用于精确匹配，不需要分析器）
+	idField := bleve.NewTextFieldMapping()
+	idField.Store = true
+	idField.Index = true
+	idField.Analyzer = "keyword" // 使用keyword分析器，不分词
+
+	// 6. 将字段映射添加到默认文档映射
 	// 这一步将之前定义的字段映射到文档映射中，以便在索引时应用这些配置
-	articleMapping.AddFieldMappingsAt("Title", titleField)
-	articleMapping.AddFieldMappingsAt("Content", contentField)
+	defaultMapping.AddFieldMappingsAt("ID", idField)
+	defaultMapping.AddFieldMappingsAt("Title", titleField)
+	defaultMapping.AddFieldMappingsAt("Content", contentField)
 
-	// 7. 将文档映射添加到索引映射
-	// 最后，将文档映射添加到索引映射中，这样就完成了整个中文索引映射的创建
-	indexMapping.AddDocumentMapping("Article", articleMapping)
+	// 启用动态映射，允许未明确定义的字段也被索引
+	defaultMapping.Dynamic = true
+
+	// 7. 设置默认文档映射
+	// 使用默认映射而不是命名类型映射，这样所有文档都会使用这个映射
+	indexMapping.DefaultMapping = defaultMapping
+
+	// 设置默认类型（可选）
+	indexMapping.TypeField = "_type"
+	indexMapping.DefaultType = "_default"
 
 	// 返回定制好的索引映射和nil错误，表示执行成功
 	return indexMapping, nil
