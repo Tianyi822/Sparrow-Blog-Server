@@ -107,7 +107,7 @@ func AddTags(tx *gorm.DB, tags []dto.TagDto) ([]dto.TagDto, error) {
 	var tagPos []po.Tag
 	for index, tag := range tags {
 		if len(tag.TagName) == 0 {
-			msg := fmt.Sprintf("标签名称不能为空")
+			msg := "标签名称不能为空"
 			logger.Warn(msg)
 			return nil, errors.New(msg)
 		}

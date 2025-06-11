@@ -26,9 +26,9 @@ func TestDoc_GetContent(t *testing.T) {
 		Title: "新博客-new",
 	}
 
-	content, err := doc.GetContent(context.Background())
+	err := doc.GetContent(context.Background())
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(string(content))
+	t.Log(string(doc.Content))
 }
