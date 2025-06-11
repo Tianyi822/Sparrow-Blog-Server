@@ -13,6 +13,29 @@ type Doc struct {
 	Content []byte // 文档内容
 }
 
+// BleveType 实现Bleve接口，指定文档类型
+func (d *Doc) BleveType() string {
+	return "_default"
+}
+
+// GetContentString 获取内容的字符串形式，用于索引
+func (d *Doc) GetContentString() string {
+	if d.Content == nil {
+		return ""
+	}
+	return string(d.Content)
+}
+
+// IndexedDoc 返回用于索引的文档结构
+// Bleve在索引时会使用这个结构，而不是原始的Doc结构
+func (d *Doc) IndexedDoc() map[string]interface{} {
+	return map[string]interface{}{
+		"ID":      d.ID,
+		"Title":   d.Title,
+		"Content": d.GetContentString(), // 将[]byte转换为string
+	}
+}
+
 // GetContent 从OSS中获取文档的Markdown内容
 // 参数:
 //   - ctx context.Context: 上下文对象，用于传递请求范围的 deadline、取消信号、认证信息等
