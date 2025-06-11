@@ -25,7 +25,7 @@ const (
 	FieldContent = "Content" // 内容字段
 )
 
-// 默认搜索字段
+// DefaultSearchFields 默认搜索字段
 var DefaultSearchFields = []string{FieldTitle, FieldContent}
 
 // SearchRequest 搜索请求结构
@@ -115,7 +115,7 @@ func LoadingIndex(ctx context.Context) error {
 
 	loadingOnce.Do(func() {
 		// 首先注册中文分词器，确保无论是创建新索引还是加载已存在索引都能正常工作
-		if err := registry.RegisterTokenizer("chinese", func(config map[string]interface{}, cache *registry.Cache) (analysis.Tokenizer, error) {
+		if err := registry.RegisterTokenizer("chinese", func(config map[string]any, cache *registry.Cache) (analysis.Tokenizer, error) {
 			return tokenizer.NewChineseTokenizer(), nil
 		}); err != nil {
 			logger.Panic("注册中文分词器失败: " + err.Error())
