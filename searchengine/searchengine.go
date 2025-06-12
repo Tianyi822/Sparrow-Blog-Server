@@ -53,8 +53,10 @@ var (
 // Search 执行搜索操作，使用改进的字段特定查询确保中文搜索正常工作
 func Search(req SearchRequest) (*SearchResponse, error) {
 	// 设置默认值
-	if req.Size <= 0 {
-		req.Size = 10
+	if req.Size < 0 {
+		req.Size = 10 // 负数时使用默认值
+	} else if req.Size == 0 {
+		req.Size = 1000 // 0表示返回所有结果，设置一个合理的最大值
 	}
 	if req.From < 0 {
 		req.From = 0
@@ -183,12 +185,10 @@ func getAllDocs(ctx context.Context) ([]doc.Doc, error) {
 	return docs, nil
 }
 
-func CloseIndex() error {
+func CloseIndex() {
 	if Index != nil {
 		if err := Index.Close(); err != nil {
-			return err
+			logger.Error("关闭索引文件失败: " + err.Error())
 		}
 	}
-
-	return nil
 }
