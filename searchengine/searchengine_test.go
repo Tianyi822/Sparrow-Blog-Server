@@ -2,14 +2,11 @@ package searchengine
 
 import (
 	"context"
-	"os"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/storage"
 	"strings"
 	"testing"
-
-	"sparrow_blog_server/pkg/filetool"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/search"
@@ -520,141 +517,6 @@ func TestSearchTest(t *testing.T) {
 	}
 }
 
-// TestRecreateIndex 测试重建索引，诊断内容加载问题
-func TestRecreateIndex(t *testing.T) {
-	// 删除现有索引文件强制重建
-	indexPath := config.SearchEngine.IndexPath
-	if filetool.IsExist(indexPath) {
-		err := os.RemoveAll(indexPath)
-		if err != nil {
-			t.Fatalf("删除索引文件失败: %v", err)
-		}
-		t.Logf("已删除现有索引文件: %s", indexPath)
-	}
-
-	// 重新初始化索引
-	err := LoadingIndex(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// 测试目标文档
-	expectedDocID := "e84f1230f7358390"
-
-	// 获取所有文档查看详情
-	allQuery := bleve.NewMatchAllQuery()
-	allRequest := bleve.NewSearchRequest(allQuery)
-	allRequest.Size = 100
-	allRequest.Fields = []string{"Title", "Content"}
-
-	allResult, err := Index.Search(allRequest)
-	if err != nil {
-		t.Fatalf("搜索失败: %v", err)
-	}
-
-	t.Logf("重建后索引包含 %d 个文档", allResult.Total)
-
-	// 查找目标文档
-	var targetFound bool
-	for _, hit := range allResult.Hits {
-		if hit.ID == expectedDocID {
-			targetFound = true
-			t.Logf("找到目标文档:")
-			t.Logf("  ID: %s", hit.ID)
-
-			if title, ok := hit.Fields["Title"]; ok {
-				t.Logf("  标题: %s", title)
-			} else {
-				t.Logf("  标题: [缺失]")
-			}
-
-			if content, ok := hit.Fields["Content"]; ok {
-				switch v := content.(type) {
-				case []byte:
-					contentStr := string(v)
-					t.Logf("  内容长度: %d 字节", len(v))
-					if len(contentStr) > 0 {
-						preview := contentStr
-						if len(contentStr) > 200 {
-							preview = contentStr[:200] + "..."
-						}
-						t.Logf("  内容预览: %s", preview)
-
-						// 检查是否包含"test"
-						if strings.Contains(strings.ToLower(contentStr), "test") {
-							t.Logf("  ✓ 内容包含'test'关键词")
-						} else {
-							t.Logf("  ✗ 内容不包含'test'关键词")
-						}
-					} else {
-						t.Logf("  内容: [空]")
-					}
-				case string:
-					t.Logf("  内容长度: %d 字符", len(v))
-					if len(v) > 0 {
-						preview := v
-						if len(v) > 200 {
-							preview = v[:200] + "..."
-						}
-						t.Logf("  内容预览: %s", preview)
-
-						// 检查是否包含"test"
-						if strings.Contains(strings.ToLower(v), "test") {
-							t.Logf("  ✓ 内容包含'test'关键词")
-						} else {
-							t.Logf("  ✗ 内容不包含'test'关键词")
-						}
-					} else {
-						t.Logf("  内容: [空]")
-					}
-				default:
-					t.Logf("  内容类型: %T", v)
-				}
-			} else {
-				t.Logf("  内容: [缺失字段]")
-			}
-			break
-		}
-	}
-
-	if !targetFound {
-		t.Logf("未找到目标文档 %s", expectedDocID)
-		t.Logf("现有文档列表:")
-		for i, hit := range allResult.Hits {
-			if i < 10 { // 只显示前10个
-				t.Logf("  - %s", hit.ID)
-			}
-		}
-	}
-
-	// 如果找到了文档，测试搜索功能
-	if targetFound {
-		searchTerms := []string{"test", "测试"}
-		for _, term := range searchTerms {
-			t.Logf("\n--- 搜索关键词: %s ---", term)
-
-			query := bleve.NewMatchQuery(term)
-			searchRequest := bleve.NewSearchRequest(query)
-			searchRequest.Size = 10
-			searchRequest.Fields = []string{"Title", "Content"}
-			searchRequest.Highlight = bleve.NewHighlight()
-
-			result, err := Index.Search(searchRequest)
-			if err != nil {
-				t.Errorf("搜索'%s'失败: %v", term, err)
-				continue
-			}
-
-			t.Logf("搜索结果总数: %d", result.Total)
-			for _, hit := range result.Hits {
-				if hit.ID == expectedDocID {
-					t.Logf("  ✓ 成功匹配目标文档 %s", expectedDocID)
-				}
-			}
-		}
-	}
-}
-
 // TestSearchEngineUsageExample 搜索引擎使用示例和最佳实践
 func TestSearchEngineUsageExample(t *testing.T) {
 	t.Log("=== 搜索引擎使用示例 ===")
@@ -685,7 +547,7 @@ func TestSearchEngineUsageExample(t *testing.T) {
 	// 3. 高级搜索示例
 	t.Log("\n--- 步骤3: 高级搜索示例 ---")
 	advancedReq := SearchRequest{
-		Query:     "test",                       // 搜索关键词
+		Query:     "测试",                       // 搜索关键词
 		Size:      3,                            // 限制返回3个结果
 		From:      0,                            // 从第0个开始（分页）
 		Fields:    []string{"Title", "Content"}, // 指定返回字段

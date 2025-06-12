@@ -5,6 +5,8 @@ import "github.com/gin-gonic/gin"
 func Router(e *gin.Engine) {
 	webGroup := e.Group("/web")
 
+	webGroup.GET("/basic-data", getBasicData)
+
 	{
 		sysGroup := webGroup.Group("/sys")
 
@@ -23,5 +25,9 @@ func Router(e *gin.Engine) {
 		blogGroup.GET("/:blog_id", getBlogData)
 	}
 
-	webGroup.GET("/basic-data", getBasicData)
+	{
+		searchGroup := webGroup.Group("/search")
+
+		searchGroup.GET("/:content", searchContent)
+	}
 }

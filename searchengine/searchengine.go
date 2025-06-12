@@ -20,13 +20,14 @@ import (
 
 // 字段名常量，避免硬编码
 const (
-	FieldID      = "ID"      // 文档ID字段
+	FieldID      = "ID"      // 文档 ID 字段
+	FieldImgId   = "ImgId"   // 图片 ID 字段
 	FieldTitle   = "Title"   // 标题字段
 	FieldContent = "Content" // 内容字段
 )
 
-// 默认搜索字段
-var DefaultSearchFields = []string{FieldTitle, FieldContent}
+// DefaultSearchFields 默认搜索字段
+var DefaultSearchFields = []string{FieldID, FieldImgId, FieldTitle, FieldContent}
 
 // SearchRequest 搜索请求结构
 type SearchRequest struct {
@@ -53,8 +54,10 @@ var (
 // Search 执行搜索操作，使用改进的字段特定查询确保中文搜索正常工作
 func Search(req SearchRequest) (*SearchResponse, error) {
 	// 设置默认值
-	if req.Size <= 0 {
-		req.Size = 10
+	if req.Size < 0 {
+		req.Size = 10 // 负数时使用默认值
+	} else if req.Size == 0 {
+		req.Size = 1000 // 0表示返回所有结果，设置一个合理的最大值
 	}
 	if req.From < 0 {
 		req.From = 0
@@ -115,7 +118,7 @@ func LoadingIndex(ctx context.Context) error {
 
 	loadingOnce.Do(func() {
 		// 首先注册中文分词器，确保无论是创建新索引还是加载已存在索引都能正常工作
-		if err := registry.RegisterTokenizer("chinese", func(config map[string]interface{}, cache *registry.Cache) (analysis.Tokenizer, error) {
+		if err := registry.RegisterTokenizer("chinese", func(config map[string]any, cache *registry.Cache) (analysis.Tokenizer, error) {
 			return tokenizer.NewChineseTokenizer(), nil
 		}); err != nil {
 			logger.Panic("注册中文分词器失败: " + err.Error())
@@ -167,7 +170,7 @@ func LoadingIndex(ctx context.Context) error {
 
 // getAllDocs 获取所有文章
 func getAllDocs(ctx context.Context) ([]doc.Doc, error) {
-	blogDtos, err := blogrepo.FindAllBlogs(ctx, false)
+	blogDtos, err := blogrepo.FindAllBlogs(ctx, true)
 	if err != nil {
 		return nil, err
 	}
@@ -176,6 +179,7 @@ func getAllDocs(ctx context.Context) ([]doc.Doc, error) {
 	for i, blogDto := range blogDtos {
 		docs[i] = doc.Doc{
 			ID:    blogDto.BlogId,
+			ImgId: blogDto.BlogImageId,
 			Title: blogDto.BlogTitle,
 		}
 	}
@@ -183,12 +187,10 @@ func getAllDocs(ctx context.Context) ([]doc.Doc, error) {
 	return docs, nil
 }
 
-func CloseIndex() error {
+func CloseIndex() {
 	if Index != nil {
 		if err := Index.Close(); err != nil {
-			return err
+			logger.Error("关闭索引文件失败: " + err.Error())
 		}
 	}
-
-	return nil
 }

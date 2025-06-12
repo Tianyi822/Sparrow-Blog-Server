@@ -13,6 +13,7 @@ import (
 	"sparrow_blog_server/routers"
 	"sparrow_blog_server/routers/adminrouter"
 	"sparrow_blog_server/routers/webrouter"
+	"sparrow_blog_server/searchengine"
 	"sparrow_blog_server/storage"
 	"syscall"
 	"time"
@@ -33,6 +34,11 @@ func loadComponent(ctx context.Context) {
 	err = storage.InitStorage(ctx)
 	if err != nil {
 		panic("数据层初始化失败，请检查配置文件是否有误")
+	}
+	// 加载搜索引擎
+	err = searchengine.LoadingIndex(ctx)
+	if err != nil {
+		panic("搜索引擎初始化失败，请检查配置文件是否有误")
 	}
 }
 
@@ -86,6 +92,11 @@ func closeWebServer(srv *http.Server) {
 	logger.Info("关闭数据层")
 	storage.Storage.Close(ctx)
 	logger.Info("数据层已关闭")
+
+	// 关闭搜索引擎
+	logger.Info("关闭搜索引擎")
+	searchengine.CloseIndex()
+	logger.Info("搜索引擎已关闭")
 
 	logger.Info("正在关闭服务")
 	// 定时优雅关闭服务（将未处理完的请求处理完再关闭服务），超时就退出
