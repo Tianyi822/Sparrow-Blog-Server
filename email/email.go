@@ -51,7 +51,7 @@ func SendVerificationCodeByArgs(ctx context.Context, email, smtpAccount, smtpAdd
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>H2Blog 验证码</title>
+    <title>Sparrow Blog 验证码</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
