@@ -20,13 +20,14 @@ import (
 
 // 字段名常量，避免硬编码
 const (
-	FieldID      = "ID"      // 文档ID字段
+	FieldID      = "ID"      // 文档 ID 字段
+	FieldImgId   = "ImgId"   // 图片 ID 字段
 	FieldTitle   = "Title"   // 标题字段
 	FieldContent = "Content" // 内容字段
 )
 
 // DefaultSearchFields 默认搜索字段
-var DefaultSearchFields = []string{FieldTitle, FieldContent}
+var DefaultSearchFields = []string{FieldID, FieldImgId, FieldTitle, FieldContent}
 
 // SearchRequest 搜索请求结构
 type SearchRequest struct {
@@ -169,7 +170,7 @@ func LoadingIndex(ctx context.Context) error {
 
 // getAllDocs 获取所有文章
 func getAllDocs(ctx context.Context) ([]doc.Doc, error) {
-	blogDtos, err := blogrepo.FindAllBlogs(ctx, false)
+	blogDtos, err := blogrepo.FindAllBlogs(ctx, true)
 	if err != nil {
 		return nil, err
 	}
@@ -178,6 +179,7 @@ func getAllDocs(ctx context.Context) ([]doc.Doc, error) {
 	for i, blogDto := range blogDtos {
 		docs[i] = doc.Doc{
 			ID:    blogDto.BlogId,
+			ImgId: blogDto.BlogImageId,
 			Title: blogDto.BlogTitle,
 		}
 	}

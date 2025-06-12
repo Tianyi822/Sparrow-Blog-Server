@@ -115,14 +115,19 @@ func searchContent(ctx *gin.Context) {
 			}
 		}
 
+		// 提取文章封面图片 ID
+		if imgId, exists := hit.Fields[searchengine.FieldImgId]; exists {
+			if imgIdStr, ok := imgId.(string); ok {
+				result["img_id"] = imgIdStr
+			}
+		}
+
 		// 处理高亮片段
 		if len(hit.Fragments) > 0 {
 			highlights := make(map[string][]string)
 			for field, fragments := range hit.Fragments {
 				highlightList := make([]string, len(fragments))
-				for i, fragment := range fragments {
-					highlightList[i] = string(fragment)
-				}
+				copy(highlightList, fragments)
 				highlights[field] = highlightList
 			}
 			result["highlights"] = highlights

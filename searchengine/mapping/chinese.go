@@ -63,9 +63,16 @@ func CreateChineseMapping() (mapping.IndexMapping, error) {
 	idField.Index = true
 	idField.Analyzer = "keyword" // 使用keyword分析器，不分词
 
+	// ImgId字段配置（用于精确匹配，不需要分析器）
+	imgIdField := bleve.NewTextFieldMapping()
+	imgIdField.Store = true
+	imgIdField.Index = true
+	imgIdField.Analyzer = "keyword" // 使用keyword分析器，不分词
+
 	// 6. 将字段映射添加到默认文档映射
 	// 这一步将之前定义的字段映射到文档映射中，以便在索引时应用这些配置
 	defaultMapping.AddFieldMappingsAt("ID", idField)
+	defaultMapping.AddFieldMappingsAt("ImgId", imgIdField)
 	defaultMapping.AddFieldMappingsAt("Title", titleField)
 	defaultMapping.AddFieldMappingsAt("Content", contentField)
 

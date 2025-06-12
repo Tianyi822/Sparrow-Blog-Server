@@ -9,6 +9,7 @@ import (
 
 type Doc struct {
 	ID      string // 文档 ID
+	ImgId   string // 图片 ID
 	Title   string // 文档标题
 	Content []byte // 文档内容
 }
@@ -31,6 +32,7 @@ func (d *Doc) GetContentString() string {
 func (d *Doc) IndexedDoc() map[string]interface{} {
 	return map[string]interface{}{
 		"ID":      d.ID,
+		"ImgId":   d.ImgId,
 		"Title":   d.Title,
 		"Content": d.GetContentString(), // 将[]byte转换为string
 	}
