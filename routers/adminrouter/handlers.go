@@ -991,7 +991,7 @@ func updateLoggerConfig(ctx *gin.Context) {
 		resp.BadRequest(ctx, msg, nil)
 		return
 	}
-	dirPath = filepath.Join(dirPath, "h2blog.log")
+	dirPath = filepath.Join(dirPath, "sparrow_blog.log")
 
 	// 获取并验证日志文件保留时间
 	maxAge, getErr := tools.GetUInt16FromRawData(rawData, "logger.max_age")
@@ -1333,9 +1333,9 @@ func updateCacheConfig(ctx *gin.Context) {
 		return
 	}
 	if strings.HasSuffix(aofDirPath, "/aof") {
-		cacheConfig.Aof.Path = filepath.Join(aofDirPath, "h2blog.aof")
+		cacheConfig.Aof.Path = filepath.Join(aofDirPath, "sparrow_blog.aof")
 	} else {
-		cacheConfig.Aof.Path = filepath.Join(aofDirPath, "aof", "h2blog.aof")
+		cacheConfig.Aof.Path = filepath.Join(aofDirPath, "aof", "sparrow_blog.aof")
 	}
 
 	cacheConfig.Aof.MaxSize, err = tools.GetUInt16FromRawData(rawData, "cache.aof.max_size")
