@@ -549,7 +549,7 @@ func TestSearchEngineUsageExample(t *testing.T) {
 	// 3. 高级搜索示例
 	t.Log("\n--- 步骤3: 高级搜索示例 ---")
 	advancedReq := SearchRequest{
-		Query:     "测试",                       // 搜索关键词
+		Query:     "测试",                         // 搜索关键词
 		Size:      3,                            // 限制返回3个结果
 		From:      0,                            // 从第0个开始（分页）
 		Fields:    []string{"Title", "Content"}, // 指定返回字段
