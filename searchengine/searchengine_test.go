@@ -152,7 +152,7 @@ func TestChineseTokenizationDiagnostic(t *testing.T) {
 					t.Logf("  内容长度: %d", len(contentStr))
 					// 检查内容中是否包含"测试"
 					if len(contentStr) > 0 {
-						t.Logf("  内容预览: %s...", contentStr[:min(200, len(contentStr))])
+						t.Logf("  内容预览: %s...", contentStr[:minInt(200, len(contentStr))])
 						if strings.Contains(contentStr, "测试") {
 							t.Log("  ✓ 内容包含'测试'字符串")
 						} else {
@@ -228,7 +228,7 @@ func TestChineseTokenizationDiagnostic(t *testing.T) {
 	}
 }
 
-func min(a, b int) int {
+func minInt(a, b int) int {
 	if a < b {
 		return a
 	}
