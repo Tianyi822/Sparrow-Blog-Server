@@ -2,7 +2,7 @@ package routers
 
 import (
 	"github.com/gin-gonic/gin"
-	middleware2 "sparrow_blog_server/routers/middleware"
+	"sparrow_blog_server/routers/middleware"
 )
 
 // Option 接受一个 *gin.Engine 类型的参数
@@ -21,7 +21,7 @@ func InitRouter() *gin.Engine {
 	r := gin.New()
 
 	// 添加自定义的中间件
-	r.Use(middleware2.Logger(), middleware2.RunTimeCors(), gin.Recovery())
+	r.Use(middleware.Logger(), middleware.RunTimeCors(), gin.Recovery())
 
 	for _, opt := range options {
 		opt(r)

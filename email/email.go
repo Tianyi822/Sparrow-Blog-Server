@@ -124,7 +124,7 @@ func SendVerificationCodeByArgs(ctx context.Context, email, smtpAccount, smtpAdd
     <div class="container">
         <div class="logo">
             <!-- 替换为实际的博客logo -->
-            <h2 style="color: #3182ce;">H2Blog</h2>
+            <h2 style="color: #3182ce;">Sparrow Blog</h2>
         </div>
         
         <h1>验证您的邮箱</h1>

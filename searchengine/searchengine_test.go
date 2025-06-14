@@ -2,11 +2,13 @@ package searchengine
 
 import (
 	"context"
+	"errors"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/storage"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/search"
@@ -547,7 +549,7 @@ func TestSearchEngineUsageExample(t *testing.T) {
 	// 3. 高级搜索示例
 	t.Log("\n--- 步骤3: 高级搜索示例 ---")
 	advancedReq := SearchRequest{
-		Query:     "测试",                       // 搜索关键词
+		Query:     "测试",                         // 搜索关键词
 		Size:      3,                            // 限制返回3个结果
 		From:      0,                            // 从第0个开始（分页）
 		Fields:    []string{"Title", "Content"}, // 指定返回字段
@@ -896,5 +898,193 @@ func TestNewSearchFunction(t *testing.T) {
 	} else {
 		t.Logf("默认参数搜索结果: 找到 %d 个文档", defaultResult.Total)
 		t.Logf("返回结果数: %d (应该<=10)", len(defaultResult.Hits))
+	}
+}
+
+// TestRebuildIndex 测试重建索引功能
+func TestRebuildIndex(t *testing.T) {
+	t.Log("=== 测试重建索引功能 ===")
+
+	// 1. 首先确保有一个现有的索引
+	t.Log("\n--- 步骤1: 初始化现有索引 ---")
+	err := LoadingIndex(context.Background())
+	if err != nil {
+		t.Fatal("初始化索引失败:", err)
+	}
+
+	// 获取重建前的索引统计信息
+	originalDocCount, err := Index.DocCount()
+	if err != nil {
+		t.Fatal("获取原始文档数量失败:", err)
+	}
+	t.Logf("重建前索引文档数量: %d", originalDocCount)
+
+	// 2. 执行搜索测试，确保索引正常工作
+	t.Log("\n--- 步骤2: 重建前搜索测试 ---")
+	beforeReq := SearchRequest{
+		Query:  "test",
+		Size:   5,
+		Fields: []string{"Title", "Content"},
+	}
+
+	beforeResult, err := Search(beforeReq)
+	if err != nil {
+		t.Error("重建前搜索失败:", err)
+	} else {
+		t.Logf("重建前搜索结果: 找到 %d 个文档", beforeResult.Total)
+	}
+
+	// 3. 执行重建索引
+	t.Log("\n--- 步骤3: 执行重建索引 ---")
+	ctx := context.Background()
+
+	// 使用带超时的上下文，防止测试无限等待
+	ctx, cancel := context.WithTimeout(ctx, 300*time.Second) // 5分钟超时
+	defer cancel()
+
+	err = RebuildIndex(ctx)
+	if err != nil {
+		t.Fatal("重建索引失败:", err)
+	}
+	t.Log("✓ 重建索引成功完成")
+
+	// 4. 验证重建后的索引
+	t.Log("\n--- 步骤4: 验证重建后的索引 ---")
+
+	// 检查索引是否仍然可用
+	if Index == nil {
+		t.Fatal("重建后索引为nil")
+	}
+
+	// 获取重建后的文档数量
+	rebuiltDocCount, err := Index.DocCount()
+	if err != nil {
+		t.Fatal("获取重建后文档数量失败:", err)
+	}
+	t.Logf("重建后索引文档数量: %d", rebuiltDocCount)
+
+	// 验证文档数量是否一致
+	if rebuiltDocCount != originalDocCount {
+		t.Errorf("重建后文档数量不一致: 原始=%d, 重建后=%d", originalDocCount, rebuiltDocCount)
+	} else {
+		t.Log("✓ 重建后文档数量一致")
+	}
+
+	// 5. 执行搜索测试，确保重建后索引正常工作
+	t.Log("\n--- 步骤5: 重建后搜索测试 ---")
+
+	// 测试英文搜索
+	afterReq := SearchRequest{
+		Query:     "test",
+		Size:      5,
+		Fields:    []string{"Title", "Content"},
+		Highlight: true,
+	}
+
+	afterResult, err := Search(afterReq)
+	if err != nil {
+		t.Error("重建后英文搜索失败:", err)
+	} else {
+		t.Logf("重建后英文搜索结果: 找到 %d 个文档", afterResult.Total)
+
+		// 比较重建前后的搜索结果
+		if beforeResult.Total == afterResult.Total {
+			t.Log("✓ 重建前后英文搜索结果数量一致")
+		} else {
+			t.Logf("⚠ 重建前后英文搜索结果数量不同: 重建前=%d, 重建后=%d",
+				beforeResult.Total, afterResult.Total)
+		}
+	}
+
+	// 测试中文搜索
+	chineseReq := SearchRequest{
+		Query:     "测试",
+		Size:      3,
+		Fields:    []string{"Title", "Content"},
+		Highlight: true,
+	}
+
+	chineseResult, err := Search(chineseReq)
+	if err != nil {
+		t.Error("重建后中文搜索失败:", err)
+	} else {
+		t.Logf("重建后中文搜索结果: 找到 %d 个文档", chineseResult.Total)
+
+		// 显示搜索结果详情
+		for i, hit := range chineseResult.Hits {
+			t.Logf("  结果 %d: ID=%s, Score=%.2f", i+1, hit.ID, hit.Score)
+
+			// 显示高亮片段
+			if len(hit.Fragments) > 0 {
+				for field, fragments := range hit.Fragments {
+					for _, fragment := range fragments {
+						t.Logf("    高亮[%s]: %s", field, fragment)
+					}
+				}
+			}
+		}
+	}
+
+	// 6. 测试索引统计信息
+	t.Log("\n--- 步骤6: 验证索引统计信息 ---")
+	stats := Index.Stats()
+	statsJSON, _ := stats.MarshalJSON()
+	t.Logf("重建后索引统计信息: %s", string(statsJSON))
+
+	t.Log("\n=== 重建索引测试完成 ===")
+}
+
+// TestRebuildIndexWithCancel 测试重建索引的取消功能
+func TestRebuildIndexWithCancel(t *testing.T) {
+	t.Log("=== 测试重建索引取消功能 ===")
+
+	// 1. 首先确保有一个现有的索引
+	err := LoadingIndex(context.Background())
+	if err != nil {
+		t.Fatal("初始化索引失败:", err)
+	}
+
+	// 2. 创建一个会被取消的上下文
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// 立即取消上下文
+	cancel()
+
+	// 3. 尝试重建索引（应该立即返回取消错误）
+	err = RebuildIndex(ctx)
+	if err == nil {
+		t.Error("期望重建索引因上下文取消而失败，但实际成功了")
+	} else if errors.Is(err, context.Canceled) {
+		t.Log("✓ 重建索引正确响应了上下文取消")
+	} else {
+		t.Logf("重建索引返回了其他错误: %v", err)
+	}
+}
+
+// TestRebuildIndexWithTimeout 测试重建索引的超时功能
+func TestRebuildIndexWithTimeout(t *testing.T) {
+	t.Log("=== 测试重建索引超时功能 ===")
+
+	// 1. 首先确保有一个现有的索引
+	err := LoadingIndex(context.Background())
+	if err != nil {
+		t.Fatal("初始化索引失败:", err)
+	}
+
+	// 2. 创建一个很短超时的上下文（1毫秒）
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	defer cancel()
+
+	// 等待一下确保超时
+	time.Sleep(10 * time.Millisecond)
+
+	// 3. 尝试重建索引（应该因超时而失败）
+	err = RebuildIndex(ctx)
+	if err == nil {
+		t.Error("期望重建索引因超时而失败，但实际成功了")
+	} else if errors.Is(err, context.DeadlineExceeded) {
+		t.Log("✓ 重建索引正确响应了超时")
+	} else {
+		t.Logf("重建索引返回了其他错误: %v", err)
 	}
 }

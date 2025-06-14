@@ -2,6 +2,7 @@ package searchengine
 
 import (
 	"context"
+	"fmt"
 	"sparrow_blog_server/internal/repositories/blogrepo"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/filetool"
@@ -193,4 +194,112 @@ func CloseIndex() {
 			logger.Error("关闭索引文件失败: " + err.Error())
 		}
 	}
+}
+
+// RebuildIndex 重建搜索索引。
+// 该函数会删除现有索引文件，重新创建索引并重新索引所有文档。
+// 适用于索引损坏、映射更新或需要完全重建索引的场景。
+//
+// 参数：
+//   - ctx: 上下文，用于取消操作和超时控制
+//
+// 返回值：
+//   - error: 如果重建失败则返回错误，成功则返回 nil
+func RebuildIndex(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	logger.Info("开始重建搜索索引")
+
+	// 1. 关闭现有索引
+	if Index != nil {
+		if err := Index.Close(); err != nil {
+			logger.Error("关闭现有索引失败: " + err.Error())
+		}
+		Index = nil
+	}
+
+	// 2. 删除现有索引文件
+	if filetool.IsExist(config.SearchEngine.IndexPath) {
+		logger.Info("删除现有索引文件")
+		if err := filetool.ForceRemove(config.SearchEngine.IndexPath); err != nil {
+			return err
+		}
+	}
+
+	// 3. 重新注册中文分词器（确保分词器可用）
+	if err := registry.RegisterTokenizer("chinese", func(config map[string]any, cache *registry.Cache) (analysis.Tokenizer, error) {
+		return tokenizer.NewChineseTokenizer(), nil
+	}); err != nil {
+		// 如果分词器已存在，忽略错误
+		logger.Warn("注册中文分词器警告: " + err.Error())
+	}
+
+	// 4. 创建新的索引映射
+	logger.Info("创建新的索引映射")
+	chineseMapping, err := mapping.CreateChineseMapping()
+	if err != nil {
+		return err
+	}
+
+	// 5. 创建新索引
+	logger.Info("创建新索引文件")
+	newIndex, err := bleve.New(config.SearchEngine.IndexPath, chineseMapping)
+	if err != nil {
+		return err
+	}
+
+	// 6. 获取所有文档
+	logger.Info("获取所有文档数据")
+	docs, err := getAllDocs(ctx)
+	if err != nil {
+		newIndex.Close()
+		return err
+	}
+
+	// 7. 重新索引所有文档
+	logger.Info("开始重新索引所有文档")
+	successCount := 0
+	errorCount := 0
+
+	for i, d := range docs {
+		select {
+		case <-ctx.Done():
+			newIndex.Close()
+			return ctx.Err()
+		default:
+		}
+
+		// 获取文档内容
+		if err := d.GetContent(ctx); err != nil {
+			logger.Error("获取文档内容失败 ID = " + d.ID + ": " + err.Error())
+			errorCount++
+			continue
+		}
+
+		// 索引文档
+		if err := newIndex.Index(d.ID, d.IndexedDoc()); err != nil {
+			logger.Error("索引文档失败 ID = " + d.ID + ": " + err.Error())
+			errorCount++
+		} else {
+			successCount++
+			if (i+1)%100 == 0 || i == len(docs)-1 {
+				logger.Info("索引进度: " + fmt.Sprintf("%d/%d", i+1, len(docs)))
+			}
+		}
+	}
+
+	// 8. 更新全局索引引用
+	Index = newIndex
+
+	logger.Info("重建索引完成")
+	logger.Info("成功索引文档数: " + fmt.Sprintf("%d", successCount))
+	if errorCount > 0 {
+		logger.Warn("索引失败文档数: " + fmt.Sprintf("%d", errorCount))
+	}
+
+	return nil
 }

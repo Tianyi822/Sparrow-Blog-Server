@@ -1,8 +1,10 @@
 package adminrouter
 
 import (
-	"github.com/gin-gonic/gin"
+	"sparrow_blog_server/env"
 	"sparrow_blog_server/routers/middleware"
+
+	"github.com/gin-gonic/gin"
 )
 
 func Routers(e *gin.Engine) {
@@ -16,15 +18,24 @@ func Routers(e *gin.Engine) {
 		loginGroup.GET("/user-info", getUserInfo)
 
 		loginGroup.POST("/verification-code", sendLoginVerificationCode)
+	}
 
-		// 退出登录需要鉴权 token
-		adminGroup.Use(middleware.AnalyzeJWT()).GET("/logout", logout)
+	{
+		logoutGroup := adminGroup.Group("/logout")
+
+		if env.CurrentEnv == env.ProdEnv {
+			logoutGroup.Use(middleware.AnalyzeJWT())
+		}
+
+		logoutGroup.GET("", logout)
 	}
 
 	{
 		ossGroup := adminGroup.Group("/oss")
 
-		ossGroup.Use(middleware.AnalyzeJWT())
+		if env.CurrentEnv == env.ProdEnv {
+			ossGroup.Use(middleware.AnalyzeJWT())
+		}
 
 		ossGroup.GET("/pre_sign_url/:file_name/type/:file_type", genPresignPutUrl)
 	}
@@ -32,7 +43,9 @@ func Routers(e *gin.Engine) {
 	{
 		postsGroup := adminGroup.Group("/posts")
 
-		postsGroup.Use(middleware.AnalyzeJWT())
+		if env.CurrentEnv == env.ProdEnv {
+			postsGroup.Use(middleware.AnalyzeJWT())
+		}
 
 		postsGroup.GET("/all-blogs", getAllBlogs)
 
@@ -46,7 +59,9 @@ func Routers(e *gin.Engine) {
 	{
 		editGroup := adminGroup.Group("/edit")
 
-		editGroup.Use(middleware.AnalyzeJWT())
+		if env.CurrentEnv == env.ProdEnv {
+			editGroup.Use(middleware.AnalyzeJWT())
+		}
 
 		editGroup.GET("/all-tags-categories", getAllTagsCategories)
 
@@ -58,7 +73,9 @@ func Routers(e *gin.Engine) {
 	{
 		galleryGroup := adminGroup.Group("/gallery")
 
-		galleryGroup.Use(middleware.AnalyzeJWT())
+		if env.CurrentEnv == env.ProdEnv {
+			galleryGroup.Use(middleware.AnalyzeJWT())
+		}
 
 		galleryGroup.POST("/add", addImgs)
 
@@ -74,7 +91,9 @@ func Routers(e *gin.Engine) {
 	{
 		settingGroup := adminGroup.Group("/setting")
 
-		settingGroup.Use(middleware.AnalyzeJWT())
+		if env.CurrentEnv == env.ProdEnv {
+			settingGroup.Use(middleware.AnalyzeJWT())
+		}
 
 		settingGroup.GET("/user/config", getUserConfig)
 
@@ -102,8 +121,10 @@ func Routers(e *gin.Engine) {
 
 		settingGroup.PUT("/oss/config", updateOssConfig)
 
-		settingGroup.GET("/cache/config", getCacheConfig)
+		settingGroup.GET("/cache-index/config", getCacheAndIndexConfig)
 
-		settingGroup.PUT("/cache/config", updateCacheConfig)
+		settingGroup.PUT("/cache-index/config", updateCacheAndIndexConfig)
+
+		settingGroup.PUT("/cache-index/rebuild-index", rebuildIndex)
 	}
 }
