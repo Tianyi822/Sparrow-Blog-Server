@@ -1273,7 +1273,7 @@ func updateOssConfig(ctx *gin.Context) {
 	resp.Ok(ctx, "更新成功", nil)
 }
 
-// getCacheConfig 获取缓存配置信息
+// getCacheAndIndexConfig 获取缓存配置信息
 // 参数:
 //   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
 //
@@ -1284,16 +1284,17 @@ func updateOssConfig(ctx *gin.Context) {
 //     - AOF文件大小限制 (aof_mix_size)
 //     - AOF文件是否压缩 (aof_compress)
 //  2. 将配置信息封装为map结构返回给客户端
-func getCacheConfig(ctx *gin.Context) {
+func getCacheAndIndexConfig(ctx *gin.Context) {
 	resp.Ok(ctx, "获取成功", map[string]any{
 		"enable_aof":   config.Cache.Aof.Enable,
 		"aof_dir_path": filepath.Dir(config.Cache.Aof.Path),
 		"aof_mix_size": config.Cache.Aof.MaxSize,
 		"aof_compress": config.Cache.Aof.Compress,
+		"index_path":   config.SearchEngine.IndexPath,
 	})
 }
 
-// updateCacheConfig 更新缓存配置信息
+// updateCacheAndIndexConfig 更新缓存配置信息
 // 参数:
 //   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
 //
@@ -1306,7 +1307,7 @@ func getCacheConfig(ctx *gin.Context) {
 //     - AOF文件压缩选项
 //  3. 更新系统配置并保存
 //  4. 返回操作结果
-func updateCacheConfig(ctx *gin.Context) {
+func updateCacheAndIndexConfig(ctx *gin.Context) {
 	// 从请求中解析原始数据
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
@@ -1352,8 +1353,25 @@ func updateCacheConfig(ctx *gin.Context) {
 		return
 	}
 
+	// 从请求中获取文本搜索引擎索引文件路径
+	indexPath, err := tools.GetStringFromRawData(rawData, "search_engine.index_path")
+	if err != nil {
+		msg := fmt.Sprintf("索引文件路径解析错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
+		return
+	}
+	indexPath, err = tools.AnalyzeAbsolutePath(indexPath)
+	if err != nil {
+		msg := fmt.Sprintf("索引文件路径配置错误: %s", err.Error())
+		resp.BadRequest(ctx, msg, nil)
+		return
+	}
+
 	// 将缓存配置赋值给全局变量。
 	config.Cache = cacheConfig
+
+	// 更新索引文件路径
+	config.SearchEngine.IndexPath = indexPath
 
 	// 更新配置到存储系统
 	if upErr := adminservices.UpdateConfig(); upErr != nil {

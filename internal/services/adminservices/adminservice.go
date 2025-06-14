@@ -98,12 +98,13 @@ func Logout(ctx context.Context, token string) error {
 func UpdateConfig() error {
 	// 创建一个 projConfig 实例，填充当前项目的配置信息。
 	projConfig := config.ProjectConfig{
-		User:   config.User,
-		Server: config.Server,
-		MySQL:  config.MySQL,
-		Oss:    config.Oss,
-		Cache:  config.Cache,
-		Logger: config.Logger,
+		User:         config.User,
+		Server:       config.Server,
+		MySQL:        config.MySQL,
+		Oss:          config.Oss,
+		Cache:        config.Cache,
+		Logger:       config.Logger,
+		SearchEngine: config.SearchEngine,
 	}
 
 	// 调用 projConfig 的 Store 方法，尝试将配置信息持久化。
