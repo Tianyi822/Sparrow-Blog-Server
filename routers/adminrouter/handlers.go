@@ -1,6 +1,25 @@
 package adminrouter
 
+/*
+搜索索引管理API说明:
+
+重建索引接口:
+   PUT /admin/setting/cache-index/rebuild-index
+   - 功能: 完全重建搜索索引
+   - 权限: 需要管理员JWT认证
+   - 超时: 10分钟
+   - 响应: 包含重建耗时和结果信息
+
+使用场景:
+- 索引损坏时的修复
+- 索引映射更新后的重建
+- 定期维护和优化
+- 数据同步确保一致性
+*/
+
 import (
+	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"sparrow_blog_server/email"
@@ -10,6 +29,7 @@ import (
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/routers/resp"
 	"sparrow_blog_server/routers/tools"
+	"sparrow_blog_server/searchengine"
 	"sparrow_blog_server/storage"
 	"sparrow_blog_server/storage/ossstore"
 	"strings"
@@ -726,8 +746,7 @@ func updateUserVisuals(ctx *gin.Context) {
 	}
 	if !flag {
 		// 背景图片不存在时返回错误信息
-		msg := fmt.Sprintf("背景图片不存在")
-		resp.BadRequest(ctx, msg, nil)
+		resp.BadRequest(ctx, "背景图片不存在", nil)
 		return
 	}
 
@@ -741,8 +760,7 @@ func updateUserVisuals(ctx *gin.Context) {
 	}
 	if !flag {
 		// 头像图片不存在时返回错误信息
-		msg := fmt.Sprintf("头像图片不存在")
-		resp.BadRequest(ctx, msg, nil)
+		resp.BadRequest(ctx, "头像图片不存在", nil)
 		return
 	}
 
@@ -756,8 +774,7 @@ func updateUserVisuals(ctx *gin.Context) {
 	}
 	if !flag {
 		// 网站logo图片不存在时返回错误信息
-		msg := fmt.Sprintf("网站logo图片不存在")
-		resp.BadRequest(ctx, msg, nil)
+		resp.BadRequest(ctx, "网站logo图片不存在", nil)
 		return
 	}
 
@@ -871,8 +888,7 @@ func updateServerConfig(ctx *gin.Context) {
 		}()
 
 		if vefCodeInCache != vefCode {
-			msg := fmt.Sprintf("验证码错误")
-			resp.BadRequest(ctx, msg, nil)
+			resp.BadRequest(ctx, "验证码错误", nil)
 			return
 		}
 
@@ -1382,4 +1398,64 @@ func updateCacheAndIndexConfig(ctx *gin.Context) {
 
 	// 返回更新成功的响应
 	resp.Ok(ctx, "更新成功", nil)
+}
+
+// rebuildIndex 重建搜索索引接口
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 接收管理员的重建索引请求
+//  2. 调用搜索引擎的重建索引功能
+//  3. 支持超时控制，防止长时间阻塞
+//  4. 返回重建结果给客户端
+//
+// HTTP方法: PUT
+// 路径: /admin/setting/cache-index/rebuild-index
+// 权限: 需要管理员JWT认证
+//
+// 响应格式:
+//   - 成功: {"code": 200, "message": "重建索引成功", "data": {"duration_ms": 12345}}
+//   - 失败: {"code": 500, "message": "重建索引失败", "data": "错误详情"}
+func rebuildIndex(ctx *gin.Context) {
+	logger.Info("管理员请求重建搜索索引")
+
+	// 创建带超时的上下文，防止重建过程过长
+	// 设置10分钟超时，对于大量文档的重建应该足够
+	rebuildCtx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	// 记录开始时间，用于计算重建耗时
+	startTime := time.Now()
+
+	// 调用搜索引擎的重建索引功能
+	err := searchengine.RebuildIndex(rebuildCtx)
+	if err != nil {
+		// 重建失败，记录错误日志并返回错误响应
+		logger.Error("重建搜索索引失败: " + err.Error())
+
+		// 根据错误类型返回不同的响应
+		if errors.Is(err, context.DeadlineExceeded) {
+			resp.Err(ctx, "重建索引超时", "重建过程超过10分钟限制，请检查系统资源或联系管理员")
+		} else if errors.Is(err, context.Canceled) {
+			resp.Err(ctx, "重建索引被取消", "重建过程被用户或系统取消")
+		} else {
+			resp.Err(ctx, "重建索引失败", err.Error())
+		}
+		return
+	}
+
+	// 计算重建耗时
+	duration := time.Since(startTime)
+	durationMs := float64(duration) / float64(time.Millisecond)
+
+	// 记录成功日志
+	logger.Info(fmt.Sprintf("重建搜索索引成功，耗时: %.2f毫秒", durationMs))
+
+	// 返回成功响应，包含重建耗时信息
+	resp.Ok(ctx, "重建索引成功", map[string]any{
+		"duration_ms":     durationMs,
+		"duration_string": duration.String(),
+		"message":         "搜索索引已成功重建，所有文档已重新索引",
+	})
 }

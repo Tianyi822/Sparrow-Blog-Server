@@ -1,9 +1,10 @@
 package adminrouter
 
 import (
-	"github.com/gin-gonic/gin"
 	"sparrow_blog_server/env"
 	"sparrow_blog_server/routers/middleware"
+
+	"github.com/gin-gonic/gin"
 )
 
 func Routers(e *gin.Engine) {
@@ -123,5 +124,7 @@ func Routers(e *gin.Engine) {
 		settingGroup.GET("/cache-index/config", getCacheAndIndexConfig)
 
 		settingGroup.PUT("/cache-index/config", updateCacheAndIndexConfig)
+
+		settingGroup.PUT("/cache-index/rebuild-index", rebuildIndex)
 	}
 }
