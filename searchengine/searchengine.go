@@ -3,6 +3,7 @@ package searchengine
 import (
 	"context"
 	"fmt"
+	"sparrow_blog_server/internal/model/dto"
 	"sparrow_blog_server/internal/repositories/blogrepo"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/filetool"
@@ -194,6 +195,123 @@ func CloseIndex() {
 			logger.Error("关闭索引文件失败: " + err.Error())
 		}
 	}
+}
+
+// AddIndex 将单个博客文档添加到搜索索引中
+// 参数:
+//   - ctx: 上下文，用于取消操作和超时控制
+//   - blogDto: 博客数据传输对象，包含博客的基本信息
+//
+// 返回值:
+//   - error: 如果添加失败则返回错误，成功则返回 nil
+func AddIndex(ctx context.Context, blogDto *dto.BlogDto) error {
+	// 检查索引是否已初始化
+	if Index == nil {
+		return fmt.Errorf("搜索索引未初始化")
+	}
+
+	// 检查必要的参数
+	if blogDto == nil {
+		return fmt.Errorf("博客数据不能为空")
+	}
+
+	if blogDto.BlogId == "" {
+		return fmt.Errorf("博客ID不能为空")
+	}
+
+	// 创建 Doc 对象
+	d := doc.Doc{
+		ID:    blogDto.BlogId,
+		ImgId: blogDto.BlogImageId,
+		Title: blogDto.BlogTitle,
+	}
+
+	// 获取博客内容
+	if err := d.GetContent(ctx); err != nil {
+		logger.Error("获取博客内容失败 ID = " + d.ID + ": " + err.Error())
+		return fmt.Errorf("获取博客内容失败: %w", err)
+	}
+
+	// 将文档添加到索引中
+	if err := Index.Index(d.ID, d.IndexedDoc()); err != nil {
+		logger.Error("索引博客失败 ID = " + d.ID + ": " + err.Error())
+		return fmt.Errorf("索引博客失败: %w", err)
+	}
+
+	logger.Info("成功添加博客到索引: " + d.Title + " (ID: " + d.ID + ")")
+	return nil
+}
+
+// UpdateIndex 更新搜索索引中的博客文档
+// 参数:
+//   - ctx: 上下文，用于取消操作和超时控制
+//   - blogDto: 博客数据传输对象，包含更新后的博客信息
+//
+// 返回值:
+//   - error: 如果更新失败则返回错误，成功则返回 nil
+func UpdateIndex(ctx context.Context, blogDto *dto.BlogDto) error {
+	// 检查索引是否已初始化
+	if Index == nil {
+		return fmt.Errorf("搜索索引未初始化")
+	}
+
+	// 检查必要的参数
+	if blogDto == nil {
+		return fmt.Errorf("博客数据不能为空")
+	}
+
+	if blogDto.BlogId == "" {
+		return fmt.Errorf("博客ID不能为空")
+	}
+
+	// 创建 Doc 对象
+	d := doc.Doc{
+		ID:    blogDto.BlogId,
+		ImgId: blogDto.BlogImageId,
+		Title: blogDto.BlogTitle,
+	}
+
+	// 获取博客内容
+	if err := d.GetContent(ctx); err != nil {
+		logger.Error("获取博客内容失败 ID = " + d.ID + ": " + err.Error())
+		return fmt.Errorf("获取博客内容失败: %w", err)
+	}
+
+	// 更新索引中的文档（Bleve的Index方法会自动覆盖已存在的文档）
+	if err := Index.Index(d.ID, d.IndexedDoc()); err != nil {
+		logger.Error("更新博客索引失败 ID = " + d.ID + ": " + err.Error())
+		return fmt.Errorf("更新博客索引失败: %w", err)
+	}
+
+	logger.Info("成功更新博客索引: " + d.Title + " (ID: " + d.ID + ")")
+	return nil
+}
+
+// DeleteIndex 从搜索索引中删除博客文档
+// 参数:
+//   - blogId: 要删除的博客ID
+//
+// 返回值:
+//   - error: 如果删除失败则返回错误，成功则返回 nil
+func DeleteIndex(blogId string) error {
+	// 检查索引是否已初始化
+	if Index == nil {
+		return fmt.Errorf("搜索索引未初始化")
+	}
+
+	// 检查必要的参数
+	if blogId == "" {
+		return fmt.Errorf("博客ID不能为空")
+	}
+
+	// 从索引中删除文档
+	if err := Index.Delete(blogId); err != nil {
+		logger.Error("删除博客索引失败 ID = " + blogId + ": " + err.Error())
+		return fmt.Errorf("删除博客索引失败: %w", err)
+	}
+
+	logger.Info("成功删除博客索引 ID: " + blogId)
+	return nil
 }
 
 // RebuildIndex 重建搜索索引。

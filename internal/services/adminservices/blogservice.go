@@ -7,6 +7,7 @@ import (
 	"sparrow_blog_server/internal/repositories/categoryrepo"
 	"sparrow_blog_server/internal/repositories/tagrepo"
 	"sparrow_blog_server/pkg/logger"
+	"sparrow_blog_server/searchengine"
 	"sparrow_blog_server/storage"
 	"sparrow_blog_server/storage/ossstore"
 	"time"
@@ -142,6 +143,12 @@ func DeleteBlogById(ctx context.Context, id string) error {
 	tx.Commit()
 	logger.Info("删除博客数据成功")
 
+	// 从搜索索引中删除博客
+	if err := searchengine.DeleteIndex(id); err != nil {
+		logger.Warn("删除博客搜索索引失败: %v", err)
+		// 注意：这里不返回错误，因为数据库操作已经成功，索引删除失败不应该影响整个删除操作
+	}
+
 	// 清理无用标签和分类
 	cleanUpTx := storage.Storage.Db.WithContext(ctx).Begin()
 	if err = tagrepo.CleanTagsWithoutBlog(cleanUpTx); err != nil {
@@ -203,6 +210,9 @@ func ChangeBlogState(ctx context.Context, id string) error {
 // 返回值:
 //   - error: 如果操作过程中发生错误，则返回具体的错误信息；否则返回 nil。
 func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) error {
+	// 记录是否为新增操作（在事务开始前判断）
+	isNewBlog := len(blogDto.BlogId) == 0
+
 	// 开启事务
 	tx := storage.Storage.Db.WithContext(ctx).Begin()
 	defer func() {
@@ -311,6 +321,22 @@ func UpdateOrAddBlog(ctx context.Context, blogDto *dto.BlogDto) error {
 
 	// 提交事务
 	tx.Commit()
+
+	// 将更新或者新增的博客添加到索引中
+	// 注意：索引操作在事务提交后进行，确保数据库操作成功后再更新索引
+	var indexErr error
+	if isNewBlog {
+		// 如果是新增操作，使用AddIndex
+		indexErr = searchengine.AddIndex(ctx, blogDto)
+	} else {
+		// 如果是更新操作，使用UpdateIndex
+		indexErr = searchengine.UpdateIndex(ctx, blogDto)
+	}
+
+	if indexErr != nil {
+		logger.Warn("更新博客搜索索引失败: %v", indexErr)
+		// 注意：这里不返回错误，因为数据库操作已经成功，索引更新失败不应该影响整个操作
+	}
 
 	return nil
 }
