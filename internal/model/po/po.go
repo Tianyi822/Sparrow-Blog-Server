@@ -79,9 +79,10 @@ func (c *Comment) TableName() string {
 }
 
 type FriendLink struct {
-	FriendLinkId   string    `gorm:"column:friend_link_id;primaryKey"`                            // 友链ID
+	FriendLinkId   string    `gorm:"column:friend_link_id;primaryKey"`                            // 友链 ID
 	FriendLinkName string    `gorm:"column:friend_link_name"`                                     // 友链名称
 	FriendLinkUrl  string    `gorm:"column:friend_link_url"`                                      // 友链地址
+	FriendDescribe string    `gorm:"column:friend_describe"`                                      // 友链描述
 	CreateTime     time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
 	UpdateTime     time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
 }

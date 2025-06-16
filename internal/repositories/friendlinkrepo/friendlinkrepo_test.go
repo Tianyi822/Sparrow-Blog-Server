@@ -26,17 +26,30 @@ func init() {
 
 func TestCreateFriendLink(t *testing.T) {
 	ctx := context.Background()
-	friendLinkDto := dto.FriendLinkDto{
+	friendLinkDto := &dto.FriendLinkDto{
 		FriendLinkName: "chentyit",
 		FriendLinkUrl:  "https://chentyit.github.io",
 	}
 
-	num, err := CreateFriendLink(ctx, friendLinkDto)
+	// 开启事务
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	err := CreateFriendLink(tx, friendLinkDto)
 	if err != nil {
+		tx.Rollback()
 		t.Errorf("CreateFriendLink() error = %v", err)
+		return
 	}
 
-	fmt.Printf("添加 %v 条数据\n", num)
+	// 提交事务
+	tx.Commit()
+
+	fmt.Printf("添加友链成功，ID: %s\n", friendLinkDto.FriendLinkId)
 }
 
 func TestGetFriendLinkByName(t *testing.T) {
@@ -44,6 +57,7 @@ func TestGetFriendLinkByName(t *testing.T) {
 	friendLinkDto, err := GetFriendLinkByNameLike(ctx, "chentyit")
 	if err != nil {
 		t.Errorf("GetFriendLinkByName() error = %v", err)
+		return
 	}
 
 	fmt.Printf("friendLinkDto = %v\n", friendLinkDto)
@@ -51,22 +65,88 @@ func TestGetFriendLinkByName(t *testing.T) {
 
 func TestUpdateFriendLinkByID(t *testing.T) {
 	ctx := context.Background()
-	num, err := UpdateFriendLinkByID(ctx, dto.FriendLinkDto{
+	friendLinkDto := &dto.FriendLinkDto{
 		FriendLinkId:   "eefe040262ec2915",
 		FriendLinkName: "chentyit666",
 		FriendLinkUrl:  "https://chentyit.github.io",
-	})
-	if err != nil {
-		t.Errorf("UpdateFriendLinkByID() error = %v", err)
 	}
-	fmt.Printf("更新 %v", num)
+
+	// 开启事务
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	err := UpdateFriendLinkByID(tx, friendLinkDto)
+	if err != nil {
+		tx.Rollback()
+		t.Errorf("UpdateFriendLinkByID() error = %v", err)
+		return
+	}
+
+	// 提交事务
+	tx.Commit()
+
+	fmt.Printf("更新友链成功\n")
 }
 
 func TestDeleteFriendLinkById(t *testing.T) {
 	ctx := context.Background()
-	num, err := DeleteFriendLinkById(ctx, "eefe040262ec2915")
+
+	// 开启事务
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	err := DeleteFriendLinkById(tx, "eefe040262ec2915")
 	if err != nil {
+		tx.Rollback()
 		t.Errorf("DeleteFriendLinkById() error = %v", err)
+		return
 	}
-	fmt.Printf("删除 %v 条数据\n", num)
+
+	// 提交事务
+	tx.Commit()
+
+	fmt.Printf("删除友链成功\n")
+}
+
+func TestFindAllFriendLinks(t *testing.T) {
+	ctx := context.Background()
+	friendLinks, err := FindAllFriendLinks(ctx)
+	if err != nil {
+		t.Errorf("FindAllFriendLinks() error = %v", err)
+		return
+	}
+
+	fmt.Printf("查询到 %d 个友链:\n", len(friendLinks))
+	for _, friendLink := range friendLinks {
+		fmt.Printf("- ID: %s, Name: %s, URL: %s\n",
+			friendLink.FriendLinkId,
+			friendLink.FriendLinkName,
+			friendLink.FriendLinkUrl)
+	}
+}
+
+func TestFindFriendLinkById(t *testing.T) {
+	ctx := context.Background()
+	friendLink, err := FindFriendLinkById(ctx, "eefe040262ec2915")
+	if err != nil {
+		t.Errorf("FindFriendLinkById() error = %v", err)
+		return
+	}
+
+	if friendLink != nil {
+		fmt.Printf("找到友链: ID: %s, Name: %s, URL: %s\n",
+			friendLink.FriendLinkId,
+			friendLink.FriendLinkName,
+			friendLink.FriendLinkUrl)
+	} else {
+		fmt.Printf("未找到指定ID的友链\n")
+	}
 }
