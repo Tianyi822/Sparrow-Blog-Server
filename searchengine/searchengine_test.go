@@ -3,6 +3,7 @@ package searchengine
 import (
 	"context"
 	"errors"
+	"sparrow_blog_server/internal/model/dto"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/storage"
@@ -1086,5 +1087,121 @@ func TestRebuildIndexWithTimeout(t *testing.T) {
 		t.Log("✓ 重建索引正确响应了超时")
 	} else {
 		t.Logf("重建索引返回了其他错误: %v", err)
+	}
+}
+
+// TestAddIndex 测试AddIndex方法
+func TestAddIndex(t *testing.T) {
+	// 初始化搜索引擎组件
+	err := LoadingIndex(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 创建一个测试用的BlogDto
+	testBlogDto := &dto.BlogDto{
+		BlogId:      "test_blog_001",
+		BlogTitle:   "测试博客标题",
+		BlogImageId: "test_image_001",
+	}
+
+	// 测试AddIndex方法
+	t.Log("=== 测试AddIndex方法 ===")
+	err = AddIndex(context.Background(), testBlogDto)
+	if err != nil {
+		t.Errorf("AddIndex失败: %v", err)
+		return
+	}
+
+	t.Log("AddIndex成功")
+
+	// 验证文档是否已添加到索引中
+	t.Log("=== 验证文档是否已添加到索引 ===")
+	searchReq := SearchRequest{
+		Query:     "测试博客标题",
+		Size:      10,
+		From:      0,
+		Fields:    []string{"Title", "Content"},
+		Highlight: true,
+	}
+
+	searchResult, err := Search(searchReq)
+	if err != nil {
+		t.Errorf("搜索失败: %v", err)
+		return
+	}
+
+	t.Logf("搜索结果数量: %d", searchResult.Total)
+
+	// 检查是否找到了我们添加的文档
+	found := false
+	for _, hit := range searchResult.Hits {
+		if hit.ID == testBlogDto.BlogId {
+			found = true
+			t.Logf("找到添加的文档: ID=%s, Score=%.2f", hit.ID, hit.Score)
+			if title, ok := hit.Fields["Title"]; ok {
+				t.Logf("文档标题: %s", title)
+			}
+			break
+		}
+	}
+
+	if !found {
+		t.Error("未找到添加的文档")
+	}
+
+	// 测试UpdateIndex方法
+	t.Log("=== 测试UpdateIndex方法 ===")
+	testBlogDto.BlogTitle = "更新后的测试博客标题"
+	err = UpdateIndex(context.Background(), testBlogDto)
+	if err != nil {
+		t.Errorf("UpdateIndex失败: %v", err)
+		return
+	}
+
+	t.Log("UpdateIndex成功")
+
+	// 验证文档是否已更新
+	searchReq.Query = "更新后的测试博客标题"
+	searchResult, err = Search(searchReq)
+	if err != nil {
+		t.Errorf("搜索更新后的文档失败: %v", err)
+		return
+	}
+
+	t.Logf("更新后搜索结果数量: %d", searchResult.Total)
+
+	// 测试DeleteIndex方法
+	t.Log("=== 测试DeleteIndex方法 ===")
+	err = DeleteIndex(testBlogDto.BlogId)
+	if err != nil {
+		t.Errorf("DeleteIndex失败: %v", err)
+		return
+	}
+
+	t.Log("DeleteIndex成功")
+
+	// 验证文档是否已删除
+	searchResult, err = Search(searchReq)
+	if err != nil {
+		t.Errorf("搜索删除后的文档失败: %v", err)
+		return
+	}
+
+	t.Logf("删除后搜索结果数量: %d", searchResult.Total)
+
+	// 检查文档是否已被删除
+	found = false
+	for _, hit := range searchResult.Hits {
+		if hit.ID == testBlogDto.BlogId {
+			found = true
+			break
+		}
+	}
+
+	if found {
+		t.Error("文档删除失败，仍然能够搜索到")
+	} else {
+		t.Log("文档删除成功")
 	}
 }
