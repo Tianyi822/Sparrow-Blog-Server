@@ -74,6 +74,7 @@ type FriendLinkVo struct {
 	FriendLinkUrl   string `json:"friend_link_url,omitempty"`
 	FriendAvatarUrl string `json:"friend_avatar_url,omitempty"`
 	FriendDescribe  string `json:"friend_describe,omitempty"`
+	Display         bool   `json:"display"`
 }
 
 func (flv *FriendLinkVo) VoFlag() string {

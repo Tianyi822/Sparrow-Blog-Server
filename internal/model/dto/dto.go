@@ -94,6 +94,7 @@ type FriendLinkDto struct {
 	FriendLinkUrl   string `json:"friend_link_url,omitempty"`
 	FriendAvatarUrl string `json:"friend_avatar_url,omitempty"`
 	FriendDescribe  string `json:"friend_describe,omitempty"`
+	Display         bool   `json:"display"`
 }
 
 func (fl *FriendLinkDto) DtoFlag() string {

@@ -22,7 +22,7 @@ func init() {
 }
 
 // 测试用的友链ID，用于更新和删除测试
-var testFriendLinkId string = "f4e5dd52f2c572df"
+var testFriendLinkId = "0ee0aa4c123cdc6f"
 
 // TestCreateFriendLink 测试创建友链
 func TestCreateFriendLink(t *testing.T) {
