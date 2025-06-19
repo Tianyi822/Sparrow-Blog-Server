@@ -1488,6 +1488,7 @@ func getAllFriendLinks(ctx *gin.Context) {
 			FriendLinkUrl:   friendLinkDto.FriendLinkUrl,
 			FriendAvatarUrl: friendLinkDto.FriendAvatarUrl,
 			FriendDescribe:  friendLinkDto.FriendDescribe,
+			Display:         friendLinkDto.Display,
 		}
 		friendLinkVos = append(friendLinkVos, friendLinkVo)
 	}
@@ -1547,12 +1548,19 @@ func createFriendLink(ctx *gin.Context) {
 		friendDescribe = ""
 	}
 
+	// 解析显示状态（可选，默认为 false）
+	display, err := tools.GetBoolFromRawData(rawData, "display")
+	if err != nil {
+		display = false // 默认不展示
+	}
+
 	// 构造友链DTO
 	friendLinkDto := &dto.FriendLinkDto{
 		FriendLinkName:  strings.TrimSpace(friendLinkName),
 		FriendLinkUrl:   strings.TrimSpace(friendLinkUrl),
 		FriendAvatarUrl: friendAvatarUrl,
 		FriendDescribe:  friendDescribe,
+		Display:         display,
 	}
 
 	// 调用服务层创建友链
@@ -1630,6 +1638,12 @@ func updateFriendLink(ctx *gin.Context) {
 		friendDescribe = ""
 	}
 
+	// 解析显示状态（可选，默认为 false）
+	display, err := tools.GetBoolFromRawData(rawData, "display")
+	if err != nil {
+		display = false // 默认不展示
+	}
+
 	// 构造友链DTO
 	friendLinkDto := &dto.FriendLinkDto{
 		FriendLinkId:    strings.TrimSpace(friendLinkId),
@@ -1637,6 +1651,7 @@ func updateFriendLink(ctx *gin.Context) {
 		FriendLinkUrl:   strings.TrimSpace(friendLinkUrl),
 		FriendAvatarUrl: friendAvatarUrl,
 		FriendDescribe:  friendDescribe,
+		Display:         display,
 	}
 
 	// 调用服务层更新友链
@@ -1676,4 +1691,34 @@ func deleteFriendLink(ctx *gin.Context) {
 
 	// 返回成功响应
 	resp.Ok(ctx, "删除友链成功", nil)
+}
+
+// updateFriendLinkDisplay 切换友链显示状态
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从路径参数中获取友链ID
+//  2. 验证友链ID的有效性
+//  3. 调用服务层切换友链显示状态
+//  4. 返回切换结果给客户端
+func updateFriendLinkDisplay(ctx *gin.Context) {
+	// 从路径参数中获取友链ID
+	friendLinkId := ctx.Param("friend_link_id")
+	if strings.TrimSpace(friendLinkId) == "" {
+		resp.BadRequest(ctx, "友链ID不能为空", "")
+		return
+	}
+
+	// 调用服务层切换友链显示状态
+	newDisplay, err := adminservices.UpdateFriendLinkDisplay(ctx, strings.TrimSpace(friendLinkId))
+	if err != nil {
+		resp.Err(ctx, "切换友链显示状态失败", err.Error())
+		return
+	}
+
+	// 返回成功响应，包含切换后的状态
+	resp.Ok(ctx, "切换友链显示状态成功", map[string]bool{
+		"display": newDisplay,
+	})
 }

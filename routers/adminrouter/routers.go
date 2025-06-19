@@ -141,6 +141,8 @@ func Routers(e *gin.Engine) {
 
 		friendLinkGroup.PUT("/update", updateFriendLink)
 
+		friendLinkGroup.PUT("/:friend_link_id/display", updateFriendLinkDisplay)
+
 		friendLinkGroup.DELETE("/:friend_link_id", deleteFriendLink)
 	}
 }

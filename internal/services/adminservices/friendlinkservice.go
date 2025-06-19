@@ -111,3 +111,44 @@ func DeleteFriendLinkById(ctx context.Context, id string) error {
 
 	return nil
 }
+
+// UpdateFriendLinkDisplay 切换友链的显示状态
+// 参数:
+//   - ctx: 上下文对象，用于控制请求生命周期和传递元数据。
+//   - friendLinkId: 要更新的友链ID。
+//
+// 返回值:
+//   - bool: 切换后的显示状态。
+//   - error: 如果更新过程中发生错误，则返回错误信息；否则返回 nil。
+func UpdateFriendLinkDisplay(ctx context.Context, friendLinkId string) (bool, error) {
+	// 首先查询当前友链的显示状态
+	friendLinkDto, err := friendlinkrepo.FindFriendLinkById(ctx, friendLinkId)
+	if err != nil {
+		return false, err
+	}
+
+	// 切换显示状态
+	newDisplay := !friendLinkDto.Display
+
+	// 开启更新友链显示状态事务
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("切换友链显示状态失败: %v", r)
+			tx.Rollback()
+		}
+	}()
+
+	// 调用仓库方法更新友链显示状态
+	err = friendlinkrepo.UpdateFriendLinkDisplayById(tx, friendLinkId, newDisplay)
+	if err != nil {
+		tx.Rollback()
+		return false, err
+	}
+
+	// 提交事务
+	tx.Commit()
+	logger.Info("切换友链显示状态成功")
+
+	return newDisplay, nil
+}

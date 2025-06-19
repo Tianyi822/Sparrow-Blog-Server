@@ -25,10 +25,11 @@ func UpdateFriendLinkByID(tx *gorm.DB, friendLinkDto *dto.FriendLinkDto) error {
 
 	// 执行更新操作，根据友链ID更新所有友链字段。
 	if err := tx.Model(&po.FriendLink{}).Where("friend_link_id = ?", friendLinkDto.FriendLinkId).Updates(po.FriendLink{
-		FriendLinkName:  friendLinkDto.FriendLinkName,
-		FriendLinkUrl:   friendLinkDto.FriendLinkUrl,
-		FriendAvatarUrl: friendLinkDto.FriendAvatarUrl,
-		FriendDescribe:  friendLinkDto.FriendDescribe,
+		FriendLinkName:      friendLinkDto.FriendLinkName,
+		FriendLinkUrl:       friendLinkDto.FriendLinkUrl,
+		FriendLinkAvatarUrl: friendLinkDto.FriendAvatarUrl,
+		FriendDescribe:      friendLinkDto.FriendDescribe,
+		Display:             friendLinkDto.Display,
 	}).Error; err != nil {
 		// 如果更新失败，记录错误日志。
 		msg := fmt.Sprintf("更新友链数据失败: %v", err)
@@ -83,11 +84,12 @@ func CreateFriendLink(tx *gorm.DB, friendLinkDto *dto.FriendLinkDto) error {
 
 	// 根据传入的FriendLinkDto对象初始化一个FriendLink对象
 	friendLink := &po.FriendLink{
-		FriendLinkId:    friendLinkId,
-		FriendLinkName:  friendLinkDto.FriendLinkName,
-		FriendLinkUrl:   friendLinkDto.FriendLinkUrl,
-		FriendAvatarUrl: friendLinkDto.FriendAvatarUrl,
-		FriendDescribe:  friendLinkDto.FriendDescribe,
+		FriendLinkId:        friendLinkId,
+		FriendLinkName:      friendLinkDto.FriendLinkName,
+		FriendLinkUrl:       friendLinkDto.FriendLinkUrl,
+		FriendLinkAvatarUrl: friendLinkDto.FriendAvatarUrl,
+		FriendDescribe:      friendLinkDto.FriendDescribe,
+		Display:             friendLinkDto.Display,
 	}
 
 	logger.Info("添加友链数据")
@@ -130,12 +132,74 @@ func FindAllFriendLinks(ctx context.Context) ([]*dto.FriendLinkDto, error) {
 			FriendLinkId:    friendLink.FriendLinkId,
 			FriendLinkName:  friendLink.FriendLinkName,
 			FriendLinkUrl:   friendLink.FriendLinkUrl,
-			FriendAvatarUrl: friendLink.FriendAvatarUrl,
+			FriendAvatarUrl: friendLink.FriendLinkAvatarUrl,
 			FriendDescribe:  friendLink.FriendDescribe,
+			Display:         friendLink.Display,
 		}
 		friendLinkDtos = append(friendLinkDtos, friendLinkDto)
 	}
 
 	// 返回转换后的友链DTO列表和nil错误
 	return friendLinkDtos, nil
+}
+
+// FindFriendLinkById 根据友链ID查询单个友链信息
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
+//   - friendLinkId: 需要查询的友链ID。
+//
+// 返回值:
+//   - *dto.FriendLinkDto: 包含友链数据的DTO对象
+//   - error: 如果查询过程中发生错误，则返回错误信息；否则返回nil。
+func FindFriendLinkById(ctx context.Context, friendLinkId string) (*dto.FriendLinkDto, error) {
+	friendLink := &po.FriendLink{}
+
+	// 使用GORM查询指定ID的友链数据
+	if err := storage.Storage.Db.Model(&po.FriendLink{}).
+		WithContext(ctx).
+		Where("friend_link_id = ?", friendLinkId).
+		First(&friendLink).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("友链不存在")
+		}
+		msg := fmt.Sprintf("查询友链信息失败: %v", err)
+		logger.Error(msg)
+		return nil, errors.New(msg)
+	}
+
+	// 将查询到的友链数据转换为DTO格式
+	friendLinkDto := &dto.FriendLinkDto{
+		FriendLinkId:    friendLink.FriendLinkId,
+		FriendLinkName:  friendLink.FriendLinkName,
+		FriendLinkUrl:   friendLink.FriendLinkUrl,
+		FriendAvatarUrl: friendLink.FriendLinkAvatarUrl,
+		FriendDescribe:  friendLink.FriendDescribe,
+		Display:         friendLink.Display,
+	}
+
+	return friendLinkDto, nil
+}
+
+// UpdateFriendLinkDisplayById 根据友链ID更新友链的显示状态
+// 参数:
+//   - tx: 数据库事务对象，用于执行数据库操作。
+//   - friendLinkId: 需要更新的友链ID。
+//   - display: 新的显示状态。
+//
+// 返回值:
+//   - error: 操作失败时返回的错误。
+func UpdateFriendLinkDisplayById(tx *gorm.DB, friendLinkId string, display bool) error {
+	// 记录更新操作开始日志
+	logger.Info("更新友链显示状态")
+
+	// 根据ID执行更新操作，只更新 display 字段
+	if err := tx.Model(&po.FriendLink{}).Where("friend_link_id = ?", friendLinkId).Update("display", display).Error; err != nil {
+		msg := fmt.Sprintf("更新友链显示状态失败: %v", err)
+		logger.Error(msg)
+		return errors.New(msg)
+	}
+
+	// 记录更新成功日志并返回结果
+	logger.Info("更新友链显示状态成功")
+	return nil
 }
