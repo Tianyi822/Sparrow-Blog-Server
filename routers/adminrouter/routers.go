@@ -127,4 +127,20 @@ func Routers(e *gin.Engine) {
 
 		settingGroup.PUT("/cache-index/rebuild-index", rebuildIndex)
 	}
+
+	{
+		friendLinkGroup := adminGroup.Group("/friend-links")
+
+		if env.CurrentEnv == env.ProdEnv {
+			friendLinkGroup.Use(middleware.AnalyzeJWT())
+		}
+
+		friendLinkGroup.GET("/all", getAllFriendLinks)
+
+		friendLinkGroup.POST("/create", createFriendLink)
+
+		friendLinkGroup.PUT("/update", updateFriendLink)
+
+		friendLinkGroup.DELETE("/:friend_link_id", deleteFriendLink)
+	}
 }

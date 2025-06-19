@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"sparrow_blog_server/email"
+	"sparrow_blog_server/internal/model/dto"
 	"sparrow_blog_server/internal/model/vo"
 	"sparrow_blog_server/internal/services/adminservices"
 	"sparrow_blog_server/pkg/config"
@@ -1458,4 +1459,221 @@ func rebuildIndex(ctx *gin.Context) {
 		"duration_string": duration.String(),
 		"message":         "搜索索引已成功重建，所有文档已重新索引",
 	})
+}
+
+// ================== 友链管理相关 Handler ==================
+
+// getAllFriendLinks 获取所有友链信息
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 调用服务层获取所有友链数据
+//  2. 将DTO转换为VO格式返回给前端
+//  3. 返回友链列表给客户端
+func getAllFriendLinks(ctx *gin.Context) {
+	// 调用服务层获取所有友链数据
+	friendLinkDtos, err := adminservices.GetAllFriendLinks(ctx)
+	if err != nil {
+		resp.Err(ctx, "获取友链失败", err.Error())
+		return
+	}
+
+	// 将DTO列表转换为VO列表，以便前端使用
+	friendLinkVos := make([]vo.FriendLinkVo, 0, len(friendLinkDtos))
+	for _, friendLinkDto := range friendLinkDtos {
+		friendLinkVo := vo.FriendLinkVo{
+			FriendLinkId:    friendLinkDto.FriendLinkId,
+			FriendLinkName:  friendLinkDto.FriendLinkName,
+			FriendLinkUrl:   friendLinkDto.FriendLinkUrl,
+			FriendAvatarUrl: friendLinkDto.FriendAvatarUrl,
+			FriendDescribe:  friendLinkDto.FriendDescribe,
+		}
+		friendLinkVos = append(friendLinkVos, friendLinkVo)
+	}
+
+	// 返回成功响应
+	resp.Ok(ctx, "获取友链成功", friendLinkVos)
+}
+
+// createFriendLink 创建新的友链
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从请求中解析友链信息
+//  2. 验证必要字段的完整性
+//  3. 调用服务层创建友链
+//  4. 返回创建结果给客户端
+func createFriendLink(ctx *gin.Context) {
+	// 从请求中解析原始数据
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "解析请求数据失败", err.Error())
+		return
+	}
+
+	// 解析友链名称
+	friendLinkName, err := tools.GetStringFromRawData(rawData, "friend_link_name")
+	if err != nil {
+		resp.BadRequest(ctx, "友链名称解析错误", err.Error())
+		return
+	}
+	if strings.TrimSpace(friendLinkName) == "" {
+		resp.BadRequest(ctx, "友链名称不能为空", "")
+		return
+	}
+
+	// 解析友链URL
+	friendLinkUrl, err := tools.GetStringFromRawData(rawData, "friend_link_url")
+	if err != nil {
+		resp.BadRequest(ctx, "友链URL解析错误", err.Error())
+		return
+	}
+	if strings.TrimSpace(friendLinkUrl) == "" {
+		resp.BadRequest(ctx, "友链URL不能为空", "")
+		return
+	}
+
+	// 解析友链头像URL（可选）
+	friendAvatarUrl, err := tools.GetStringFromRawData(rawData, "friend_avatar_url")
+	if err != nil {
+		friendAvatarUrl = ""
+	}
+
+	// 解析友链描述（可选）
+	friendDescribe, err := tools.GetStringFromRawData(rawData, "friend_describe")
+	if err != nil {
+		friendDescribe = ""
+	}
+
+	// 构造友链DTO
+	friendLinkDto := &dto.FriendLinkDto{
+		FriendLinkName:  strings.TrimSpace(friendLinkName),
+		FriendLinkUrl:   strings.TrimSpace(friendLinkUrl),
+		FriendAvatarUrl: friendAvatarUrl,
+		FriendDescribe:  friendDescribe,
+	}
+
+	// 调用服务层创建友链
+	err = adminservices.CreateFriendLink(ctx, friendLinkDto)
+	if err != nil {
+		resp.Err(ctx, "创建友链失败", err.Error())
+		return
+	}
+
+	// 返回成功响应，包含生成的友链ID
+	resp.Ok(ctx, "创建友链成功", map[string]string{
+		"friend_link_id": friendLinkDto.FriendLinkId,
+	})
+}
+
+// updateFriendLink 更新友链信息
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从请求中解析友链更新信息
+//  2. 验证友链ID和必要字段
+//  3. 调用服务层更新友链
+//  4. 返回更新结果给客户端
+func updateFriendLink(ctx *gin.Context) {
+	// 从请求中解析原始数据
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "解析请求数据失败", err.Error())
+		return
+	}
+
+	// 解析友链ID
+	friendLinkId, err := tools.GetStringFromRawData(rawData, "friend_link_id")
+	if err != nil {
+		resp.BadRequest(ctx, "友链ID解析错误", err.Error())
+		return
+	}
+	if strings.TrimSpace(friendLinkId) == "" {
+		resp.BadRequest(ctx, "友链ID不能为空", "")
+		return
+	}
+
+	// 解析友链名称
+	friendLinkName, err := tools.GetStringFromRawData(rawData, "friend_link_name")
+	if err != nil {
+		resp.BadRequest(ctx, "友链名称解析错误", err.Error())
+		return
+	}
+	if strings.TrimSpace(friendLinkName) == "" {
+		resp.BadRequest(ctx, "友链名称不能为空", "")
+		return
+	}
+
+	// 解析友链URL
+	friendLinkUrl, err := tools.GetStringFromRawData(rawData, "friend_link_url")
+	if err != nil {
+		resp.BadRequest(ctx, "友链URL解析错误", err.Error())
+		return
+	}
+	if strings.TrimSpace(friendLinkUrl) == "" {
+		resp.BadRequest(ctx, "友链URL不能为空", "")
+		return
+	}
+
+	// 解析友链头像URL（可选）
+	friendAvatarUrl, err := tools.GetStringFromRawData(rawData, "friend_avatar_url")
+	if err != nil {
+		friendAvatarUrl = ""
+	}
+
+	// 解析友链描述（可选）
+	friendDescribe, err := tools.GetStringFromRawData(rawData, "friend_describe")
+	if err != nil {
+		friendDescribe = ""
+	}
+
+	// 构造友链DTO
+	friendLinkDto := &dto.FriendLinkDto{
+		FriendLinkId:    strings.TrimSpace(friendLinkId),
+		FriendLinkName:  strings.TrimSpace(friendLinkName),
+		FriendLinkUrl:   strings.TrimSpace(friendLinkUrl),
+		FriendAvatarUrl: friendAvatarUrl,
+		FriendDescribe:  friendDescribe,
+	}
+
+	// 调用服务层更新友链
+	err = adminservices.UpdateFriendLink(ctx, friendLinkDto)
+	if err != nil {
+		resp.Err(ctx, "更新友链失败", err.Error())
+		return
+	}
+
+	// 返回成功响应
+	resp.Ok(ctx, "更新友链成功", nil)
+}
+
+// deleteFriendLink 删除友链
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
+//
+// 功能描述:
+//  1. 从路径参数中获取友链ID
+//  2. 验证友链ID的有效性
+//  3. 调用服务层删除友链
+//  4. 返回删除结果给客户端
+func deleteFriendLink(ctx *gin.Context) {
+	// 从路径参数中获取友链ID
+	friendLinkId := ctx.Param("friend_link_id")
+	if strings.TrimSpace(friendLinkId) == "" {
+		resp.BadRequest(ctx, "友链ID不能为空", "")
+		return
+	}
+
+	// 调用服务层删除友链
+	err := adminservices.DeleteFriendLinkById(ctx, strings.TrimSpace(friendLinkId))
+	if err != nil {
+		resp.Err(ctx, "删除友链失败", err.Error())
+		return
+	}
+
+	// 返回成功响应
+	resp.Ok(ctx, "删除友链成功", nil)
 }
