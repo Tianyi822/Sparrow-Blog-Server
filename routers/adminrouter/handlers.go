@@ -1,22 +1,5 @@
 package adminrouter
 
-/*
-搜索索引管理API说明:
-
-重建索引接口:
-   PUT /admin/setting/cache-index/rebuild-index
-   - 功能: 完全重建搜索索引
-   - 权限: 需要管理员JWT认证
-   - 超时: 10分钟
-   - 响应: 包含重建耗时和结果信息
-
-使用场景:
-- 索引损坏时的修复
-- 索引映射更新后的重建
-- 定期维护和优化
-- 数据同步确保一致性
-*/
-
 import (
 	"context"
 	"errors"
@@ -39,48 +22,51 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// getUserInfo 获取用户信息
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文
 func getUserInfo(ctx *gin.Context) {
 	resp.Ok(ctx, "获取用户信息成功", map[string]string{
 		"user_name": config.User.Username,
 	})
 }
 
-// sendLoginVerificationCode 处理发送验证码的请求。
+// sendLoginVerificationCode 发送登录验证码
 // 参数:
-//   - *gin.Context: HTTP 请求上下文，包含请求数据和响应方法。
+//   - ctx *gin.Context: HTTP请求上下文，包含请求数据和响应方法
 //
 // 功能描述:
 //
 //	该函数从请求中解析用户提交的数据，验证用户邮箱是否正确，
 //	并调用邮件服务发送验证码。根据操作结果返回相应的 HTTP 响应。
 func sendLoginVerificationCode(ctx *gin.Context) {
-	// 从请求中解析原始数据为 map，并处理可能的解析错误。
+	// 从请求中解析原始数据为 map，并处理可能的解析错误
 	rawData, err := tools.GetMapFromRawData(ctx)
 	if err != nil {
 		resp.BadRequest(ctx, "登录信息解析错误", err.Error())
 		return
 	}
 
-	// 验证用户提交的邮箱是否与配置中的用户邮箱一致。
+	// 验证用户提交的邮箱是否与配置中的用户邮箱一致
 	if rawData["user_email"].(string) != config.User.UserEmail {
 		resp.BadRequest(ctx, "用户邮箱错误", "")
 		return
 	}
 
-	// 调用邮件服务发送验证码邮件，并处理发送过程中可能出现的错误。
+	// 调用邮件服务发送验证码邮件，并处理发送过程中可能出现的错误
 	err = email.SendVerificationCodeBySys(ctx)
 	if err != nil {
 		resp.Err(ctx, "验证码发送失败", err.Error())
 		return
 	}
 
-	// 如果验证码发送成功，返回成功的 HTTP 响应。
+	// 如果验证码发送成功，返回成功的 HTTP 响应
 	resp.Ok(ctx, "验证码发送成功", nil)
 }
 
-// login 处理用户登录请求。
+// login 处理用户登录请求
 // 参数:
-//   - Gin 上下文，用于处理 HTTP 请求和响应。
+//   - ctx *gin.Context: Gin 上下文，用于处理 HTTP 请求和响应
 func login(ctx *gin.Context) {
 	// 从请求中解析原始数据为 Map 格式
 	rawData, err := tools.GetMapFromRawData(ctx)
@@ -111,6 +97,9 @@ func login(ctx *gin.Context) {
 	})
 }
 
+// logout 处理用户登出请求
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文
 func logout(ctx *gin.Context) {
 	token := ctx.GetString("token")
 	err := adminservices.Logout(ctx, token)
@@ -165,28 +154,28 @@ func genPresignPutUrl(ctx *gin.Context) {
 	})
 }
 
-// getAllBlogs 是一个处理函数，用于获取所有博客数据并将其转换为视图对象（VO）格式后返回。
+// getAllBlogs 获取所有博客数据并转换为视图对象格式返回
 // 参数:
-//   - ctx: Gin 框架的上下文对象，用于处理 HTTP 请求和响应。
+//   - ctx *gin.Context: Gin 框架的上下文对象，用于处理 HTTP 请求和响应
 func getAllBlogs(ctx *gin.Context) {
-	// 调用 adminservices.GetBlogsToAdminPosts 获取博客数据的 DTO 列表。
-	// 如果发生错误，则返回错误响应。
+	// 调用 adminservices.GetBlogsToAdminPosts 获取博客数据的 DTO 列表
+	// 如果发生错误，则返回错误响应
 	blogDtos, err := adminservices.GetBlogsToAdminPosts(ctx)
 	if err != nil {
 		resp.Err(ctx, "获取博客失败", err.Error())
 		return
 	}
 
-	// 将 DTO 列表转换为 VO 列表，以便前端使用。
+	// 将 DTO 列表转换为 VO 列表，以便前端使用
 	blogVos := make([]vo.BlogVo, 0, len(blogDtos))
 	for _, blogDto := range blogDtos {
-		// 构造分类信息的 VO 对象。
+		// 构造分类信息的 VO 对象
 		category := vo.CategoryVo{
 			CategoryId:   blogDto.Category.CategoryId,
 			CategoryName: blogDto.Category.CategoryName,
 		}
 
-		// 构造标签信息的 VO 列表。
+		// 构造标签信息的 VO 列表
 		tags := make([]vo.TagVo, 0, len(blogDto.Tags))
 		for _, tag := range blogDto.Tags {
 			tags = append(tags, vo.TagVo{
@@ -195,7 +184,7 @@ func getAllBlogs(ctx *gin.Context) {
 			})
 		}
 
-		// 构造博客信息的 VO 对象，并将其添加到结果列表中。
+		// 构造博客信息的 VO 对象，并将其添加到结果列表中
 		blogVo := vo.BlogVo{
 			BlogId:       blogDto.BlogId,
 			BlogTitle:    blogDto.BlogTitle,
@@ -211,10 +200,13 @@ func getAllBlogs(ctx *gin.Context) {
 		blogVos = append(blogVos, blogVo)
 	}
 
-	// 返回成功响应，包含转换后的博客 VO 列表。
+	// 返回成功响应，包含转换后的博客 VO 列表
 	resp.Ok(ctx, "获取博客成功", blogVos)
 }
 
+// deleteBlog 删除指定的博客
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文
 func deleteBlog(ctx *gin.Context) {
 	if err := adminservices.DeleteBlogById(ctx, ctx.Param("blog_id")); err != nil {
 		resp.Err(ctx, "删除博客失败", err.Error())
@@ -224,6 +216,9 @@ func deleteBlog(ctx *gin.Context) {
 	resp.Ok(ctx, "删除成功", nil)
 }
 
+// changeBlogState 修改博客状态
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文
 func changeBlogState(ctx *gin.Context) {
 	if err := adminservices.ChangeBlogState(ctx, ctx.Param("blog_id")); err != nil {
 		resp.Err(ctx, "修改博客状态失败", err.Error())
@@ -233,6 +228,9 @@ func changeBlogState(ctx *gin.Context) {
 	resp.Ok(ctx, "修改博客状态成功", nil)
 }
 
+// setTop 设置博客置顶状态
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文
 func setTop(ctx *gin.Context) {
 	if err := adminservices.SetTop(ctx, ctx.Param("blog_id")); err != nil {
 		resp.Err(ctx, "修改置顶失败", err.Error())
@@ -242,19 +240,19 @@ func setTop(ctx *gin.Context) {
 	resp.Ok(ctx, "已修改是否置顶", nil)
 }
 
-// getAllTagsCategories 获取所有的分类和标签信息，并以结构化的方式返回给客户端。
+// getAllTagsCategories 获取所有的分类和标签信息，并以结构化的方式返回给客户端
 // 参数:
-//   - ctx *gin.Context: Gin框架的上下文对象，用于处理HTTP请求和响应。
+//   - ctx *gin.Context: Gin框架的上下文对象，用于处理HTTP请求和响应
 func getAllTagsCategories(ctx *gin.Context) {
-	// 调用adminService的GetAllCategoriesAndTags方法获取分类和标签数据。
-	// 如果发生错误，则返回错误信息。
+	// 调用adminService的GetAllCategoriesAndTags方法获取分类和标签数据
+	// 如果发生错误，则返回错误信息
 	categories, tags, err := adminservices.GetAllCategoriesAndTags(ctx)
 	if err != nil {
 		resp.Err(ctx, "获取失败", err.Error())
 		return
 	}
 
-	// 将分类数据转换为CategoryVo视图对象列表。
+	// 将分类数据转换为CategoryVo视图对象列表
 	categoryVos := make([]vo.Vo, 0, len(categories))
 	for _, category := range categories {
 		categoryVos = append(categoryVos, &vo.CategoryVo{
@@ -263,7 +261,7 @@ func getAllTagsCategories(ctx *gin.Context) {
 		})
 	}
 
-	// 将标签数据转换为TagVo视图对象列表。
+	// 将标签数据转换为TagVo视图对象列表
 	tagVos := make([]vo.Vo, 0, len(tags))
 	for _, tag := range tags {
 		tagVos = append(tagVos, &vo.TagVo{
@@ -272,7 +270,7 @@ func getAllTagsCategories(ctx *gin.Context) {
 		})
 	}
 
-	// 将分类和标签的视图对象列表封装为响应数据，并返回成功信息。
+	// 将分类和标签的视图对象列表封装为响应数据，并返回成功信息
 	resp.Ok(ctx, "获取成功", map[string][]vo.Vo{
 		"categories": categoryVos,
 		"tags":       tagVos,
@@ -283,7 +281,7 @@ func getAllTagsCategories(ctx *gin.Context) {
 // 参数:
 //   - ctx *gin.Context: 框架的上下文对象
 func updateOrAddBlog(ctx *gin.Context) {
-	// 从请求中解析博客数据传输对象 (DTO)，如果解析失败则返回错误响应。
+	// 从请求中解析博客数据传输对象 (DTO)，如果解析失败则返回错误响应
 	blogDto, err := tools.GetBlogDto(ctx)
 	if err != nil {
 		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
@@ -310,19 +308,22 @@ func updateOrAddBlog(ctx *gin.Context) {
 		return
 	}
 
-	// 调用服务层方法更新或添加博客，如果操作失败则返回错误响应。
+	// 调用服务层方法更新或添加博客，如果操作失败则返回错误响应
 	err = adminservices.UpdateOrAddBlog(ctx, blogDto)
 	if err != nil {
 		resp.Err(ctx, "添加或更新失败", err.Error())
 		return
 	}
 
-	// 如果操作成功，返回成功的HTTP响应。
+	// 如果操作成功，返回成功的HTTP响应
 	resp.Ok(ctx, "操作成功", map[string]string{
 		"blog_id": blogDto.BlogId,
 	})
 }
 
+// getBlogData 获取指定博客的详细数据
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文
 func getBlogData(ctx *gin.Context) {
 	blogId := ctx.Param("blog_id")
 	blogDto, url, err := adminservices.GetBlogData(ctx, blogId)
@@ -359,6 +360,9 @@ func getBlogData(ctx *gin.Context) {
 	})
 }
 
+// addImgs 添加图片
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文
 func addImgs(ctx *gin.Context) {
 	imgsDto, err := tools.GetImgDtos(ctx)
 	if err != nil {
@@ -373,6 +377,9 @@ func addImgs(ctx *gin.Context) {
 	resp.Ok(ctx, "添加成功", nil)
 }
 
+// getAllImgs 获取所有图片
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文
 func getAllImgs(ctx *gin.Context) {
 	imgDtos, err := adminservices.GetAllImgs(ctx)
 	if err != nil {
@@ -393,6 +400,9 @@ func getAllImgs(ctx *gin.Context) {
 	resp.Ok(ctx, "获取成功", imgVos)
 }
 
+// deleteImg 删除指定图片
+// 参数:
+//   - ctx *gin.Context: HTTP请求上下文
 func deleteImg(ctx *gin.Context) {
 	if err := adminservices.DeleteImg(ctx, ctx.Param("img_id")); err != nil {
 		resp.Err(ctx, "删除失败", err.Error())
@@ -402,15 +412,15 @@ func deleteImg(ctx *gin.Context) {
 	resp.Ok(ctx, "删除成功", nil)
 }
 
-// renameImg 修改指定图片的名称。
+// renameImg 修改指定图片的名称
 // 参数:
-//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法。
+//   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
 //
 // 功能描述:
-//  1. 从请求上下文中解析图片数据传输对象 (ImgDto)。
-//  2. 验证请求路径中的图片ID与解析出的图片ID是否一致。
-//  3. 调用 adminservices.RenameImgById 方法修改图片名称。
-//  4. 根据操作结果返回成功或失败的响应。
+//  1. 从请求上下文中解析图片数据传输对象 (ImgDto)
+//  2. 验证请求路径中的图片ID与解析出的图片ID是否一致
+//  3. 调用 adminservices.RenameImgById 方法修改图片名称
+//  4. 根据操作结果返回成功或失败的响应
 func renameImg(ctx *gin.Context) {
 	// 从请求上下文中获取图片数据传输对象 (ImgDto)
 	imgDto, err := tools.GetImgDto(ctx)
@@ -957,13 +967,15 @@ func updateServerConfig(ctx *gin.Context) {
 // 参数:
 //   - ctx *gin.Context: HTTP请求上下文，包含请求参数和响应方法
 //
-// 功能描述: 从系统配置中获取日志相关配置信息，包括:
-//   - 日志级别 (level)
-//   - 日志文件路径 (path)
-//   - 日志文件保留时间 (max_age)
-//   - 单个日志文件大小限制 (max_size)
-//   - 保留的日志文件备份数量 (max_backups)
-//   - 是否压缩日志文件 (compress)
+// 功能描述:
+//
+//	从系统配置中获取日志相关配置信息，包括:
+//	- 日志级别 (level)
+//	- 日志文件路径 (path)
+//	- 日志文件保留时间 (max_age)
+//	- 单个日志文件大小限制 (max_size)
+//	- 保留的日志文件备份数量 (max_backups)
+//	- 是否压缩日志文件 (compress)
 func getLoggerConfig(ctx *gin.Context) {
 	resp.Ok(ctx, "获取成功", map[string]any{
 		"level":       config.Logger.Level,
