@@ -89,9 +89,11 @@ func (i *ImgsDto) Name() string {
 }
 
 type FriendLinkDto struct {
-	FriendLinkId   string `json:"friend_link_id,omitempty"`
-	FriendLinkName string `json:"friend_link_name,omitempty"`
-	FriendLinkUrl  string `json:"friend_link_url,omitempty"`
+	FriendLinkId    string `json:"friend_link_id,omitempty"`
+	FriendLinkName  string `json:"friend_link_name,omitempty"`
+	FriendLinkUrl   string `json:"friend_link_url,omitempty"`
+	FriendAvatarUrl string `json:"friend_avatar_url,omitempty"`
+	FriendDescribe  string `json:"friend_describe,omitempty"`
 }
 
 func (fl *FriendLinkDto) DtoFlag() string {

@@ -79,11 +79,13 @@ func (c *Comment) TableName() string {
 }
 
 type FriendLink struct {
-	FriendLinkId   string    `gorm:"column:friend_link_id;primaryKey"`                            // 友链ID
-	FriendLinkName string    `gorm:"column:friend_link_name"`                                     // 友链名称
-	FriendLinkUrl  string    `gorm:"column:friend_link_url"`                                      // 友链地址
-	CreateTime     time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
-	UpdateTime     time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
+	FriendLinkId    string    `gorm:"column:friend_link_id;primaryKey"`                            // 友链 ID
+	FriendLinkName  string    `gorm:"column:friend_link_name"`                                     // 友链名称
+	FriendLinkUrl   string    `gorm:"column:friend_link_url"`                                      // 友链地址
+	FriendAvatarUrl string    `gorm:"column:friend_avatar_url"`                                    // 友链头像
+	FriendDescribe  string    `gorm:"column:friend_describe"`                                      // 友链描述
+	CreateTime      time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
+	UpdateTime      time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
 }
 
 func (fl *FriendLink) TableName() string {

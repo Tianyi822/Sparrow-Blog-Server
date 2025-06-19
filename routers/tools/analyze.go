@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
-	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss/credentials"
 	"math"
 	"net"
 	"net/http"
@@ -15,12 +13,15 @@ import (
 	"regexp"
 	"sparrow_blog_server/pkg/config"
 	"strings"
+
+	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
+	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss/credentials"
 )
 
 // AnalyzePort 分析端口配置
 // 分析该端口是否被占用
 func AnalyzePort(port uint16) error {
-	if port < 1 || port > 65535 {
+	if port < 1 {
 		return fmt.Errorf("端口 %v 超出范围 (1~65535)", port)
 	}
 
@@ -68,7 +69,7 @@ func AnalyzeTokenKey(tokenKey string) error {
 
 // AnalyzeTokenExpireDuration 分析 token 过期时间
 func AnalyzeTokenExpireDuration(dur uint8) error {
-	if dur < 0 || dur > 90 {
+	if dur > 90 {
 		return fmt.Errorf("token 过期时间 %v 超出范围 (0~90)", dur)
 	} else {
 		return nil
