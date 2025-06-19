@@ -106,12 +106,13 @@ const createCommentTableSQL = `
 const createFriendLinkTableSQL = `
 	CREATE TABLE IF NOT EXISTS FRIEND_LINK
 	(
-		friend_link_id 		VARCHAR(16) 	PRIMARY KEY NOT NULL 															COMMENT '友链 ID',
-		friend_link_name 	VARCHAR(50) 				NOT NULL 															COMMENT '友链名称',
-		friend_link_url 	VARCHAR(200) 				NOT NULL 															COMMENT '友链 URL',
-		friend_describe		VARCHAR(500)																					COMMENT '友链描述',
-		create_time 		TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
-		update_time 		TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
+		friend_link_id 			VARCHAR(16) 	PRIMARY KEY NOT NULL 															COMMENT '友链 ID',
+		friend_link_name 		VARCHAR(50) 				NOT NULL 															COMMENT '友链名称',
+		friend_link_url 		VARCHAR(200) 				NOT NULL 	UNIQUE													COMMENT '友链 URL',
+		friend_avatar_url 		VARCHAR(200) 																					COMMENT '友链头像 URL',
+		friend_describe			VARCHAR(500)																					COMMENT '友链描述',
+		create_time 			TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
+		update_time 			TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
 		INDEX (friend_link_id),
 		INDEX (friend_link_name),
 		INDEX (create_time)
