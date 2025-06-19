@@ -52,17 +52,6 @@ func TestCreateFriendLink(t *testing.T) {
 	fmt.Printf("添加友链成功，ID: %s\n", friendLinkDto.FriendLinkId)
 }
 
-func TestGetFriendLinkByName(t *testing.T) {
-	ctx := context.Background()
-	friendLinkDto, err := GetFriendLinkByNameLike(ctx, "chentyit")
-	if err != nil {
-		t.Errorf("GetFriendLinkByName() error = %v", err)
-		return
-	}
-
-	fmt.Printf("friendLinkDto = %v\n", friendLinkDto)
-}
-
 func TestUpdateFriendLinkByID(t *testing.T) {
 	ctx := context.Background()
 	friendLinkDto := &dto.FriendLinkDto{
@@ -130,23 +119,5 @@ func TestFindAllFriendLinks(t *testing.T) {
 			friendLink.FriendLinkId,
 			friendLink.FriendLinkName,
 			friendLink.FriendLinkUrl)
-	}
-}
-
-func TestFindFriendLinkById(t *testing.T) {
-	ctx := context.Background()
-	friendLink, err := FindFriendLinkById(ctx, "eefe040262ec2915")
-	if err != nil {
-		t.Errorf("FindFriendLinkById() error = %v", err)
-		return
-	}
-
-	if friendLink != nil {
-		fmt.Printf("找到友链: ID: %s, Name: %s, URL: %s\n",
-			friendLink.FriendLinkId,
-			friendLink.FriendLinkName,
-			friendLink.FriendLinkUrl)
-	} else {
-		fmt.Printf("未找到指定ID的友链\n")
 	}
 }

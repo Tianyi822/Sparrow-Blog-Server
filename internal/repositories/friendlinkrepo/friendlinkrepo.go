@@ -16,17 +16,19 @@ import (
 // UpdateFriendLinkByID 根据友链ID更新友链信息。
 // 参数:
 // - tx: 数据库事务对象，用于执行数据库操作。
-// - friendLinkDto: 包含友链更新信息的数据传输对象，包含友链ID、友链名称和友链URL。
+// - friendLinkDto: 包含友链更新信息的数据传输对象，包含友链ID、友链名称、友链URL、友链头像和友链描述。
 // 返回值:
 // - error: 错误信息，如果更新过程中发生错误，则返回具体的错误信息；否则返回nil。
 func UpdateFriendLinkByID(tx *gorm.DB, friendLinkDto *dto.FriendLinkDto) error {
 	// 记录更新操作开始的日志，便于后续排查问题。
 	logger.Info("更新友链数据")
 
-	// 执行更新操作，根据友链ID更新友链名称和友链URL。
+	// 执行更新操作，根据友链ID更新所有友链字段。
 	if err := tx.Model(&po.FriendLink{}).Where("friend_link_id = ?", friendLinkDto.FriendLinkId).Updates(po.FriendLink{
-		FriendLinkName: friendLinkDto.FriendLinkName,
-		FriendLinkUrl:  friendLinkDto.FriendLinkUrl,
+		FriendLinkName:  friendLinkDto.FriendLinkName,
+		FriendLinkUrl:   friendLinkDto.FriendLinkUrl,
+		FriendAvatarUrl: friendLinkDto.FriendAvatarUrl,
+		FriendDescribe:  friendLinkDto.FriendDescribe,
 	}).Error; err != nil {
 		// 如果更新失败，记录错误日志。
 		msg := fmt.Sprintf("更新友链数据失败: %v", err)
@@ -62,36 +64,6 @@ func DeleteFriendLinkById(tx *gorm.DB, friendLinkId string) error {
 	return nil
 }
 
-// GetFriendLinkByNameLike 根据友链名称模糊查询友链信息
-// 参数：
-//   - ctx context.Context: 请求上下文，用于控制超时和取消
-//   - name string: 友链名称的模糊查询条件（支持%通配符）
-//
-// 返回值：
-//   - *dto.FriendLinkDto: 查询到的友链数据
-//   - error: 查询失败时返回的错误信息
-func GetFriendLinkByNameLike(ctx context.Context, name string) (*dto.FriendLinkDto, error) {
-	friendLink := &po.FriendLink{}
-
-	// 执行数据库查询以获取指定名称的友链记录
-	if err := storage.Storage.Db.Model(friendLink).
-		WithContext(ctx).
-		Where("friend_link_name LIKE ?", "%"+name+"%").
-		First(friendLink).Error; err != nil {
-		// 处理查询错误并返回
-		msg := fmt.Sprintf("查询友链失败: %v", err)
-		logger.Warn(msg)
-		return nil, errors.New(msg)
-	}
-
-	// 将查询结果转换为DTO并返回
-	return &dto.FriendLinkDto{
-		FriendLinkId:   friendLink.FriendLinkId,
-		FriendLinkName: friendLink.FriendLinkName,
-		FriendLinkUrl:  friendLink.FriendLinkUrl,
-	}, nil
-}
-
 // CreateFriendLink 创建友链记录
 //
 // 参数:
@@ -101,7 +73,7 @@ func GetFriendLinkByNameLike(ctx context.Context, name string) (*dto.FriendLinkD
 // 返回值:
 //   - error: 操作过程中产生的错误（成功时返回nil）
 func CreateFriendLink(tx *gorm.DB, friendLinkDto *dto.FriendLinkDto) error {
-	friendLinkId, err := utils.GenId(friendLinkDto.FriendLinkName)
+	friendLinkId, err := utils.GenId(friendLinkDto.FriendLinkUrl)
 	if err != nil {
 		return err
 	}
@@ -111,9 +83,11 @@ func CreateFriendLink(tx *gorm.DB, friendLinkDto *dto.FriendLinkDto) error {
 
 	// 根据传入的FriendLinkDto对象初始化一个FriendLink对象
 	friendLink := &po.FriendLink{
-		FriendLinkId:   friendLinkId,
-		FriendLinkName: friendLinkDto.FriendLinkName,
-		FriendLinkUrl:  friendLinkDto.FriendLinkUrl,
+		FriendLinkId:    friendLinkId,
+		FriendLinkName:  friendLinkDto.FriendLinkName,
+		FriendLinkUrl:   friendLinkDto.FriendLinkUrl,
+		FriendAvatarUrl: friendLinkDto.FriendAvatarUrl,
+		FriendDescribe:  friendLinkDto.FriendDescribe,
 	}
 
 	logger.Info("添加友链数据")
@@ -153,40 +127,15 @@ func FindAllFriendLinks(ctx context.Context) ([]*dto.FriendLinkDto, error) {
 	// 遍历查询到的友链数据，将其转换为DTO格式并添加到结果列表中
 	for _, friendLink := range friendLinks {
 		friendLinkDto := &dto.FriendLinkDto{
-			FriendLinkId:   friendLink.FriendLinkId,
-			FriendLinkName: friendLink.FriendLinkName,
-			FriendLinkUrl:  friendLink.FriendLinkUrl,
+			FriendLinkId:    friendLink.FriendLinkId,
+			FriendLinkName:  friendLink.FriendLinkName,
+			FriendLinkUrl:   friendLink.FriendLinkUrl,
+			FriendAvatarUrl: friendLink.FriendAvatarUrl,
+			FriendDescribe:  friendLink.FriendDescribe,
 		}
 		friendLinkDtos = append(friendLinkDtos, friendLinkDto)
 	}
 
 	// 返回转换后的友链DTO列表和nil错误
 	return friendLinkDtos, nil
-}
-
-// FindFriendLinkById 根据友链ID查询友链信息
-// 参数:
-//   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
-//   - id: 友链的唯一标识符，用于查询具体的友链记录。
-//
-// 返回值:
-//   - *dto.FriendLinkDto: 包含友链详细信息的数据传输对象，如果查询失败则返回nil。
-//   - error: 查询过程中发生的错误信息，如果没有错误则返回nil。
-func FindFriendLinkById(ctx context.Context, id string) (*dto.FriendLinkDto, error) {
-	friendLink := &po.FriendLink{}
-
-	if err := storage.Storage.Db.WithContext(ctx).Model(&po.FriendLink{}).
-		Where("friend_link_id = ?", id).
-		First(friendLink).Error; err != nil {
-		// 如果查询失败，记录警告日志并返回错误信息。
-		msg := fmt.Sprintf("查询友链信息失败: %v", err)
-		logger.Warn(msg)
-		return nil, errors.New(msg)
-	}
-
-	return &dto.FriendLinkDto{
-		FriendLinkId:   friendLink.FriendLinkId,
-		FriendLinkName: friendLink.FriendLinkName,
-		FriendLinkUrl:  friendLink.FriendLinkUrl,
-	}, nil
 }
