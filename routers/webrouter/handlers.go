@@ -3,6 +3,7 @@ package webrouter
 import (
 	"net/url"
 
+	"sparrow_blog_server/internal/model/vo"
 	"sparrow_blog_server/internal/services/adminservices"
 	"sparrow_blog_server/internal/services/webservice"
 	"sparrow_blog_server/pkg/config"
@@ -144,4 +145,33 @@ func searchContent(ctx *gin.Context) {
 
 	// 6. 返回搜索结果
 	resp.Ok(ctx, "搜索成功", response)
+}
+
+// getAllDisplayedFriendLinks 获取所有显示状态为 true 的友链
+// @param ctx *gin.Context - Gin上下文
+// @return 无返回值，通过resp包响应友链数据
+func getAllDisplayedFriendLinks(ctx *gin.Context) {
+	// 调用webservice层获取显示状态为 true 的友链数据
+	friendLinkDtos, err := webservice.GetDisplayedFriendLinks(ctx)
+	if err != nil {
+		resp.Err(ctx, "获取友链失败", err.Error())
+		return
+	}
+
+	// 将DTO列表转换为VO列表，以便前端使用
+	friendLinkVos := make([]vo.FriendLinkVo, 0, len(friendLinkDtos))
+	for _, friendLinkDto := range friendLinkDtos {
+		friendLinkVo := vo.FriendLinkVo{
+			FriendLinkId:    friendLinkDto.FriendLinkId,
+			FriendLinkName:  friendLinkDto.FriendLinkName,
+			FriendLinkUrl:   friendLinkDto.FriendLinkUrl,
+			FriendAvatarUrl: friendLinkDto.FriendAvatarUrl,
+			FriendDescribe:  friendLinkDto.FriendDescribe,
+			Display:         friendLinkDto.Display,
+		}
+		friendLinkVos = append(friendLinkVos, friendLinkVo)
+	}
+
+	// 返回成功响应
+	resp.Ok(ctx, "获取友链成功", friendLinkVos)
 }
