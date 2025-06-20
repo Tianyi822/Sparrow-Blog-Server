@@ -30,4 +30,10 @@ func Router(e *gin.Engine) {
 
 		searchGroup.GET("/:content", searchContent)
 	}
+
+	{
+		friendLinkGroup := webGroup.Group("/friend-link")
+
+		friendLinkGroup.GET("/all", getAllDisplayedFriendLinks)
+	}
 }

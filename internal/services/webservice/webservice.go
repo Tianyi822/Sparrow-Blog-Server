@@ -9,6 +9,7 @@ import (
 	"sparrow_blog_server/internal/model/vo"
 	"sparrow_blog_server/internal/repositories/blogrepo"
 	"sparrow_blog_server/internal/repositories/categoryrepo"
+	"sparrow_blog_server/internal/repositories/friendlinkrepo"
 	"sparrow_blog_server/internal/repositories/tagrepo"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/logger"
@@ -263,4 +264,15 @@ func GetBlogDataById(ctx context.Context, id string) (*vo.BlogVo, string, error)
 
 	// 返回博客视图对象和预签名URL
 	return blogVo, preUrl, nil
+}
+
+// GetDisplayedFriendLinks 获取所有显示状态为 true 的友链信息
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据。
+//
+// 返回值:
+//   - []*dto.FriendLinkDto: 包含友链信息的 DTO 列表。
+//   - error: 如果在查询友链时发生错误，则返回该错误。
+func GetDisplayedFriendLinks(ctx context.Context) ([]*dto.FriendLinkDto, error) {
+	return friendlinkrepo.FindDisplayedFriendLinks(ctx)
 }

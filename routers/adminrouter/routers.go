@@ -137,8 +137,6 @@ func Routers(e *gin.Engine) {
 
 		friendLinkGroup.GET("/all", getAllFriendLinks)
 
-		friendLinkGroup.POST("/create", createFriendLink)
-
 		friendLinkGroup.PUT("/update", updateFriendLink)
 
 		friendLinkGroup.PUT("/:friend_link_id/display", updateFriendLinkDisplay)
