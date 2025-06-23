@@ -2,7 +2,7 @@ package commentrepo
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
+	"sparrow_blog_server/internal/model/dto"
 	"sparrow_blog_server/internal/model/po"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/logger"
@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
@@ -28,32 +30,29 @@ func TestAddComment(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name     string
-		comment  po.Comment
-		wantRows int64
-		wantErr  bool
+		name       string
+		commentDto dto.CommentDto
+		wantErr    bool
 	}{
 		{
 			name: "正常添加评论",
-			comment: po.Comment{
-				CommentId:  "test_comment_1",
-				Content:    "Test comment content",
-				CreateTime: time.Now(),
-				UpdateTime: time.Now(),
+			commentDto: dto.CommentDto{
+				CommenterEmail: "test@example.com",
+				BlogId:         "test_blog_1",
+				OriginPostId:   "",
+				Content:        "Test comment content",
 			},
-			wantRows: 1,
-			wantErr:  false,
+			wantErr: false,
 		},
 		{
-			name: "重复评论ID",
-			comment: po.Comment{
-				CommentId:  "test_comment_1",
-				Content:    "Duplicate comment",
-				CreateTime: time.Now(),
-				UpdateTime: time.Now(),
+			name: "添加子评论",
+			commentDto: dto.CommentDto{
+				CommenterEmail: "test2@example.com",
+				BlogId:         "test_blog_1",
+				OriginPostId:   "parent_1",
+				Content:        "Test sub comment",
 			},
-			wantRows: 0,
-			wantErr:  true,
+			wantErr: false,
 		},
 	}
 
@@ -64,20 +63,25 @@ func TestAddComment(t *testing.T) {
 			defer tx.Rollback()
 
 			// 执行测试
-			rows, err := AddComment(ctx, &tt.comment)
+			resultDto, err := CreateComment(ctx, tx, &tt.commentDto)
 
 			if tt.wantErr {
 				assert.Error(t, err)
-				assert.Equal(t, tt.wantRows, rows)
+				assert.Nil(t, resultDto)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.wantRows, rows)
+				assert.NotNil(t, resultDto)
+				assert.NotEmpty(t, resultDto.CommentId)
+				assert.Equal(t, tt.commentDto.CommenterEmail, resultDto.CommenterEmail)
+				assert.Equal(t, tt.commentDto.Content, resultDto.Content)
+				assert.Equal(t, tt.commentDto.BlogId, resultDto.BlogId)
+				assert.Equal(t, tt.commentDto.OriginPostId, resultDto.OriginPostId)
 
 				// 验证数据是否正确保存
 				var saved po.Comment
-				err = tx.Where("comment_id = ?", tt.comment.CommentId).First(&saved).Error
+				err = tx.Where("comment_id = ?", resultDto.CommentId).First(&saved).Error
 				assert.NoError(t, err)
-				assert.Equal(t, tt.comment.Content, saved.Content)
+				assert.Equal(t, resultDto.Content, saved.Content)
 			}
 		})
 	}
@@ -86,16 +90,20 @@ func TestAddComment(t *testing.T) {
 func TestDeleteCommentById(t *testing.T) {
 	ctx := context.Background()
 
-	// Create test data
-	comment := &po.Comment{
-		CommentId:  "test_comment_1",
-		Content:    "Test comment for deletion",
-		CreateTime: time.Now(),
-		UpdateTime: time.Now(),
+	// 创建测试用的CommentDto
+	commentDto := &dto.CommentDto{
+		CommenterEmail: "test@example.com",
+		BlogId:         "test_blog_1",
+		OriginPostId:   "",
+		Content:        "Test comment for deletion",
 	}
+	// 开启事务用于创建测试数据
+	setupTx := storage.Storage.Db.Begin()
+	defer setupTx.Rollback()
 
-	_, err := AddComment(ctx, comment)
+	resultDto, err := CreateComment(ctx, setupTx, commentDto)
 	assert.NoError(t, err)
+	setupTx.Commit()
 
 	tests := []struct {
 		name     string
@@ -105,7 +113,7 @@ func TestDeleteCommentById(t *testing.T) {
 	}{
 		{
 			name:     "正常删除评论",
-			id:       "test_comment_1",
+			id:       resultDto.CommentId, // 使用实际创建的ID
 			wantRows: 1,
 			wantErr:  false,
 		},
@@ -124,7 +132,7 @@ func TestDeleteCommentById(t *testing.T) {
 			defer tx.Rollback()
 
 			// Execute test
-			rows, err := DeleteCommentById(ctx, tt.id)
+			rows, err := DeleteCommentById(ctx, tx, tt.id)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -132,10 +140,12 @@ func TestDeleteCommentById(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.wantRows, rows)
 
-				// Verify deletion
-				var count int64
-				tx.Model(&po.Comment{}).Where("comment_id = ?", tt.id).Count(&count)
-				assert.Equal(t, int64(0), count)
+				if tt.wantRows > 0 {
+					// Verify deletion
+					var count int64
+					tx.Model(&po.Comment{}).Where("comment_id = ?", tt.id).Count(&count)
+					assert.Equal(t, int64(0), count)
+				}
 			}
 		})
 	}
@@ -143,6 +153,11 @@ func TestDeleteCommentById(t *testing.T) {
 
 func TestFindCommentByContentLike(t *testing.T) {
 	ctx := context.Background()
+
+	// 清理可能存在的测试数据
+	cleanupTx := storage.Storage.Db.Begin()
+	cleanupTx.Exec("DELETE FROM COMMENT WHERE commenter_email = 'test@example.com'")
+	cleanupTx.Commit()
 
 	// Create test data
 	testComments := []po.Comment{
@@ -161,10 +176,21 @@ func TestFindCommentByContentLike(t *testing.T) {
 	}
 
 	for _, comment := range testComments {
-		_, err := AddComment(ctx, &comment)
+		// 创建测试用的CommentDto
+		commentDto := &dto.CommentDto{
+			CommenterEmail: "test@example.com",
+			BlogId:         "test_blog_1",
+			OriginPostId:   "",
+			Content:        comment.Content,
+		}
+		// 开启事务用于创建测试数据
+		setupTx := storage.Storage.Db.Begin()
+		_, err := CreateComment(ctx, setupTx, commentDto)
 		if err != nil {
+			setupTx.Rollback()
 			t.Fatal(err)
 		}
+		setupTx.Commit()
 	}
 
 	tests := []struct {

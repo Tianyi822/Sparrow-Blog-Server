@@ -85,13 +85,11 @@ const createImgTableSQL = `
 const createCommentTableSQL = `
 	CREATE TABLE IF NOT EXISTS COMMENT
 	(
-		comment_id 			VARCHAR(16) 	PRIMARY KEY NOT NULL 															COMMENT '评论ID',
-		user_name     		VARCHAR(50)     			NOT NULL 															COMMENT '用户名',
-		user_email 			VARCHAR(50)  				NOT NULL  															COMMENT '用户邮箱',
-		user_url        	VARCHAR(200) 				NOT NULL 															COMMENT '用户邮箱',
-		blog_id 			VARCHAR(16) 				NOT NULL 															COMMENT '博客ID',
-		original_poster_id 	VARCHAR(16) 				NOT NULL 															COMMENT '楼主评论ID',
-		content 			TEXT 						NOT NULL 															COMMENT '评论内容(最大支持64KB)',
+		comment_id 			VARCHAR(16) 	PRIMARY KEY NOT NULL 															COMMENT '评论 ID',
+		commenter_email 	VARCHAR(50)  				NOT NULL  															COMMENT '评论者邮箱',
+		blog_id 			VARCHAR(16) 				        															COMMENT '博客 ID',
+		original_poster_id 	VARCHAR(16) 				 																	COMMENT '楼主评论 ID',
+		comment_content 	TEXT 						NOT NULL 															COMMENT '评论内容(最大支持64KB)',
 		create_time 		TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
 		update_time 		TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
 		INDEX (comment_id),
