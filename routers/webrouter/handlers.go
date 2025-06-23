@@ -7,7 +7,9 @@ import (
 	"sparrow_blog_server/internal/services/adminservices"
 	"sparrow_blog_server/internal/services/webservice"
 	"sparrow_blog_server/pkg/config"
+	"sparrow_blog_server/pkg/email"
 	"sparrow_blog_server/routers/resp"
+	"sparrow_blog_server/routers/tools"
 	"sparrow_blog_server/searchengine"
 
 	"github.com/gin-gonic/gin"
@@ -174,4 +176,42 @@ func getAllDisplayedFriendLinks(ctx *gin.Context) {
 
 	// 返回成功响应
 	resp.Ok(ctx, "获取友链成功", friendLinkVos)
+}
+
+// applyFriendLink 申请友链
+// @param ctx *gin.Context - Gin上下文
+// @return 无返回值，通过resp包响应结果
+func applyFriendLink(ctx *gin.Context) {
+	// 使用tools包中的GetFriendLinkDto方法获取友链DTO
+	friendLinkDto, err := tools.GetFriendLinkDto(ctx)
+	if err != nil {
+		// GetFriendLinkDto内部已经处理了错误响应，这里直接返回
+		return
+	}
+
+	// 调用service层处理友链申请
+	if err := webservice.ApplyFriendLink(ctx, friendLinkDto); err != nil {
+		resp.Err(ctx, "友链申请失败", err.Error())
+		return
+	}
+
+	// 异步发送邮件通知管理员
+	go func() {
+		emailData := email.FriendLinkData{
+			Name:        friendLinkDto.FriendLinkName,
+			URL:         friendLinkDto.FriendLinkUrl,
+			AvatarURL:   friendLinkDto.FriendAvatarUrl,
+			Description: friendLinkDto.FriendDescribe,
+		}
+
+		// 发送邮件通知
+		if err := email.SendFriendLinkNotificationBySys(ctx.Copy(), emailData); err != nil {
+			// 邮件发送失败只记录日志，不影响主流程
+			// 这里可以添加日志记录
+			_ = err
+		}
+	}()
+
+	// 返回成功响应
+	resp.Ok(ctx, "友链申请成功，请等待管理员审核", nil)
 }

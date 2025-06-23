@@ -204,6 +204,43 @@ func UpdateFriendLinkDisplayById(tx *gorm.DB, friendLinkId string, display bool)
 	return nil
 }
 
+// FindFriendLinkByUrl 根据友链URL查询友链信息
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。
+//   - friendLinkUrl: 需要查询的友链URL。
+//
+// 返回值:
+//   - *dto.FriendLinkDto: 包含友链数据的DTO对象，如果不存在则返回nil
+//   - error: 如果查询过程中发生错误，则返回错误信息；否则返回nil。
+func FindFriendLinkByUrl(ctx context.Context, friendLinkUrl string) (*dto.FriendLinkDto, error) {
+	friendLink := &po.FriendLink{}
+
+	// 使用GORM查询指定URL的友链数据
+	if err := storage.Storage.Db.Model(&po.FriendLink{}).
+		WithContext(ctx).
+		Where("friend_link_url = ?", friendLinkUrl).
+		First(&friendLink).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil // 友链不存在，返回nil而不是错误
+		}
+		msg := fmt.Sprintf("查询友链信息失败: %v", err)
+		logger.Error(msg)
+		return nil, errors.New(msg)
+	}
+
+	// 将查询到的友链数据转换为DTO格式
+	friendLinkDto := &dto.FriendLinkDto{
+		FriendLinkId:    friendLink.FriendLinkId,
+		FriendLinkName:  friendLink.FriendLinkName,
+		FriendLinkUrl:   friendLink.FriendLinkUrl,
+		FriendAvatarUrl: friendLink.FriendLinkAvatarUrl,
+		FriendDescribe:  friendLink.FriendDescribe,
+		Display:         friendLink.Display,
+	}
+
+	return friendLinkDto, nil
+}
+
 // FindDisplayedFriendLinks 查询所有显示状态为 true 的友链信息
 // 参数:
 //   - ctx: 上下文对象，用于控制请求的生命周期和传递上下文信息。

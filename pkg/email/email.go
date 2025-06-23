@@ -44,110 +44,8 @@ func SendVerificationCodeByArgs(ctx context.Context, email, smtpAccount, smtpAdd
 		code = c
 	}
 
-	// 定义HTML邮件模板，包含验证码的展示样式和提示信息。
-	htmlTemplate := `
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sparrow Blog 验证码</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f5f7fa;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            -webkit-font-smoothing: antialiased;
-        }
-        .container {
-            max-width: 600px;
-            margin: 40px auto;
-            background: linear-gradient(135deg, #ffffff, #f5f7fa);
-            padding: 40px 30px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .logo img {
-            height: 50px;
-        }
-        h1 {
-            color: #2d3748;
-            text-align: center;
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 30px;
-        }
-        .code-container {
-            background-color: #f8fafc;
-            border: 1px dashed #cbd5e0;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            margin: 25px 0;
-        }
-        .verification-code {
-            font-family: 'Courier New', monospace;
-            font-size: 28px;
-            font-weight: bold;
-            color: #3182ce;
-            letter-spacing: 2px;
-            word-break: break-all;
-            line-height: 1.4;
-            text-align: center;
-        }
-        .message {
-            text-align: center;
-            color: #718096;
-            font-size: 16px;
-            margin: 25px 0;
-            line-height: 1.6;
-        }
-        @media (max-width: 600px) {
-            .container {
-                margin: 20px auto;
-                padding: 25px 15px;
-            }
-            .verification-code {
-                font-size: 22px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="logo">
-            <!-- 替换为实际的博客logo -->
-            <h2 style="color: #3182ce;">Sparrow Blog</h2>
-        </div>
-        
-        <h1>验证您的邮箱</h1>
-        
-        <div class="message">
-            请使用以下验证码完成邮箱验证流程：
-        </div>
-        
-        <div class="code-container">
-            <div class="verification-code">{{.Code}}</div>
-        </div>
-        
-        <div class="message">
-            <strong>此验证码将在 5 分钟内有效</strong><br>
-            请勿将验证码泄露给他人，以确保您的账户安全。
-        </div>
-    </div>
-</body>
-</html>
-	`
-
 	// 解析HTML模板，准备渲染验证码。
-	tmpl, err := template.New("email").Parse(htmlTemplate)
+	tmpl, err := template.New("email").Parse(VerificationCodeTemplate)
 	if err != nil {
 		return err
 	}
@@ -164,13 +62,14 @@ func SendVerificationCodeByArgs(ctx context.Context, email, smtpAccount, smtpAdd
 	}
 
 	// 调用SendContent函数发送包含验证码的邮件。
-	return sendContent(email, htmlContent.String(), smtpAccount, smtpAddress, smtpAuthCode, smtpPort)
+	return sendContent(email, htmlContent.String(), VerificationCodeSubject, smtpAccount, smtpAddress, smtpAuthCode, smtpPort)
 }
 
 // sendContent 发送邮件内容到指定邮箱。
 // 参数说明：
 //   - email: 收件人的邮箱地址。
 //   - content: 邮件的正文内容，支持 HTML 格式。
+//   - subject: 邮件主题。
 //   - smtpAccount: SMTP 服务器的发件人账号（通常是邮箱地址）。
 //   - smtpAddress: SMTP 服务器的地址（如 smtp.example.com）。
 //   - smtpAuthCode: SMTP 服务器的授权码或密码。
@@ -178,14 +77,14 @@ func SendVerificationCodeByArgs(ctx context.Context, email, smtpAccount, smtpAdd
 //
 // 返回值：
 //   - error: 如果发送邮件失败，则返回错误信息；否则返回 nil。
-func sendContent(email, content, smtpAccount, smtpAddress, smtpAuthCode string, smtpPort uint16) error {
+func sendContent(email, content, subject, smtpAccount, smtpAddress, smtpAuthCode string, smtpPort uint16) error {
 	// 创建邮件内容
 	m := gomail.NewMessage()
 
 	// 设置邮件头部信息，包括发件人、收件人和主题
 	m.SetHeader("From", smtpAccount)
 	m.SetHeader("To", email)
-	m.SetHeader("Subject", "博客验证码")
+	m.SetHeader("Subject", subject)
 
 	// 设置邮件正文为 HTML 格式
 	m.SetBody("text/html", content)
@@ -214,6 +113,76 @@ func SendVerificationCodeBySys(ctx context.Context) error {
 	if err := SendVerificationCodeByArgs(
 		ctx,
 		config.User.UserEmail,
+		config.Server.SmtpAccount,
+		config.Server.SmtpAddress,
+		config.Server.SmtpAuthCode,
+		config.Server.SmtpPort,
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// FriendLinkData 友链信息结构体
+type FriendLinkData struct {
+	Name        string // 友链名称
+	URL         string // 友链地址
+	AvatarURL   string // 头像URL
+	Description string // 友链简介
+}
+
+// SendFriendLinkNotificationByArgs 发送友链申请通知邮件。
+// 参数说明：
+//   - ctx: 上下文对象，用于控制请求的生命周期。
+//   - email: 收件人的电子邮件地址。
+//   - friendLink: 友链信息。
+//   - smtpAccount: SMTP服务器的账户名。
+//   - smtpAddress: SMTP服务器的地址。
+//   - smtpAuthCode: SMTP服务器的授权码。
+//   - smtpPort: SMTP服务器的端口号。
+//
+// 返回值：
+//   - error: 如果发送邮件过程中发生错误，则返回错误信息；否则返回nil。
+func SendFriendLinkNotificationByArgs(ctx context.Context, email string, friendLink FriendLinkData, smtpAccount, smtpAddress, smtpAuthCode string, smtpPort uint16) error {
+	// 解析HTML模板，准备渲染友链信息。
+	tmpl, err := template.New("friendlink").Parse(FriendLinkNotificationTemplate)
+	if err != nil {
+		return err
+	}
+
+	// 创建一个字符串构建器，用于存储渲染后的HTML内容。
+	var htmlContent strings.Builder
+
+	// 执行模板渲染，将友链信息插入到HTML模板中。
+	err = tmpl.Execute(&htmlContent, FriendLinkData{
+		Name:        template.HTMLEscapeString(friendLink.Name),
+		URL:         template.HTMLEscapeString(friendLink.URL),
+		AvatarURL:   template.HTMLEscapeString(friendLink.AvatarURL),
+		Description: template.HTMLEscapeString(friendLink.Description),
+	})
+	if err != nil {
+		return err
+	}
+
+	// 调用sendContent函数发送友链申请通知邮件。
+	return sendContent(email, htmlContent.String(), FriendLinkNotificationSubject, smtpAccount, smtpAddress, smtpAuthCode, smtpPort)
+}
+
+// SendFriendLinkNotificationBySys 发送友链申请通知邮件给系统配置的邮箱地址。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据；
+//   - friendLink: 友链信息；
+//
+// 返回值:
+//   - error: 如果发送过程中出现错误，则返回具体的错误信息；否则返回 nil。
+func SendFriendLinkNotificationBySys(ctx context.Context, friendLink FriendLinkData) error {
+	// 调用 SendFriendLinkNotificationByArgs 函数发送友链申请通知邮件，
+	// 使用系统配置中的 SMTP 账号、地址、授权码和端口信息。
+	if err := SendFriendLinkNotificationByArgs(
+		ctx,
+		config.User.UserEmail,
+		friendLink,
 		config.Server.SmtpAccount,
 		config.Server.SmtpAddress,
 		config.Server.SmtpAuthCode,
