@@ -121,3 +121,38 @@ func TestFindAllFriendLinks(t *testing.T) {
 			friendLink.FriendLinkUrl)
 	}
 }
+
+func TestFindFriendLinkByUrl(t *testing.T) {
+	ctx := context.Background()
+
+	// 测试查找存在的URL
+	existingUrl := "https://chentyit.github.io"
+	friendLink, err := FindFriendLinkByUrl(ctx, existingUrl)
+	if err != nil {
+		t.Errorf("FindFriendLinkByUrl() error = %v", err)
+		return
+	}
+
+	if friendLink != nil {
+		fmt.Printf("找到友链: ID: %s, Name: %s, URL: %s\n",
+			friendLink.FriendLinkId,
+			friendLink.FriendLinkName,
+			friendLink.FriendLinkUrl)
+	} else {
+		fmt.Printf("未找到URL为 %s 的友链\n", existingUrl)
+	}
+
+	// 测试查找不存在的URL
+	nonExistentUrl := "https://example-not-exist.com"
+	friendLink2, err := FindFriendLinkByUrl(ctx, nonExistentUrl)
+	if err != nil {
+		t.Errorf("FindFriendLinkByUrl() error = %v", err)
+		return
+	}
+
+	if friendLink2 == nil {
+		fmt.Printf("确认URL %s 不存在\n", nonExistentUrl)
+	} else {
+		t.Errorf("期望友链不存在，但找到了: %s", friendLink2.FriendLinkName)
+	}
+}
