@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
 	"os/signal"
@@ -132,6 +133,11 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	loadComponent(ctx)
 	cancel()
+
+	// 选择启动模式
+	if env.CurrentEnv == env.ProdEnv {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
 	// 启动服务
 	srv := runServer()
