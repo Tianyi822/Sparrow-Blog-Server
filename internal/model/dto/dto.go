@@ -104,3 +104,20 @@ func (fl *FriendLinkDto) DtoFlag() string {
 func (fl *FriendLinkDto) Name() string {
 	return fl.FriendLinkName
 }
+
+type CommentDto struct {
+	CommentId      string    `json:"comment_id,omitempty"`
+	CommenterEmail string    `json:"commenter_email,omitempty"`
+	BlogId         string    `json:"blog_id,omitempty"`
+	OriginPostId   string    `json:"origin_post_id,omitempty"`
+	Content        string    `json:"content,omitempty"`
+	CreateTime     time.Time `json:"create_time,omitempty"`
+}
+
+func (c *CommentDto) DtoFlag() string {
+	return "CommentDto"
+}
+
+func (c *CommentDto) Name() string {
+	return c.CommentId
+}
