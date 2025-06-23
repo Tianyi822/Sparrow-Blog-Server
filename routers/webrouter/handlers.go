@@ -191,7 +191,7 @@ func applyFriendLink(ctx *gin.Context) {
 
 	// 调用service层处理友链申请
 	if err := webservice.ApplyFriendLink(ctx, friendLinkDto); err != nil {
-		resp.Err(ctx, "友链申请失败", err.Error())
+		resp.Err(ctx, "友链申请失败: "+err.Error(), nil)
 		return
 	}
 
