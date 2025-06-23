@@ -35,5 +35,7 @@ func Router(e *gin.Engine) {
 		friendLinkGroup := webGroup.Group("/friend-link")
 
 		friendLinkGroup.GET("/all", getAllDisplayedFriendLinks)
+
+		friendLinkGroup.POST("/apply", applyFriendLink)
 	}
 }
