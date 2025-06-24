@@ -58,7 +58,6 @@ func TestSendCommentNotificationEmail(t *testing.T) {
 	comment := CommentData{
 		CommenterEmail: "test@example.com",
 		BlogTitle:      "Go语言学习笔记",
-		BlogURL:        "https://blog.example.com/go-learning-notes",
 		Content:        "这篇文章写得非常好，对Go语言的并发编程讲解得很清楚，特别是goroutine和channel的部分。期待更多这样的技术分享！",
 		CreateTime:     "2024-06-24 10:30:00",
 	}
@@ -76,7 +75,6 @@ func TestSendReplyNotificationEmail(t *testing.T) {
 	reply := ReplyData{
 		ReplierEmail:    "replier@example.com",
 		BlogTitle:       "Go语言学习笔记",
-		BlogURL:         "https://blog.example.com/go-learning-notes",
 		OriginalContent: "这篇文章写得非常好，对Go语言的并发编程讲解得很清楚。",
 		ReplyContent:    "我也有同样的感受！特别是关于select语句的使用，让我对Go的并发模型有了更深的理解。博主能再分享一些实际项目中的应用案例吗？",
 		CreateTime:      "2024-06-24 11:15:00",
@@ -97,7 +95,6 @@ func TestSendCommentOrReplyNotificationEmail(t *testing.T) {
 			ctx,
 			"newcommenter@example.com",
 			"Docker容器化实践指南",
-			"https://blog.example.com/docker-guide",
 			"这篇Docker教程非常实用，按照步骤操作很容易上手。希望能看到更多关于Kubernetes的内容！",
 			"2024-06-24 14:20:00",
 			"", // 空字符串表示这是评论而不是回复
@@ -117,7 +114,6 @@ func TestSendCommentOrReplyNotificationEmail(t *testing.T) {
 			ctx,
 			"replier@example.com",
 			"Docker容器化实践指南",
-			"https://blog.example.com/docker-guide",
 			"关于Kubernetes的内容确实很有必要，我推荐先从基本的Pod和Service概念开始学习。",
 			"2024-06-24 15:30:00",
 			"comment_id_123", // 非空表示这是回复
@@ -137,7 +133,6 @@ func TestSendCommentOrReplyNotificationEmail(t *testing.T) {
 			ctx,
 			"same@example.com",
 			"Docker容器化实践指南",
-			"https://blog.example.com/docker-guide",
 			"补充一下我之前的评论，还有一些细节需要注意。",
 			"2024-06-24 16:00:00",
 			"comment_id_456",

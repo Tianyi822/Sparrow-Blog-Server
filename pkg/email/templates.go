@@ -312,15 +312,6 @@ const CommentNotificationTemplate = `
             color: #2d3748;
             margin: 0 0 10px 0;
         }
-        .blog-url {
-            font-size: 14px;
-            color: #3182ce;
-            text-decoration: none;
-            word-break: break-all;
-        }
-        .blog-url:hover {
-            text-decoration: underline;
-        }
         .comment-content {
             background-color: #ffffff;
             padding: 20px;
@@ -368,9 +359,6 @@ const CommentNotificationTemplate = `
             <div class="comment-header">
                 <div class="commenter-email">👤 {{.CommenterEmail}}</div>
                 <div class="blog-title">📝 {{.BlogTitle}}</div>
-                {{if .BlogURL}}
-                <a href="{{.BlogURL}}" class="blog-url" target="_blank">🔗 查看文章</a>
-                {{end}}
             </div>
             
             <div class="comment-content">
@@ -453,15 +441,6 @@ const ReplyNotificationTemplate = `
             color: #2d3748;
             margin: 0 0 10px 0;
         }
-        .blog-url {
-            font-size: 14px;
-            color: #3182ce;
-            text-decoration: none;
-            word-break: break-all;
-        }
-        .blog-url:hover {
-            text-decoration: underline;
-        }
         .original-comment {
             background-color: #f0f4f8;
             padding: 15px;
@@ -525,9 +504,6 @@ const ReplyNotificationTemplate = `
             <div class="reply-header">
                 <div class="replier-email">👤 {{.ReplierEmail}}</div>
                 <div class="blog-title">📝 {{.BlogTitle}}</div>
-                {{if .BlogURL}}
-                <a href="{{.BlogURL}}" class="blog-url" target="_blank">🔗 查看文章</a>
-                {{end}}
             </div>
             
             {{if .OriginalContent}}
