@@ -42,12 +42,13 @@ func FindCommentsByContentLike(ctx context.Context, content string) ([]dto.Comme
 	var commentDtos []dto.CommentDto
 	for _, comment := range comments {
 		commentDtos = append(commentDtos, dto.CommentDto{
-			CommentId:      comment.CommentId,
-			CommenterEmail: comment.CommenterEmail,
-			BlogId:         comment.BlogId,
-			OriginPostId:   comment.OriginPostId,
-			Content:        comment.Content,
-			CreateTime:     comment.CreateTime,
+			CommentId:        comment.CommentId,
+			CommenterEmail:   comment.CommenterEmail,
+			BlogId:           comment.BlogId,
+			OriginPostId:     comment.OriginPostId,
+			ReplyToCommentId: comment.ReplyToCommentId,
+			Content:          comment.Content,
+			CreateTime:       comment.CreateTime,
 		})
 	}
 
@@ -80,12 +81,13 @@ func FindCommentsByBlogId(ctx context.Context, blogId string) ([]dto.CommentDto,
 	var commentDtos []dto.CommentDto
 	for _, comment := range comments {
 		commentDtos = append(commentDtos, dto.CommentDto{
-			CommentId:      comment.CommentId,
-			CommenterEmail: comment.CommenterEmail,
-			BlogId:         comment.BlogId,
-			OriginPostId:   comment.OriginPostId,
-			Content:        comment.Content,
-			CreateTime:     comment.CreateTime,
+			CommentId:        comment.CommentId,
+			CommenterEmail:   comment.CommenterEmail,
+			BlogId:           comment.BlogId,
+			OriginPostId:     comment.OriginPostId,
+			ReplyToCommentId: comment.ReplyToCommentId,
+			Content:          comment.Content,
+			CreateTime:       comment.CreateTime,
 		})
 	}
 
@@ -118,12 +120,13 @@ func FindCommentsByOriginPostId(ctx context.Context, originPostId string) ([]dto
 	var commentDtos []dto.CommentDto
 	for _, comment := range comments {
 		commentDtos = append(commentDtos, dto.CommentDto{
-			CommentId:      comment.CommentId,
-			CommenterEmail: comment.CommenterEmail,
-			BlogId:         comment.BlogId,
-			OriginPostId:   comment.OriginPostId,
-			Content:        comment.Content,
-			CreateTime:     comment.CreateTime,
+			CommentId:        comment.CommentId,
+			CommenterEmail:   comment.CommenterEmail,
+			BlogId:           comment.BlogId,
+			OriginPostId:     comment.OriginPostId,
+			ReplyToCommentId: comment.ReplyToCommentId,
+			Content:          comment.Content,
+			CreateTime:       comment.CreateTime,
 		})
 	}
 
@@ -154,12 +157,13 @@ func FindCommentById(ctx context.Context, commentId string) (*dto.CommentDto, er
 
 	// 转换为DTO
 	commentDto := &dto.CommentDto{
-		CommentId:      comment.CommentId,
-		CommenterEmail: comment.CommenterEmail,
-		BlogId:         comment.BlogId,
-		OriginPostId:   comment.OriginPostId,
-		Content:        comment.Content,
-		CreateTime:     comment.CreateTime,
+		CommentId:        comment.CommentId,
+		CommenterEmail:   comment.CommenterEmail,
+		BlogId:           comment.BlogId,
+		OriginPostId:     comment.OriginPostId,
+		ReplyToCommentId: comment.ReplyToCommentId,
+		Content:          comment.Content,
+		CreateTime:       comment.CreateTime,
 	}
 
 	return commentDto, nil
@@ -184,13 +188,14 @@ func CreateComment(ctx context.Context, tx *gorm.DB, commentDto *dto.CommentDto)
 
 	// 将DTO转换为PO
 	comment := &po.Comment{
-		CommentId:      commentId,
-		CommenterEmail: commentDto.CommenterEmail,
-		BlogId:         commentDto.BlogId,
-		OriginPostId:   commentDto.OriginPostId,
-		Content:        commentDto.Content,
-		CreateTime:     time.Now(),
-		UpdateTime:     time.Now(),
+		CommentId:        commentId,
+		CommenterEmail:   commentDto.CommenterEmail,
+		BlogId:           commentDto.BlogId,
+		OriginPostId:     commentDto.OriginPostId,
+		ReplyToCommentId: commentDto.ReplyToCommentId,
+		Content:          commentDto.Content,
+		CreateTime:       time.Now(),
+		UpdateTime:       time.Now(),
 	}
 
 	logger.Info("添加评论数据")
@@ -206,12 +211,13 @@ func CreateComment(ctx context.Context, tx *gorm.DB, commentDto *dto.CommentDto)
 
 	// 转换为DTO返回
 	resultDto := &dto.CommentDto{
-		CommentId:      comment.CommentId,
-		CommenterEmail: comment.CommenterEmail,
-		BlogId:         comment.BlogId,
-		OriginPostId:   comment.OriginPostId,
-		Content:        comment.Content,
-		CreateTime:     comment.CreateTime,
+		CommentId:        comment.CommentId,
+		CommenterEmail:   comment.CommenterEmail,
+		BlogId:           comment.BlogId,
+		OriginPostId:     comment.OriginPostId,
+		ReplyToCommentId: comment.ReplyToCommentId,
+		Content:          comment.Content,
+		CreateTime:       comment.CreateTime,
 	}
 
 	return resultDto, nil
@@ -250,12 +256,13 @@ func DeleteCommentById(ctx context.Context, tx *gorm.DB, id string) (int64, erro
 func UpdateComment(ctx context.Context, tx *gorm.DB, commentDto *dto.CommentDto) (*dto.CommentDto, error) {
 	// 将DTO转换为PO进行更新
 	comment := &po.Comment{
-		CommentId:      commentDto.CommentId,
-		CommenterEmail: commentDto.CommenterEmail,
-		BlogId:         commentDto.BlogId,
-		OriginPostId:   commentDto.OriginPostId,
-		Content:        commentDto.Content,
-		UpdateTime:     time.Now(),
+		CommentId:        commentDto.CommentId,
+		CommenterEmail:   commentDto.CommenterEmail,
+		BlogId:           commentDto.BlogId,
+		OriginPostId:     commentDto.OriginPostId,
+		ReplyToCommentId: commentDto.ReplyToCommentId,
+		Content:          commentDto.Content,
+		UpdateTime:       time.Now(),
 	}
 
 	logger.Info("更新评论数据")
@@ -279,12 +286,13 @@ func UpdateComment(ctx context.Context, tx *gorm.DB, commentDto *dto.CommentDto)
 
 	// 转换为DTO返回
 	resultDto := &dto.CommentDto{
-		CommentId:      updatedComment.CommentId,
-		CommenterEmail: updatedComment.CommenterEmail,
-		BlogId:         updatedComment.BlogId,
-		OriginPostId:   updatedComment.OriginPostId,
-		Content:        updatedComment.Content,
-		CreateTime:     updatedComment.CreateTime,
+		CommentId:        updatedComment.CommentId,
+		CommenterEmail:   updatedComment.CommenterEmail,
+		BlogId:           updatedComment.BlogId,
+		OriginPostId:     updatedComment.OriginPostId,
+		ReplyToCommentId: updatedComment.ReplyToCommentId,
+		Content:          updatedComment.Content,
+		CreateTime:       updatedComment.CreateTime,
 	}
 
 	return resultDto, nil

@@ -193,3 +193,204 @@ func SendFriendLinkNotificationBySys(ctx context.Context, friendLink FriendLinkD
 
 	return nil
 }
+
+// CommentData 评论信息结构体
+type CommentData struct {
+	CommenterEmail string // 评论者邮箱
+	BlogTitle      string // 博客标题
+	BlogURL        string // 博客链接
+	Content        string // 评论内容
+	CreateTime     string // 创建时间
+}
+
+// ReplyData 回复信息结构体
+type ReplyData struct {
+	ReplierEmail    string // 回复者邮箱
+	BlogTitle       string // 博客标题
+	BlogURL         string // 博客链接
+	OriginalContent string // 原评论内容
+	ReplyContent    string // 回复内容
+	CreateTime      string // 创建时间
+}
+
+// SendCommentNotificationByArgs 发送评论通知邮件。
+// 参数说明：
+//   - ctx: 上下文对象，用于控制请求的生命周期。
+//   - email: 收件人的电子邮件地址。
+//   - comment: 评论信息。
+//   - smtpAccount: SMTP服务器的账户名。
+//   - smtpAddress: SMTP服务器的地址。
+//   - smtpAuthCode: SMTP服务器的授权码。
+//   - smtpPort: SMTP服务器的端口号。
+//
+// 返回值：
+//   - error: 如果发送邮件过程中发生错误，则返回错误信息；否则返回nil。
+func SendCommentNotificationByArgs(ctx context.Context, email string, comment CommentData, smtpAccount, smtpAddress, smtpAuthCode string, smtpPort uint16) error {
+	// 解析HTML模板，准备渲染评论信息。
+	tmpl, err := template.New("comment").Parse(CommentNotificationTemplate)
+	if err != nil {
+		return err
+	}
+
+	// 创建一个字符串构建器，用于存储渲染后的HTML内容。
+	var htmlContent strings.Builder
+
+	// 执行模板渲染，将评论信息插入到HTML模板中。
+	err = tmpl.Execute(&htmlContent, CommentData{
+		CommenterEmail: template.HTMLEscapeString(comment.CommenterEmail),
+		BlogTitle:      template.HTMLEscapeString(comment.BlogTitle),
+		BlogURL:        template.HTMLEscapeString(comment.BlogURL),
+		Content:        template.HTMLEscapeString(comment.Content),
+		CreateTime:     template.HTMLEscapeString(comment.CreateTime),
+	})
+	if err != nil {
+		return err
+	}
+
+	// 调用sendContent函数发送评论通知邮件。
+	return sendContent(email, htmlContent.String(), CommentNotificationSubject, smtpAccount, smtpAddress, smtpAuthCode, smtpPort)
+}
+
+// SendCommentNotificationBySys 发送评论通知邮件给系统配置的邮箱地址。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据；
+//   - comment: 评论信息；
+//
+// 返回值:
+//   - error: 如果发送过程中出现错误，则返回具体的错误信息；否则返回 nil。
+func SendCommentNotificationBySys(ctx context.Context, comment CommentData) error {
+	// 调用 SendCommentNotificationByArgs 函数发送评论通知邮件，
+	// 使用系统配置中的 SMTP 账号、地址、授权码和端口信息。
+	if err := SendCommentNotificationByArgs(
+		ctx,
+		config.User.UserEmail,
+		comment,
+		config.Server.SmtpAccount,
+		config.Server.SmtpAddress,
+		config.Server.SmtpAuthCode,
+		config.Server.SmtpPort,
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SendReplyNotificationByArgs 发送回复通知邮件。
+// 参数说明：
+//   - ctx: 上下文对象，用于控制请求的生命周期。
+//   - email: 收件人的电子邮件地址。
+//   - reply: 回复信息。
+//   - smtpAccount: SMTP服务器的账户名。
+//   - smtpAddress: SMTP服务器的地址。
+//   - smtpAuthCode: SMTP服务器的授权码。
+//   - smtpPort: SMTP服务器的端口号。
+//
+// 返回值：
+//   - error: 如果发送邮件过程中发生错误，则返回错误信息；否则返回nil。
+func SendReplyNotificationByArgs(ctx context.Context, email string, reply ReplyData, smtpAccount, smtpAddress, smtpAuthCode string, smtpPort uint16) error {
+	// 解析HTML模板，准备渲染回复信息。
+	tmpl, err := template.New("reply").Parse(ReplyNotificationTemplate)
+	if err != nil {
+		return err
+	}
+
+	// 创建一个字符串构建器，用于存储渲染后的HTML内容。
+	var htmlContent strings.Builder
+
+	// 执行模板渲染，将回复信息插入到HTML模板中。
+	err = tmpl.Execute(&htmlContent, ReplyData{
+		ReplierEmail:    template.HTMLEscapeString(reply.ReplierEmail),
+		BlogTitle:       template.HTMLEscapeString(reply.BlogTitle),
+		BlogURL:         template.HTMLEscapeString(reply.BlogURL),
+		OriginalContent: template.HTMLEscapeString(reply.OriginalContent),
+		ReplyContent:    template.HTMLEscapeString(reply.ReplyContent),
+		CreateTime:      template.HTMLEscapeString(reply.CreateTime),
+	})
+	if err != nil {
+		return err
+	}
+
+	// 调用sendContent函数发送回复通知邮件。
+	return sendContent(email, htmlContent.String(), ReplyNotificationSubject, smtpAccount, smtpAddress, smtpAuthCode, smtpPort)
+}
+
+// SendReplyNotificationBySys 发送回复通知邮件给系统配置的邮箱地址。
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据；
+//   - reply: 回复信息；
+//
+// 返回值:
+//   - error: 如果发送过程中出现错误，则返回具体的错误信息；否则返回 nil。
+func SendReplyNotificationBySys(ctx context.Context, reply ReplyData) error {
+	// 调用 SendReplyNotificationByArgs 函数发送回复通知邮件，
+	// 使用系统配置中的 SMTP 账号、地址、授权码和端口信息。
+	if err := SendReplyNotificationByArgs(
+		ctx,
+		config.User.UserEmail,
+		reply,
+		config.Server.SmtpAccount,
+		config.Server.SmtpAddress,
+		config.Server.SmtpAuthCode,
+		config.Server.SmtpPort,
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SendCommentOrReplyNotification 智能发送评论或回复通知邮件
+// 根据评论的 ReplyToCommentId 字段判断是评论还是回复，并发送相应的通知邮件
+// 参数说明：
+//   - ctx: 上下文对象，用于控制请求的生命周期。
+//   - commenterEmail: 评论者邮箱
+//   - blogTitle: 博客标题
+//   - blogURL: 博客链接
+//   - content: 评论/回复内容
+//   - createTime: 创建时间
+//   - replyToCommentId: 回复的评论ID（空表示是新评论，非空表示是回复）
+//   - originalContent: 被回复的原评论内容（仅在回复时需要）
+//   - originalCommenterEmail: 被回复评论的作者邮箱（仅在回复时需要）
+//
+// 返回值：
+//   - error: 如果发送邮件过程中发生错误，则返回错误信息；否则返回nil。
+func SendCommentOrReplyNotification(ctx context.Context, commenterEmail, blogTitle, blogURL, content, createTime, replyToCommentId, originalContent, originalCommenterEmail string) error {
+	// 判断是评论还是回复
+	if replyToCommentId == "" {
+		// 这是一条新评论，发送评论通知给博主
+		comment := CommentData{
+			CommenterEmail: commenterEmail,
+			BlogTitle:      blogTitle,
+			BlogURL:        blogURL,
+			Content:        content,
+			CreateTime:     createTime,
+		}
+		return SendCommentNotificationBySys(ctx, comment)
+	} else {
+		// 这是一条回复，发送回复通知给被回复的评论作者
+		reply := ReplyData{
+			ReplierEmail:    commenterEmail,
+			BlogTitle:       blogTitle,
+			BlogURL:         blogURL,
+			OriginalContent: originalContent,
+			ReplyContent:    content,
+			CreateTime:      createTime,
+		}
+
+		// 如果被回复评论的作者邮箱不为空且不是自己回复自己，则发送通知
+		if originalCommenterEmail != "" && originalCommenterEmail != commenterEmail {
+			return SendReplyNotificationByArgs(
+				ctx,
+				originalCommenterEmail,
+				reply,
+				config.Server.SmtpAccount,
+				config.Server.SmtpAddress,
+				config.Server.SmtpAuthCode,
+				config.Server.SmtpPort,
+			)
+		}
+	}
+
+	return nil
+}

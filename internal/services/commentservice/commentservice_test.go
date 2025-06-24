@@ -32,10 +32,11 @@ func setupTestData() (*dto.CommentDto, string) {
 
 	// 创建测试评论DTO
 	commentDto := &dto.CommentDto{
-		CommenterEmail: "test@example.com",
-		BlogId:         blogId,
-		OriginPostId:   "", // 楼主评论
-		Content:        "这是一条测试评论",
+		CommenterEmail:   "test@example.com",
+		BlogId:           blogId,
+		OriginPostId:     "", // 楼主评论
+		ReplyToCommentId: "", // 不回复任何评论
+		Content:          "这是一条测试评论",
 	}
 
 	return commentDto, blogId
@@ -167,10 +168,11 @@ func TestGetCommentsByBlogId(t *testing.T) {
 
 	// 添加子评论
 	subCommentDto := &dto.CommentDto{
-		CommenterEmail: "sub@example.com",
-		BlogId:         blogId,
-		OriginPostId:   mainCommentVo.CommentId, // 设置父评论ID
-		Content:        "这是一条子评论",
+		CommenterEmail:   "sub@example.com",
+		BlogId:           blogId,
+		OriginPostId:     "",                      // 这会在服务层根据ReplyToCommentId自动设置
+		ReplyToCommentId: mainCommentVo.CommentId, // 回复楼主评论
+		Content:          "这是一条子评论",
 	}
 
 	subCommentVo, err := AddComment(ctx, subCommentDto)
@@ -288,4 +290,75 @@ func TestDeleteNonExistentComment(t *testing.T) {
 	} else {
 		t.Logf("删除不存在的评论失败（符合预期）: %v", err)
 	}
+}
+
+// TestAddReplyComment 测试回复评论功能
+func TestAddReplyComment(t *testing.T) {
+	ctx := context.Background()
+
+	// 准备测试数据 - 先添加一条楼主评论
+	commentDto, blogId := setupTestData()
+	mainCommentVo, err := AddComment(ctx, commentDto)
+	if err != nil {
+		t.Fatalf("添加楼主评论失败: %v", err)
+	}
+
+	// 创建回复评论
+	replyCommentDto := &dto.CommentDto{
+		CommenterEmail:   "reply@example.com",
+		BlogId:           blogId,
+		OriginPostId:     "",                      // 这会在服务层自动设置
+		ReplyToCommentId: mainCommentVo.CommentId, // 回复楼主评论
+		Content:          "这是一条回复评论",
+	}
+
+	// 添加回复评论
+	replyCommentVo, err := AddComment(ctx, replyCommentDto)
+	if err != nil {
+		t.Fatalf("添加回复评论失败: %v", err)
+	}
+
+	// 验证回复评论的字段
+	if replyCommentVo.ReplyToCommentId != mainCommentVo.CommentId {
+		t.Errorf("回复评论ID不正确: 期望 %s, 实际 %s", mainCommentVo.CommentId, replyCommentVo.ReplyToCommentId)
+	}
+
+	if replyCommentVo.OriginPostId != mainCommentVo.CommentId {
+		t.Errorf("楼主评论ID不正确: 期望 %s, 实际 %s", mainCommentVo.CommentId, replyCommentVo.OriginPostId)
+	}
+
+	// 创建回复回复的评论（二级回复）
+	replyToReplyDto := &dto.CommentDto{
+		CommenterEmail:   "reply2@example.com",
+		BlogId:           blogId,
+		OriginPostId:     "",                       // 这会在服务层自动设置
+		ReplyToCommentId: replyCommentVo.CommentId, // 回复刚才的回复评论
+		Content:          "这是一条回复回复的评论",
+	}
+
+	// 添加二级回复评论
+	replyToReplyVo, err := AddComment(ctx, replyToReplyDto)
+	if err != nil {
+		t.Fatalf("添加二级回复评论失败: %v", err)
+	}
+
+	// 验证二级回复评论的字段
+	if replyToReplyVo.ReplyToCommentId != replyCommentVo.CommentId {
+		t.Errorf("二级回复评论ID不正确: 期望 %s, 实际 %s", replyCommentVo.CommentId, replyToReplyVo.ReplyToCommentId)
+	}
+
+	// 二级回复的OriginPostId应该和一级回复的OriginPostId相同（都指向楼主评论）
+	if replyToReplyVo.OriginPostId != mainCommentVo.CommentId {
+		t.Errorf("二级回复的楼主评论ID不正确: 期望 %s, 实际 %s", mainCommentVo.CommentId, replyToReplyVo.OriginPostId)
+	}
+
+	// 清理测试数据
+	cleanupTx := storage.Storage.Db.WithContext(ctx).Begin()
+	_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, mainCommentVo.CommentId)
+	_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, replyCommentVo.CommentId)
+	_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, replyToReplyVo.CommentId)
+	cleanupTx.Commit()
+
+	t.Logf("回复评论测试通过: 楼主评论ID=%s, 回复评论ID=%s, 二级回复ID=%s",
+		mainCommentVo.CommentId, replyCommentVo.CommentId, replyToReplyVo.CommentId)
 }

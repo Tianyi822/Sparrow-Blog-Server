@@ -31,12 +31,13 @@ func GetCommentsByBlogId(ctx context.Context, blogId string) ([]vo.CommentVo, er
 	for _, commentDto := range commentDtos {
 		// 创建楼主评论Vo
 		commentVo := vo.CommentVo{
-			CommentId:      commentDto.CommentId,
-			CommenterEmail: commentDto.CommenterEmail,
-			BlogId:         commentDto.BlogId,
-			OriginPostId:   commentDto.OriginPostId,
-			Content:        commentDto.Content,
-			CreateTime:     commentDto.CreateTime,
+			CommentId:        commentDto.CommentId,
+			CommenterEmail:   commentDto.CommenterEmail,
+			BlogId:           commentDto.BlogId,
+			OriginPostId:     commentDto.OriginPostId,
+			ReplyToCommentId: commentDto.ReplyToCommentId,
+			Content:          commentDto.Content,
+			CreateTime:       commentDto.CreateTime,
 		}
 
 		// 获取楼层子评论
@@ -48,12 +49,13 @@ func GetCommentsByBlogId(ctx context.Context, blogId string) ([]vo.CommentVo, er
 		// 将子评论转为 Vo，并保存
 		for _, subCommentDto := range subCommentDtos {
 			commentVo.SubComments = append(commentVo.SubComments, vo.CommentVo{
-				CommentId:      subCommentDto.CommentId,
-				CommenterEmail: subCommentDto.CommenterEmail,
-				BlogId:         subCommentDto.BlogId,
-				OriginPostId:   subCommentDto.OriginPostId,
-				Content:        subCommentDto.Content,
-				CreateTime:     subCommentDto.CreateTime,
+				CommentId:        subCommentDto.CommentId,
+				CommenterEmail:   subCommentDto.CommenterEmail,
+				BlogId:           subCommentDto.BlogId,
+				OriginPostId:     subCommentDto.OriginPostId,
+				ReplyToCommentId: subCommentDto.ReplyToCommentId,
+				Content:          subCommentDto.Content,
+				CreateTime:       subCommentDto.CreateTime,
 			})
 		}
 
@@ -81,6 +83,26 @@ func AddComment(ctx context.Context, commentDto *dto.CommentDto) (*vo.CommentVo,
 		}
 	}()
 
+	// 处理回复逻辑
+	if commentDto.ReplyToCommentId != "" {
+		// 如果是回复评论，需要查找被回复的评论信息
+		replyToComment, err := commentrepo.FindCommentById(ctx, commentDto.ReplyToCommentId)
+		if err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("被回复的评论不存在: %v", err)
+		}
+
+		// 如果回复的是楼主评论，则 OriginPostId 设置为被回复评论的ID
+		// 如果回复的是子评论，则 OriginPostId 设置为原楼主评论的ID
+		if replyToComment.OriginPostId == "" {
+			// 回复的是楼主评论
+			commentDto.OriginPostId = replyToComment.CommentId
+		} else {
+			// 回复的是子评论，保持原楼主评论ID
+			commentDto.OriginPostId = replyToComment.OriginPostId
+		}
+	}
+
 	// 保存到数据库
 	resultDto, err := commentrepo.CreateComment(ctx, tx, commentDto)
 	if err != nil {
@@ -96,12 +118,13 @@ func AddComment(ctx context.Context, commentDto *dto.CommentDto) (*vo.CommentVo,
 
 	// 转换为VO对象返回
 	commentVo := &vo.CommentVo{
-		CommentId:      resultDto.CommentId,
-		CommenterEmail: resultDto.CommenterEmail,
-		BlogId:         resultDto.BlogId,
-		OriginPostId:   resultDto.OriginPostId,
-		Content:        resultDto.Content,
-		CreateTime:     resultDto.CreateTime,
+		CommentId:        resultDto.CommentId,
+		CommenterEmail:   resultDto.CommenterEmail,
+		BlogId:           resultDto.BlogId,
+		OriginPostId:     resultDto.OriginPostId,
+		ReplyToCommentId: resultDto.ReplyToCommentId,
+		Content:          resultDto.Content,
+		CreateTime:       resultDto.CreateTime,
 	}
 
 	return commentVo, nil
@@ -150,12 +173,13 @@ func UpdateComment(ctx context.Context, commentId string, commentDto *dto.Commen
 
 	// 转换为VO对象返回
 	commentVo := &vo.CommentVo{
-		CommentId:      updatedDto.CommentId,
-		CommenterEmail: updatedDto.CommenterEmail,
-		BlogId:         updatedDto.BlogId,
-		OriginPostId:   updatedDto.OriginPostId,
-		Content:        updatedDto.Content,
-		CreateTime:     updatedDto.CreateTime,
+		CommentId:        updatedDto.CommentId,
+		CommenterEmail:   updatedDto.CommenterEmail,
+		BlogId:           updatedDto.BlogId,
+		OriginPostId:     updatedDto.OriginPostId,
+		ReplyToCommentId: updatedDto.ReplyToCommentId,
+		Content:          updatedDto.Content,
+		CreateTime:       updatedDto.CreateTime,
 	}
 
 	return commentVo, nil

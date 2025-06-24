@@ -62,14 +62,36 @@ func (ii *H2Img) TableName() string {
 	return "IMG"
 }
 
+// Comment 评论实体对象
+//
+// 回复场景说明：
+// 1. 楼主评论（顶级评论）:
+//   - OriginPostId = ""（空字符串或NULL）
+//   - ReplyToCommentId = ""（空字符串或NULL）
+//
+// 2. 回复楼主评论（一级回复）:
+//   - OriginPostId = 楼主评论的CommentId
+//   - ReplyToCommentId = 楼主评论的CommentId
+//
+// 3. 回复子评论（多级回复）:
+//   - OriginPostId = 楼主评论的CommentId（保持不变）
+//   - ReplyToCommentId = 被回复评论的CommentId
+//
+// 示例：
+// 楼主评论A: OriginPostId="", ReplyToCommentId=""
+// ├─ 回复A的评论B: OriginPostId="A", ReplyToCommentId="A"
+// ├─ 回复A的评论C: OriginPostId="A", ReplyToCommentId="A"
+// │  └─ 回复C的评论D: OriginPostId="A", ReplyToCommentId="C"
+// └─ 回复B的评论E: OriginPostId="A", ReplyToCommentId="B"
 type Comment struct {
-	CommentId      string    `gorm:"column:comment_id;primaryKey"`                                // 评论 ID
-	CommenterEmail string    `gorm:"column:commenter_email"`                                      // 评论者邮箱
-	BlogId         string    `gorm:"column:blog_id"`                                              // 博客 ID
-	OriginPostId   string    `gorm:"column:original_poster_id"`                                   // 楼主评论 ID
-	Content        string    `gorm:"column:comment_content"`                                      // 评论内容
-	CreateTime     time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
-	UpdateTime     time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
+	CommentId        string    `gorm:"column:comment_id;primaryKey"`                                // 评论 ID
+	CommenterEmail   string    `gorm:"column:commenter_email"`                                      // 评论者邮箱
+	BlogId           string    `gorm:"column:blog_id"`                                              // 博客 ID
+	OriginPostId     string    `gorm:"column:original_poster_id"`                                   // 楼主评论 ID（用于分组，空值表示自己就是楼主评论）
+	ReplyToCommentId string    `gorm:"column:reply_to_comment_id"`                                  // 回复的评论 ID（具体回复哪条评论，空值表示不回复任何评论）
+	Content          string    `gorm:"column:comment_content"`                                      // 评论内容
+	CreateTime       time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
+	UpdateTime       time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
 }
 
 func (c *Comment) TableName() string {

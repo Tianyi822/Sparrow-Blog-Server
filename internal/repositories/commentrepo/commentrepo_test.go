@@ -37,20 +37,22 @@ func TestAddComment(t *testing.T) {
 		{
 			name: "正常添加评论",
 			commentDto: dto.CommentDto{
-				CommenterEmail: "test@example.com",
-				BlogId:         "test_blog_1",
-				OriginPostId:   "",
-				Content:        "Test comment content",
+				CommenterEmail:   "test@example.com",
+				BlogId:           "test_blog_1",
+				OriginPostId:     "",
+				ReplyToCommentId: "",
+				Content:          "Test comment content",
 			},
 			wantErr: false,
 		},
 		{
 			name: "添加子评论",
 			commentDto: dto.CommentDto{
-				CommenterEmail: "test2@example.com",
-				BlogId:         "test_blog_1",
-				OriginPostId:   "parent_1",
-				Content:        "Test sub comment",
+				CommenterEmail:   "test2@example.com",
+				BlogId:           "test_blog_1",
+				OriginPostId:     "parent_1",
+				ReplyToCommentId: "reply_to_1",
+				Content:          "Test sub comment",
 			},
 			wantErr: false,
 		},
@@ -76,6 +78,7 @@ func TestAddComment(t *testing.T) {
 				assert.Equal(t, tt.commentDto.Content, resultDto.Content)
 				assert.Equal(t, tt.commentDto.BlogId, resultDto.BlogId)
 				assert.Equal(t, tt.commentDto.OriginPostId, resultDto.OriginPostId)
+				assert.Equal(t, tt.commentDto.ReplyToCommentId, resultDto.ReplyToCommentId)
 
 				// 验证数据是否正确保存
 				var saved po.Comment
@@ -92,10 +95,11 @@ func TestDeleteCommentById(t *testing.T) {
 
 	// 创建测试用的CommentDto
 	commentDto := &dto.CommentDto{
-		CommenterEmail: "test@example.com",
-		BlogId:         "test_blog_1",
-		OriginPostId:   "",
-		Content:        "Test comment for deletion",
+		CommenterEmail:   "test@example.com",
+		BlogId:           "test_blog_1",
+		OriginPostId:     "",
+		ReplyToCommentId: "",
+		Content:          "Test comment for deletion",
 	}
 	// 开启事务用于创建测试数据
 	setupTx := storage.Storage.Db.Begin()
@@ -178,10 +182,11 @@ func TestFindCommentByContentLike(t *testing.T) {
 	for _, comment := range testComments {
 		// 创建测试用的CommentDto
 		commentDto := &dto.CommentDto{
-			CommenterEmail: "test@example.com",
-			BlogId:         "test_blog_1",
-			OriginPostId:   "",
-			Content:        comment.Content,
+			CommenterEmail:   "test@example.com",
+			BlogId:           "test_blog_1",
+			OriginPostId:     "",
+			ReplyToCommentId: "",
+			Content:          comment.Content,
 		}
 		// 开启事务用于创建测试数据
 		setupTx := storage.Storage.Db.Begin()
