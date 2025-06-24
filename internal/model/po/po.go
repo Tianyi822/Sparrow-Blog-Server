@@ -63,13 +63,14 @@ func (ii *H2Img) TableName() string {
 }
 
 type Comment struct {
-	CommentId      string    `gorm:"column:comment_id;primaryKey"`                                // 评论 ID
-	CommenterEmail string    `gorm:"column:commenter_email"`                                      // 评论者邮箱
-	BlogId         string    `gorm:"column:blog_id"`                                              // 博客 ID
-	OriginPostId   string    `gorm:"column:original_poster_id"`                                   // 楼主评论 ID
-	Content        string    `gorm:"column:comment_content"`                                      // 评论内容
-	CreateTime     time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
-	UpdateTime     time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
+	CommentId        string    `gorm:"column:comment_id;primaryKey"`                                // 评论 ID
+	CommenterEmail   string    `gorm:"column:commenter_email"`                                      // 评论者邮箱
+	BlogId           string    `gorm:"column:blog_id"`                                              // 博客 ID
+	OriginPostId     string    `gorm:"column:original_poster_id"`                                   // 楼主评论 ID
+	ReplyToCommentId string    `gorm:"column:reply_to_comment_id"`                                  // 回复的评论 ID
+	Content          string    `gorm:"column:comment_content"`                                      // 评论内容
+	CreateTime       time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
+	UpdateTime       time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
 }
 
 func (c *Comment) TableName() string {

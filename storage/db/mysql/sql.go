@@ -89,11 +89,13 @@ const createCommentTableSQL = `
 		commenter_email 	VARCHAR(50)  				NOT NULL  															COMMENT '评论者邮箱',
 		blog_id 			VARCHAR(16) 				        															COMMENT '博客 ID',
 		original_poster_id 	VARCHAR(16) 				 																	COMMENT '楼主评论 ID',
+		reply_to_comment_id VARCHAR(16) 				 																	COMMENT '回复的评论 ID',
 		comment_content 	TEXT 						NOT NULL 															COMMENT '评论内容(最大支持64KB)',
 		create_time 		TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
 		update_time 		TIMESTAMP 					NOT NULL	DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
 		INDEX (comment_id),
 		INDEX (original_poster_id),
+		INDEX (reply_to_comment_id),
 		INDEX (create_time)
 	) COMMENT = '评论主表'
 	  ENGINE = InnoDB

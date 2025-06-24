@@ -106,12 +106,13 @@ func (fl *FriendLinkDto) Name() string {
 }
 
 type CommentDto struct {
-	CommentId      string    `json:"comment_id,omitempty"`
-	CommenterEmail string    `json:"commenter_email,omitempty"`
-	BlogId         string    `json:"blog_id,omitempty"`
-	OriginPostId   string    `json:"origin_post_id,omitempty"`
-	Content        string    `json:"content,omitempty"`
-	CreateTime     time.Time `json:"create_time,omitempty"`
+	CommentId        string    `json:"comment_id,omitempty"`
+	CommenterEmail   string    `json:"commenter_email,omitempty"`
+	BlogId           string    `json:"blog_id,omitempty"`
+	OriginPostId     string    `json:"origin_post_id,omitempty"`
+	ReplyToCommentId string    `json:"reply_to_comment_id,omitempty"`
+	Content          string    `json:"content,omitempty"`
+	CreateTime       time.Time `json:"create_time,omitempty"`
 }
 
 func (c *CommentDto) DtoFlag() string {
