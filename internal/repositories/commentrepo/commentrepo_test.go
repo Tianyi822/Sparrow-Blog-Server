@@ -24,8 +24,6 @@ func init() {
 }
 
 func TestAddComment(t *testing.T) {
-	ctx := context.Background()
-
 	tests := []struct {
 		name       string
 		commentDto dto.CommentDto
@@ -62,7 +60,7 @@ func TestAddComment(t *testing.T) {
 			defer tx.Rollback()
 
 			// 执行测试
-			resultDto, err := CreateComment(ctx, tx, &tt.commentDto)
+			resultDto, err := CreateComment(tx, &tt.commentDto)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -88,8 +86,6 @@ func TestAddComment(t *testing.T) {
 }
 
 func TestDeleteCommentById(t *testing.T) {
-	ctx := context.Background()
-
 	// 创建测试用的CommentDto
 	commentDto := &dto.CommentDto{
 		CommenterEmail:   "test@example.com",
@@ -102,7 +98,7 @@ func TestDeleteCommentById(t *testing.T) {
 	setupTx := storage.Storage.Db.Begin()
 	defer setupTx.Rollback()
 
-	resultDto, err := CreateComment(ctx, setupTx, commentDto)
+	resultDto, err := CreateComment(setupTx, commentDto)
 	assert.NoError(t, err)
 	setupTx.Commit()
 
@@ -133,7 +129,7 @@ func TestDeleteCommentById(t *testing.T) {
 			defer tx.Rollback()
 
 			// Execute test
-			rows, err := DeleteCommentById(ctx, tx, tt.id)
+			rows, err := DeleteCommentById(tx, tt.id)
 
 			if tt.wantErr {
 				assert.Error(t, err)

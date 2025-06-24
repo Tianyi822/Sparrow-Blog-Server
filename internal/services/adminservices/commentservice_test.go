@@ -75,7 +75,7 @@ func TestAddComment(t *testing.T) {
 
 	// 清理测试数据
 	cleanupTx := storage.Storage.Db.WithContext(ctx).Begin()
-	_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, commentVo.CommentId)
+	_, _ = commentrepo.DeleteCommentById(cleanupTx, commentVo.CommentId)
 	cleanupTx.Commit()
 
 	t.Logf("添加评论测试通过: ID=%s", commentVo.CommentId)
@@ -118,7 +118,7 @@ func TestUpdateComment(t *testing.T) {
 
 	// 清理测试数据
 	cleanupTx := storage.Storage.Db.WithContext(ctx).Begin()
-	_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, commentVo.CommentId)
+	_, _ = commentrepo.DeleteCommentById(cleanupTx, commentVo.CommentId)
 	cleanupTx.Commit()
 
 	t.Logf("更新评论测试通过: ID=%s", updatedVo.CommentId)
@@ -220,8 +220,8 @@ func TestGetCommentsByBlogId(t *testing.T) {
 
 	// 清理测试数据
 	cleanupTx := storage.Storage.Db.WithContext(ctx).Begin()
-	_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, mainCommentVo.CommentId)
-	_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, subCommentVo.CommentId)
+	_, _ = commentrepo.DeleteCommentById(cleanupTx, mainCommentVo.CommentId)
+	_, _ = commentrepo.DeleteCommentById(cleanupTx, subCommentVo.CommentId)
 	cleanupTx.Commit()
 
 	t.Logf("获取评论测试通过: 博客ID=%s, 评论数=%d", blogId, len(comments))
@@ -247,7 +247,7 @@ func TestAddCommentWithInvalidData(t *testing.T) {
 		// 如果成功创建，则清理数据
 		if commentVo != nil {
 			cleanupTx := storage.Storage.Db.WithContext(ctx).Begin()
-			_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, commentVo.CommentId)
+			_, _ = commentrepo.DeleteCommentById(cleanupTx, commentVo.CommentId)
 			cleanupTx.Commit()
 		}
 		t.Log("添加空内容评论成功")
@@ -351,9 +351,9 @@ func TestAddReplyComment(t *testing.T) {
 
 	// 清理测试数据
 	cleanupTx := storage.Storage.Db.WithContext(ctx).Begin()
-	_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, mainCommentVo.CommentId)
-	_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, replyCommentVo.CommentId)
-	_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, replyToReplyVo.CommentId)
+	_, _ = commentrepo.DeleteCommentById(cleanupTx, mainCommentVo.CommentId)
+	_, _ = commentrepo.DeleteCommentById(cleanupTx, replyCommentVo.CommentId)
+	_, _ = commentrepo.DeleteCommentById(cleanupTx, replyToReplyVo.CommentId)
 	cleanupTx.Commit()
 
 	t.Logf("回复评论测试通过: 楼主评论ID=%s, 回复评论ID=%s, 二级回复ID=%s",
@@ -477,8 +477,8 @@ func TestGetAllComments(t *testing.T) {
 
 	// 清理测试数据
 	cleanupTx := storage.Storage.Db.WithContext(ctx).Begin()
-	_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, commentVo1.CommentId)
-	_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, commentVo2.CommentId)
+	_, _ = commentrepo.DeleteCommentById(cleanupTx, commentVo1.CommentId)
+	_, _ = commentrepo.DeleteCommentById(cleanupTx, commentVo2.CommentId)
 	cleanupTx.Commit()
 
 	t.Logf("获取所有评论测试通过: 总评论数=%d", len(comments))
