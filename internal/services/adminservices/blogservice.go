@@ -5,6 +5,7 @@ import (
 	"sparrow_blog_server/internal/model/dto"
 	"sparrow_blog_server/internal/repositories/blogrepo"
 	"sparrow_blog_server/internal/repositories/categoryrepo"
+	"sparrow_blog_server/internal/repositories/commentrepo"
 	"sparrow_blog_server/internal/repositories/tagrepo"
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/searchengine"
@@ -127,6 +128,13 @@ func DeleteBlogById(ctx context.Context, id string) error {
 
 	// 删除博客标签关联数据
 	err = tagrepo.DeleteBlogTagAssociationByBlogId(tx, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 删除博客相关的所有评论
+	_, err = commentrepo.DeleteCommentsByBlogId(tx, id)
 	if err != nil {
 		tx.Rollback()
 		return err

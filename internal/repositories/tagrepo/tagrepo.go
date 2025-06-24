@@ -262,10 +262,10 @@ func CleanTagsWithoutBlog(tx *gorm.DB) error {
 
 	result := tx.Exec(`
 		DELETE
-		FROM H2_TAG T
+		FROM TAG T
 		WHERE NOT EXISTS (
 			SELECT 1
-        	FROM H2_BLOG_TAG BT
+        	FROM BLOG_TAG BT
           	WHERE BT.tag_id = T.tag_id
         );
 	`)

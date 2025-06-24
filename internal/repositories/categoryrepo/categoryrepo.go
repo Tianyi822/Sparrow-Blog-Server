@@ -115,7 +115,7 @@ func AddCategory(tx *gorm.DB, cateDto *dto.CategoryDto) error {
 //   - error: 如果执行数据库操作时发生错误，则返回错误对象；否则返回nil
 func CleanCategoriesWithoutBlog(tx *gorm.DB) error {
 	// 删除没有博客关联的分类
-	result := tx.Where("category_id NOT IN (SELECT category_id FROM H2_Blog)").Delete(&po.Category{})
+	result := tx.Where("category_id NOT IN (SELECT category_id FROM BLOG)").Delete(&po.Category{})
 	if result.Error != nil {
 		// 如果删除操作失败，记录错误日志并返回新的错误对象
 		msg := fmt.Sprintf("删除没有博客关联的分类失败: %v", result.Error)

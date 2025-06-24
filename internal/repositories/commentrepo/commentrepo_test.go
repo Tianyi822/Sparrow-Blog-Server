@@ -2,13 +2,14 @@ package commentrepo
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"sparrow_blog_server/internal/model/dto"
 	"sparrow_blog_server/internal/model/po"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/storage"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
@@ -146,4 +147,76 @@ func TestDeleteCommentById(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestDeleteCommentsByBlogId 测试根据博客ID删除所有评论
+func TestDeleteCommentsByBlogId(t *testing.T) {
+	ctx := context.Background()
+	blogId := "test_blog_del"
+
+	// 创建测试数据 - 多个评论
+	comments := []*dto.CommentDto{
+		{
+			CommenterEmail: "user1@example.com",
+			BlogId:         blogId,
+			Content:        "First comment",
+		},
+		{
+			CommenterEmail: "user2@example.com",
+			BlogId:         blogId,
+			Content:        "Second comment",
+		},
+		{
+			CommenterEmail: "user3@example.com",
+			BlogId:         blogId,
+			Content:        "Third comment",
+		},
+	}
+
+	// 创建测试评论
+	var createdComments []*dto.CommentDto
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	for _, comment := range comments {
+		created, err := CreateComment(tx, comment)
+		if err != nil {
+			tx.Rollback()
+			t.Fatalf("创建测试评论失败: %v", err)
+		}
+		createdComments = append(createdComments, created)
+	}
+	tx.Commit()
+
+	// 验证评论已创建
+	foundComments, err := FindCommentsByBlogId(ctx, blogId)
+	if err != nil {
+		t.Fatalf("查询评论失败: %v", err)
+	}
+	if len(foundComments) != 3 {
+		t.Fatalf("期望创建3条评论，实际创建%d条", len(foundComments))
+	}
+
+	// 测试删除所有评论
+	deleteTx := storage.Storage.Db.WithContext(ctx).Begin()
+	rowsAffected, err := DeleteCommentsByBlogId(deleteTx, blogId)
+	if err != nil {
+		deleteTx.Rollback()
+		t.Fatalf("删除评论失败: %v", err)
+	}
+	deleteTx.Commit()
+
+	// 验证删除结果
+	if rowsAffected != 3 {
+		t.Errorf("期望删除3条评论，实际删除%d条", rowsAffected)
+	}
+
+	// 验证评论已被删除
+	remainingComments, err := FindCommentsByBlogId(ctx, blogId)
+	if err != nil {
+		t.Fatalf("查询剩余评论失败: %v", err)
+	}
+	if len(remainingComments) != 0 {
+		t.Errorf("期望删除后无剩余评论，实际剩余%d条", len(remainingComments))
+	}
+
+	t.Logf("成功删除博客%s的所有评论", blogId)
 }

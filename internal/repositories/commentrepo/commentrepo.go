@@ -377,3 +377,24 @@ func FindAllComments(ctx context.Context) ([]dto.CommentDto, error) {
 
 	return commentDtos, nil
 }
+
+// DeleteCommentsByBlogId 根据博客ID删除所有相关评论
+// - tx: 数据库事务对象
+// - blogId: 博客ID
+//
+// 返回值:
+// - int64: 受影响的行数
+// - error: 错误信息
+func DeleteCommentsByBlogId(tx *gorm.DB, blogId string) (int64, error) {
+	logger.Info("删除博客相关的所有评论数据")
+	result := tx.Where("blog_id = ?", blogId).Delete(&po.Comment{})
+	if result.Error != nil {
+		msg := fmt.Sprintf("删除博客相关评论数据失败: %v", result.Error)
+		logger.Error(msg)
+		return 0, errors.New(msg)
+	}
+
+	logger.Info("删除博客相关评论数据成功: %v", result.RowsAffected)
+
+	return result.RowsAffected, nil
+}
