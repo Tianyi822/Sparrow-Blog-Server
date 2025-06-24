@@ -1,136 +1,17 @@
-package commentservice
+package adminservices
 
 import (
 	"context"
 	"fmt"
 	"sparrow_blog_server/internal/model/dto"
 	"sparrow_blog_server/internal/model/vo"
+	"sparrow_blog_server/internal/repositories/blogrepo"
 	"sparrow_blog_server/internal/repositories/commentrepo"
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/storage"
 )
 
-// GetCommentsByBlogId 根据博客ID获取评论
-// - ctx: 上下文对象
-// - blogId: 博客ID
-//
-// 返回值:
-// - []vo.CommentVo: 评论列表
-// - error: 错误信息
-func GetCommentsByBlogId(ctx context.Context, blogId string) ([]vo.CommentVo, error) {
-	// 获取楼主评论
-	commentDtos, err := commentrepo.FindCommentsByBlogId(ctx, blogId)
-	if err != nil {
-		return nil, err
-	}
-
-	// 保存所有楼主评论
-	var commentVos []vo.CommentVo
-
-	// 遍历所有楼主评论
-	for _, commentDto := range commentDtos {
-		// 创建楼主评论Vo
-		commentVo := vo.CommentVo{
-			CommentId:        commentDto.CommentId,
-			CommenterEmail:   commentDto.CommenterEmail,
-			BlogId:           commentDto.BlogId,
-			OriginPostId:     commentDto.OriginPostId,
-			ReplyToCommentId: commentDto.ReplyToCommentId,
-			Content:          commentDto.Content,
-			CreateTime:       commentDto.CreateTime,
-		}
-
-		// 获取楼层子评论
-		subCommentDtos, err := commentrepo.FindCommentsByOriginPostId(ctx, commentDto.CommentId)
-		if err != nil {
-			return nil, err
-		}
-
-		// 将子评论转为 Vo，并保存
-		for _, subCommentDto := range subCommentDtos {
-			commentVo.SubComments = append(commentVo.SubComments, vo.CommentVo{
-				CommentId:        subCommentDto.CommentId,
-				CommenterEmail:   subCommentDto.CommenterEmail,
-				BlogId:           subCommentDto.BlogId,
-				OriginPostId:     subCommentDto.OriginPostId,
-				ReplyToCommentId: subCommentDto.ReplyToCommentId,
-				Content:          subCommentDto.Content,
-				CreateTime:       subCommentDto.CreateTime,
-			})
-		}
-
-		// 添加到楼主评论集合
-		commentVos = append(commentVos, commentVo)
-	}
-
-	return commentVos, nil
-}
-
-// AddComment 添加评论
-// - ctx: 上下文对象
-// - commentDto: 评论数据传输对象
-//
-// 返回值:
-// - *vo.CommentVo: 创建的评论视图对象
-// - error: 错误信息
-func AddComment(ctx context.Context, commentDto *dto.CommentDto) (*vo.CommentVo, error) {
-	// 开启事务
-	tx := storage.Storage.Db.WithContext(ctx).Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Error("添加评论事务失败: %v", r)
-			tx.Rollback()
-		}
-	}()
-
-	// 处理回复逻辑
-	if commentDto.ReplyToCommentId != "" {
-		// 如果是回复评论，需要查找被回复的评论信息
-		replyToComment, err := commentrepo.FindCommentById(ctx, commentDto.ReplyToCommentId)
-		if err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("被回复的评论不存在: %v", err)
-		}
-
-		// 如果回复的是楼主评论，则 OriginPostId 设置为被回复评论的ID
-		// 如果回复的是子评论，则 OriginPostId 设置为原楼主评论的ID
-		if replyToComment.OriginPostId == "" {
-			// 回复的是楼主评论
-			commentDto.OriginPostId = replyToComment.CommentId
-		} else {
-			// 回复的是子评论，保持原楼主评论ID
-			commentDto.OriginPostId = replyToComment.OriginPostId
-		}
-	}
-
-	// 保存到数据库
-	resultDto, err := commentrepo.CreateComment(ctx, tx, commentDto)
-	if err != nil {
-		tx.Rollback()
-		return nil, fmt.Errorf("添加评论失败: %v", err)
-	}
-
-	// 提交事务
-	if err := tx.Commit().Error; err != nil {
-		logger.Error("提交添加评论事务失败: %v", err)
-		return nil, fmt.Errorf("提交事务失败: %v", err)
-	}
-
-	// 转换为VO对象返回
-	commentVo := &vo.CommentVo{
-		CommentId:        resultDto.CommentId,
-		CommenterEmail:   resultDto.CommenterEmail,
-		BlogId:           resultDto.BlogId,
-		OriginPostId:     resultDto.OriginPostId,
-		ReplyToCommentId: resultDto.ReplyToCommentId,
-		Content:          resultDto.Content,
-		CreateTime:       resultDto.CreateTime,
-	}
-
-	return commentVo, nil
-}
-
-// UpdateComment 更新评论
+// UpdateComment 更新评论（管理员功能）
 // - ctx: 上下文对象
 // - commentId: 评论ID
 // - commentDto: 评论数据传输对象
@@ -171,11 +52,18 @@ func UpdateComment(ctx context.Context, commentId string, commentDto *dto.Commen
 		return nil, fmt.Errorf("提交事务失败: %v", err)
 	}
 
+	// 根据博客ID查询博客标题
+	blogTitle, err := blogrepo.FindBlogTitleById(ctx, updatedDto.BlogId)
+	if err != nil {
+		logger.Warn("查询博客标题失败，BlogId: %s, 错误: %v", updatedDto.BlogId, err)
+		blogTitle = "" // 设置为空字符串
+	}
+
 	// 转换为VO对象返回
 	commentVo := &vo.CommentVo{
 		CommentId:        updatedDto.CommentId,
 		CommenterEmail:   updatedDto.CommenterEmail,
-		BlogId:           updatedDto.BlogId,
+		BlogTitle:        blogTitle,
 		OriginPostId:     updatedDto.OriginPostId,
 		ReplyToCommentId: updatedDto.ReplyToCommentId,
 		Content:          updatedDto.Content,
@@ -185,7 +73,7 @@ func UpdateComment(ctx context.Context, commentId string, commentDto *dto.Commen
 	return commentVo, nil
 }
 
-// DeleteComment 删除评论
+// DeleteComment 删除评论（管理员功能）
 // - ctx: 上下文对象
 // - commentId: 评论ID
 //
@@ -224,7 +112,7 @@ func DeleteComment(ctx context.Context, commentId string) error {
 	return nil
 }
 
-// DeleteCommentWithSubComments 删除评论及其所有子评论
+// DeleteCommentWithSubComments 删除评论及其所有子评论（管理员功能）
 // - ctx: 上下文对象
 // - commentId: 评论ID
 //
@@ -282,7 +170,7 @@ func DeleteCommentWithSubComments(ctx context.Context, commentId string) error {
 	return nil
 }
 
-// GetAllComments 获取所有评论（管理员用）
+// GetAllComments 获取所有评论（管理员功能）
 // - ctx: 上下文对象
 //
 // 返回值:
@@ -298,10 +186,18 @@ func GetAllComments(ctx context.Context) ([]vo.CommentVo, error) {
 	// 转换为VO对象
 	var commentVos []vo.CommentVo
 	for _, commentDto := range commentDtos {
+		// 根据博客ID查询博客标题
+		blogTitle, err := blogrepo.FindBlogTitleById(ctx, commentDto.BlogId)
+		if err != nil {
+			// 如果查询博客标题失败，记录警告但继续处理其他评论
+			logger.Warn("查询博客标题失败，BlogId: %s, 错误: %v", commentDto.BlogId, err)
+			blogTitle = "" // 设置为空字符串
+		}
+
 		commentVo := vo.CommentVo{
 			CommentId:        commentDto.CommentId,
 			CommenterEmail:   commentDto.CommenterEmail,
-			BlogId:           commentDto.BlogId,
+			BlogTitle:        blogTitle,
 			OriginPostId:     commentDto.OriginPostId,
 			ReplyToCommentId: commentDto.ReplyToCommentId,
 			Content:          commentDto.Content,

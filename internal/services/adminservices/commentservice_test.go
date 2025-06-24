@@ -1,10 +1,11 @@
-package commentservice
+package adminservices
 
 import (
 	"context"
 	"fmt"
 	"sparrow_blog_server/internal/model/dto"
 	"sparrow_blog_server/internal/repositories/commentrepo"
+	"sparrow_blog_server/internal/services/webservice"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/pkg/utils"
@@ -50,7 +51,7 @@ func TestAddComment(t *testing.T) {
 	commentDto, _ := setupTestData()
 
 	// 调用添加评论方法
-	commentVo, err := AddComment(ctx, commentDto)
+	commentVo, err := webservice.AddComment(ctx, commentDto)
 	if err != nil {
 		t.Fatalf("添加评论失败: %v", err)
 	}
@@ -72,10 +73,6 @@ func TestAddComment(t *testing.T) {
 		t.Errorf("评论内容不匹配: 期望 %s, 实际 %s", commentDto.Content, commentVo.Content)
 	}
 
-	if commentVo.BlogId != commentDto.BlogId {
-		t.Errorf("博客ID不匹配: 期望 %s, 实际 %s", commentDto.BlogId, commentVo.BlogId)
-	}
-
 	// 清理测试数据
 	cleanupTx := storage.Storage.Db.WithContext(ctx).Begin()
 	_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, commentVo.CommentId)
@@ -90,7 +87,7 @@ func TestUpdateComment(t *testing.T) {
 
 	// 准备测试数据 - 先添加一条评论
 	commentDto, _ := setupTestData()
-	commentVo, err := AddComment(ctx, commentDto)
+	commentVo, err := webservice.AddComment(ctx, commentDto)
 	if err != nil {
 		t.Fatalf("准备测试数据失败: %v", err)
 	}
@@ -133,7 +130,7 @@ func TestDeleteComment(t *testing.T) {
 
 	// 准备测试数据 - 先添加一条评论
 	commentDto, _ := setupTestData()
-	commentVo, err := AddComment(ctx, commentDto)
+	commentVo, err := webservice.AddComment(ctx, commentDto)
 	if err != nil {
 		t.Fatalf("准备测试数据失败: %v", err)
 	}
@@ -161,7 +158,7 @@ func TestGetCommentsByBlogId(t *testing.T) {
 	commentDto, blogId := setupTestData()
 
 	// 添加楼主评论
-	mainCommentVo, err := AddComment(ctx, commentDto)
+	mainCommentVo, err := webservice.AddComment(ctx, commentDto)
 	if err != nil {
 		t.Fatalf("添加楼主评论失败: %v", err)
 	}
@@ -175,13 +172,13 @@ func TestGetCommentsByBlogId(t *testing.T) {
 		Content:          "这是一条子评论",
 	}
 
-	subCommentVo, err := AddComment(ctx, subCommentDto)
+	subCommentVo, err := webservice.AddComment(ctx, subCommentDto)
 	if err != nil {
 		t.Fatalf("添加子评论失败: %v", err)
 	}
 
 	// 调用获取评论方法
-	comments, err := GetCommentsByBlogId(ctx, blogId)
+	comments, err := webservice.GetCommentsByBlogId(ctx, blogId)
 	if err != nil {
 		t.Fatalf("获取评论失败: %v", err)
 	}
@@ -243,7 +240,7 @@ func TestAddCommentWithInvalidData(t *testing.T) {
 
 	// 这个测试主要验证服务能够处理空内容的情况
 	// 在实际应用中，可能需要在服务层添加验证逻辑
-	commentVo, err := AddComment(ctx, commentDto)
+	commentVo, err := webservice.AddComment(ctx, commentDto)
 	if err != nil {
 		t.Logf("添加空内容评论失败（符合预期）: %v", err)
 	} else {
@@ -298,7 +295,7 @@ func TestAddReplyComment(t *testing.T) {
 
 	// 准备测试数据 - 先添加一条楼主评论
 	commentDto, blogId := setupTestData()
-	mainCommentVo, err := AddComment(ctx, commentDto)
+	mainCommentVo, err := webservice.AddComment(ctx, commentDto)
 	if err != nil {
 		t.Fatalf("添加楼主评论失败: %v", err)
 	}
@@ -313,7 +310,7 @@ func TestAddReplyComment(t *testing.T) {
 	}
 
 	// 添加回复评论
-	replyCommentVo, err := AddComment(ctx, replyCommentDto)
+	replyCommentVo, err := webservice.AddComment(ctx, replyCommentDto)
 	if err != nil {
 		t.Fatalf("添加回复评论失败: %v", err)
 	}
@@ -337,7 +334,7 @@ func TestAddReplyComment(t *testing.T) {
 	}
 
 	// 添加二级回复评论
-	replyToReplyVo, err := AddComment(ctx, replyToReplyDto)
+	replyToReplyVo, err := webservice.AddComment(ctx, replyToReplyDto)
 	if err != nil {
 		t.Fatalf("添加二级回复评论失败: %v", err)
 	}
@@ -369,7 +366,7 @@ func TestDeleteCommentWithSubComments(t *testing.T) {
 
 	// 准备测试数据 - 先添加一条楼主评论
 	commentDto, blogId := setupTestData()
-	mainCommentVo, err := AddComment(ctx, commentDto)
+	mainCommentVo, err := webservice.AddComment(ctx, commentDto)
 	if err != nil {
 		t.Fatalf("添加楼主评论失败: %v", err)
 	}
@@ -384,7 +381,7 @@ func TestDeleteCommentWithSubComments(t *testing.T) {
 	}
 
 	// 添加回复评论
-	replyCommentVo, err := AddComment(ctx, replyCommentDto)
+	replyCommentVo, err := webservice.AddComment(ctx, replyCommentDto)
 	if err != nil {
 		t.Fatalf("添加回复评论失败: %v", err)
 	}
@@ -399,7 +396,7 @@ func TestDeleteCommentWithSubComments(t *testing.T) {
 	}
 
 	// 添加二级回复评论
-	replyToReplyVo, err := AddComment(ctx, replyToReplyDto)
+	replyToReplyVo, err := webservice.AddComment(ctx, replyToReplyDto)
 	if err != nil {
 		t.Fatalf("添加二级回复评论失败: %v", err)
 	}
@@ -435,7 +432,7 @@ func TestGetAllComments(t *testing.T) {
 
 	// 准备测试数据 - 添加几条评论
 	commentDto1, _ := setupTestData()
-	commentVo1, err := AddComment(ctx, commentDto1)
+	commentVo1, err := webservice.AddComment(ctx, commentDto1)
 	if err != nil {
 		t.Fatalf("添加第一条评论失败: %v", err)
 	}
@@ -443,7 +440,7 @@ func TestGetAllComments(t *testing.T) {
 	commentDto2, _ := setupTestData()
 	commentDto2.CommenterEmail = "test2@example.com"
 	commentDto2.Content = "这是第二条测试评论"
-	commentVo2, err := AddComment(ctx, commentDto2)
+	commentVo2, err := webservice.AddComment(ctx, commentDto2)
 	if err != nil {
 		t.Fatalf("添加第二条评论失败: %v", err)
 	}

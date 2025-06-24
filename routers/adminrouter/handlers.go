@@ -8,7 +8,6 @@ import (
 	"sparrow_blog_server/internal/model/dto"
 	"sparrow_blog_server/internal/model/vo"
 	"sparrow_blog_server/internal/services/adminservices"
-	"sparrow_blog_server/internal/services/commentservice"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/email"
 	"sparrow_blog_server/pkg/logger"
@@ -1661,8 +1660,8 @@ func updateFriendLinkDisplay(ctx *gin.Context) {
 // @param ctx *gin.Context - Gin上下文
 // @return 无返回值，通过resp包响应评论数据
 func getAllComments(ctx *gin.Context) {
-	// 调用commentservice层获取所有评论数据
-	comments, err := commentservice.GetAllComments(ctx)
+	// 调用adminservices层获取所有评论数据
+	comments, err := adminservices.GetAllComments(ctx)
 	if err != nil {
 		resp.Err(ctx, "获取评论失败", err.Error())
 		return
@@ -1707,8 +1706,8 @@ func updateCommentContent(ctx *gin.Context) {
 		Content: content,
 	}
 
-	// 调用commentservice层处理评论更新
-	commentVo, err := commentservice.UpdateComment(ctx, commentId, commentDto)
+	// 调用adminservices层处理评论更新
+	commentVo, err := adminservices.UpdateComment(ctx, commentId, commentDto)
 	if err != nil {
 		resp.Err(ctx, "更新评论失败: "+err.Error(), nil)
 		return
@@ -1729,8 +1728,8 @@ func deleteCommentWithSubComments(ctx *gin.Context) {
 		return
 	}
 
-	// 调用commentservice层处理评论删除
-	err := commentservice.DeleteCommentWithSubComments(ctx, commentId)
+	// 调用adminservices层处理评论删除
+	err := adminservices.DeleteCommentWithSubComments(ctx, commentId)
 	if err != nil {
 		resp.Err(ctx, "删除评论失败: "+err.Error(), nil)
 		return
