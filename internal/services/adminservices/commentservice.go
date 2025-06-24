@@ -40,7 +40,7 @@ func UpdateComment(ctx context.Context, commentId string, commentDto *dto.Commen
 	existingCommentDto.Content = commentDto.Content
 
 	// 保存更新
-	updatedDto, err := commentrepo.UpdateComment(ctx, tx, existingCommentDto)
+	updatedDto, err := commentrepo.UpdateComment(tx, existingCommentDto)
 	if err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("更新评论失败: %v", err)
@@ -65,7 +65,7 @@ func UpdateComment(ctx context.Context, commentId string, commentDto *dto.Commen
 		CommenterEmail:   updatedDto.CommenterEmail,
 		BlogTitle:        blogTitle,
 		OriginPostId:     updatedDto.OriginPostId,
-		ReplyToCommentId: updatedDto.ReplyToCommentId,
+		ReplyToCommenter: updatedDto.ReplyToCommenter,
 		Content:          updatedDto.Content,
 		CreateTime:       updatedDto.CreateTime,
 	}
@@ -97,7 +97,7 @@ func DeleteComment(ctx context.Context, commentId string) error {
 	}
 
 	// 删除评论
-	_, err = commentrepo.DeleteCommentById(ctx, tx, commentId)
+	_, err = commentrepo.DeleteCommentById(tx, commentId)
 	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("删除评论失败: %v", err)
@@ -146,7 +146,7 @@ func DeleteCommentWithSubComments(ctx context.Context, commentId string) error {
 
 		// 删除所有子评论
 		for _, subComment := range subComments {
-			_, err = commentrepo.DeleteCommentById(ctx, tx, subComment.CommentId)
+			_, err = commentrepo.DeleteCommentById(tx, subComment.CommentId)
 			if err != nil {
 				tx.Rollback()
 				return fmt.Errorf("删除子评论失败: %v", err)
@@ -155,7 +155,7 @@ func DeleteCommentWithSubComments(ctx context.Context, commentId string) error {
 	}
 
 	// 删除主评论本身
-	_, err = commentrepo.DeleteCommentById(ctx, tx, commentId)
+	_, err = commentrepo.DeleteCommentById(tx, commentId)
 	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("删除评论失败: %v", err)
@@ -199,7 +199,7 @@ func GetAllComments(ctx context.Context) ([]vo.CommentVo, error) {
 			CommenterEmail:   commentDto.CommenterEmail,
 			BlogTitle:        blogTitle,
 			OriginPostId:     commentDto.OriginPostId,
-			ReplyToCommentId: commentDto.ReplyToCommentId,
+			ReplyToCommenter: commentDto.ReplyToCommenter,
 			Content:          commentDto.Content,
 			CreateTime:       commentDto.CreateTime,
 		}
@@ -207,4 +207,37 @@ func GetAllComments(ctx context.Context) ([]vo.CommentVo, error) {
 	}
 
 	return commentVos, nil
+}
+
+// DeleteCommentsByBlogId 根据博客ID删除所有相关评论（管理员功能）
+// - ctx: 上下文对象
+// - blogId: 博客ID
+//
+// 返回值:
+// - error: 错误信息
+func DeleteCommentsByBlogId(ctx context.Context, blogId string) error {
+	// 开启事务
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("删除博客相关评论事务失败: %v", r)
+			tx.Rollback()
+		}
+	}()
+
+	// 删除博客的所有评论
+	rowsAffected, err := commentrepo.DeleteCommentsByBlogId(tx, blogId)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("删除博客相关评论失败: %v", err)
+	}
+
+	// 提交事务
+	if err := tx.Commit().Error; err != nil {
+		logger.Error("提交删除博客相关评论事务失败: %v", err)
+		return fmt.Errorf("提交事务失败: %v", err)
+	}
+
+	logger.Info("成功删除博客相关评论，BlogId: %s, 删除数量: %d", blogId, rowsAffected)
+	return nil
 }

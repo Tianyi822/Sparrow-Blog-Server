@@ -7,9 +7,7 @@ import (
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/storage"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,8 +25,6 @@ func init() {
 }
 
 func TestAddComment(t *testing.T) {
-	ctx := context.Background()
-
 	tests := []struct {
 		name       string
 		commentDto dto.CommentDto
@@ -65,7 +61,7 @@ func TestAddComment(t *testing.T) {
 			defer tx.Rollback()
 
 			// 执行测试
-			resultDto, err := CreateComment(ctx, tx, &tt.commentDto)
+			resultDto, err := CreateComment(tx, &tt.commentDto)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -91,8 +87,6 @@ func TestAddComment(t *testing.T) {
 }
 
 func TestDeleteCommentById(t *testing.T) {
-	ctx := context.Background()
-
 	// 创建测试用的CommentDto
 	commentDto := &dto.CommentDto{
 		CommenterEmail:   "test@example.com",
@@ -105,7 +99,7 @@ func TestDeleteCommentById(t *testing.T) {
 	setupTx := storage.Storage.Db.Begin()
 	defer setupTx.Rollback()
 
-	resultDto, err := CreateComment(ctx, setupTx, commentDto)
+	resultDto, err := CreateComment(setupTx, commentDto)
 	assert.NoError(t, err)
 	setupTx.Commit()
 
@@ -136,7 +130,7 @@ func TestDeleteCommentById(t *testing.T) {
 			defer tx.Rollback()
 
 			// Execute test
-			rows, err := DeleteCommentById(ctx, tx, tt.id)
+			rows, err := DeleteCommentById(tx, tt.id)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -155,91 +149,74 @@ func TestDeleteCommentById(t *testing.T) {
 	}
 }
 
-func TestFindCommentByContentLike(t *testing.T) {
+// TestDeleteCommentsByBlogId 测试根据博客ID删除所有评论
+func TestDeleteCommentsByBlogId(t *testing.T) {
 	ctx := context.Background()
+	blogId := "test_blog_del"
 
-	// 清理可能存在的测试数据
-	cleanupTx := storage.Storage.Db.Begin()
-	cleanupTx.Exec("DELETE FROM COMMENT WHERE commenter_email = 'test@example.com'")
-	cleanupTx.Commit()
-
-	// Create test data
-	testComments := []po.Comment{
+	// 创建测试数据 - 多个评论
+	comments := []*dto.CommentDto{
 		{
-			CommentId:  "test_comment_1",
-			Content:    "Test comment content",
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
+			CommenterEmail: "user1@example.com",
+			BlogId:         blogId,
+			Content:        "First comment",
 		},
 		{
-			CommentId:  "test_comment_2",
-			Content:    "Another test content",
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
+			CommenterEmail: "user2@example.com",
+			BlogId:         blogId,
+			Content:        "Second comment",
+		},
+		{
+			CommenterEmail: "user3@example.com",
+			BlogId:         blogId,
+			Content:        "Third comment",
 		},
 	}
 
-	for _, comment := range testComments {
-		// 创建测试用的CommentDto
-		commentDto := &dto.CommentDto{
-			CommenterEmail:   "test@example.com",
-			BlogId:           "test_blog_1",
-			OriginPostId:     "",
-			ReplyToCommentId: "",
-			Content:          comment.Content,
-		}
-		// 开启事务用于创建测试数据
-		setupTx := storage.Storage.Db.Begin()
-		_, err := CreateComment(ctx, setupTx, commentDto)
+	// 创建测试评论
+	var createdComments []*dto.CommentDto
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	for _, comment := range comments {
+		created, err := CreateComment(tx, comment)
 		if err != nil {
-			setupTx.Rollback()
-			t.Fatal(err)
+			tx.Rollback()
+			t.Fatalf("创建测试评论失败: %v", err)
 		}
-		setupTx.Commit()
+		createdComments = append(createdComments, created)
+	}
+	tx.Commit()
+
+	// 验证评论已创建
+	foundComments, err := FindCommentsByBlogId(ctx, blogId)
+	if err != nil {
+		t.Fatalf("查询评论失败: %v", err)
+	}
+	if len(foundComments) != 3 {
+		t.Fatalf("期望创建3条评论，实际创建%d条", len(foundComments))
 	}
 
-	tests := []struct {
-		name      string
-		content   string
-		wantCount int
-		wantErr   bool
-	}{
-		{
-			name:      "Find existing comments",
-			content:   "test",
-			wantCount: 2,
-			wantErr:   false,
-		},
-		{
-			name:      "Find specific comment",
-			content:   "Another",
-			wantCount: 1,
-			wantErr:   false,
-		},
-		{
-			name:      "Find non-existent comment",
-			content:   "nonexistent",
-			wantCount: 0,
-			wantErr:   false,
-		},
+	// 测试删除所有评论
+	deleteTx := storage.Storage.Db.WithContext(ctx).Begin()
+	rowsAffected, err := DeleteCommentsByBlogId(deleteTx, blogId)
+	if err != nil {
+		deleteTx.Rollback()
+		t.Fatalf("删除评论失败: %v", err)
+	}
+	deleteTx.Commit()
+
+	// 验证删除结果
+	if rowsAffected != 3 {
+		t.Errorf("期望删除3条评论，实际删除%d条", rowsAffected)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			comments, err := FindCommentsByContentLike(ctx, tt.content)
-
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.wantCount, len(comments))
-
-				if tt.wantCount > 0 {
-					for _, comment := range comments {
-						assert.Contains(t, strings.ToLower(comment.Content), strings.ToLower(tt.content))
-					}
-				}
-			}
-		})
+	// 验证评论已被删除
+	remainingComments, err := FindCommentsByBlogId(ctx, blogId)
+	if err != nil {
+		t.Fatalf("查询剩余评论失败: %v", err)
 	}
+	if len(remainingComments) != 0 {
+		t.Errorf("期望删除后无剩余评论，实际剩余%d条", len(remainingComments))
+	}
+
+	t.Logf("成功删除博客%s的所有评论", blogId)
 }

@@ -361,7 +361,7 @@ func GetCommentsByBlogId(ctx context.Context, blogId string) ([]vo.CommentVo, er
 			CommenterEmail:   commentDto.CommenterEmail,
 			BlogTitle:        blogTitle,
 			OriginPostId:     commentDto.OriginPostId,
-			ReplyToCommentId: commentDto.ReplyToCommentId,
+			ReplyToCommenter: commentDto.ReplyToCommenter,
 			Content:          commentDto.Content,
 			CreateTime:       commentDto.CreateTime,
 		}
@@ -379,7 +379,7 @@ func GetCommentsByBlogId(ctx context.Context, blogId string) ([]vo.CommentVo, er
 				CommenterEmail:   subCommentDto.CommenterEmail,
 				BlogTitle:        blogTitle,
 				OriginPostId:     subCommentDto.OriginPostId,
-				ReplyToCommentId: subCommentDto.ReplyToCommentId,
+				ReplyToCommenter: subCommentDto.ReplyToCommenter,
 				Content:          subCommentDto.Content,
 				CreateTime:       subCommentDto.CreateTime,
 			})
@@ -430,7 +430,7 @@ func AddComment(ctx context.Context, commentDto *dto.CommentDto) (*vo.CommentVo,
 	}
 
 	// 保存到数据库
-	resultDto, err := commentrepo.CreateComment(ctx, tx, commentDto)
+	resultDto, err := commentrepo.CreateComment(tx, commentDto)
 	if err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("添加评论失败: %v", err)
@@ -455,7 +455,7 @@ func AddComment(ctx context.Context, commentDto *dto.CommentDto) (*vo.CommentVo,
 		CommenterEmail:   resultDto.CommenterEmail,
 		BlogTitle:        blogTitle,
 		OriginPostId:     resultDto.OriginPostId,
-		ReplyToCommentId: resultDto.ReplyToCommentId,
+		ReplyToCommenter: resultDto.ReplyToCommenter,
 		Content:          resultDto.Content,
 		CreateTime:       resultDto.CreateTime,
 	}
