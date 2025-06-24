@@ -38,4 +38,17 @@ func Router(e *gin.Engine) {
 
 		friendLinkGroup.POST("/apply", applyFriendLink)
 	}
+
+	{
+		commentGroup := webGroup.Group("/comment")
+
+		// 根据博客ID获取所有评论及子评论
+		commentGroup.GET("/:blog_id", getCommentsByBlogId)
+
+		// 添加评论
+		commentGroup.POST("", addComment)
+
+		// 回复评论
+		commentGroup.POST("/reply", replyComment)
+	}
 }

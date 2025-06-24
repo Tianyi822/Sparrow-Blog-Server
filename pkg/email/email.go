@@ -198,7 +198,6 @@ func SendFriendLinkNotificationBySys(ctx context.Context, friendLink FriendLinkD
 type CommentData struct {
 	CommenterEmail string // 评论者邮箱
 	BlogTitle      string // 博客标题
-	BlogURL        string // 博客链接
 	Content        string // 评论内容
 	CreateTime     string // 创建时间
 }
@@ -207,7 +206,6 @@ type CommentData struct {
 type ReplyData struct {
 	ReplierEmail    string // 回复者邮箱
 	BlogTitle       string // 博客标题
-	BlogURL         string // 博客链接
 	OriginalContent string // 原评论内容
 	ReplyContent    string // 回复内容
 	CreateTime      string // 创建时间
@@ -239,7 +237,6 @@ func SendCommentNotificationByArgs(ctx context.Context, email string, comment Co
 	err = tmpl.Execute(&htmlContent, CommentData{
 		CommenterEmail: template.HTMLEscapeString(comment.CommenterEmail),
 		BlogTitle:      template.HTMLEscapeString(comment.BlogTitle),
-		BlogURL:        template.HTMLEscapeString(comment.BlogURL),
 		Content:        template.HTMLEscapeString(comment.Content),
 		CreateTime:     template.HTMLEscapeString(comment.CreateTime),
 	})
@@ -302,7 +299,6 @@ func SendReplyNotificationByArgs(ctx context.Context, email string, reply ReplyD
 	err = tmpl.Execute(&htmlContent, ReplyData{
 		ReplierEmail:    template.HTMLEscapeString(reply.ReplierEmail),
 		BlogTitle:       template.HTMLEscapeString(reply.BlogTitle),
-		BlogURL:         template.HTMLEscapeString(reply.BlogURL),
 		OriginalContent: template.HTMLEscapeString(reply.OriginalContent),
 		ReplyContent:    template.HTMLEscapeString(reply.ReplyContent),
 		CreateTime:      template.HTMLEscapeString(reply.CreateTime),
@@ -346,7 +342,6 @@ func SendReplyNotificationBySys(ctx context.Context, reply ReplyData) error {
 //   - ctx: 上下文对象，用于控制请求的生命周期。
 //   - commenterEmail: 评论者邮箱
 //   - blogTitle: 博客标题
-//   - blogURL: 博客链接
 //   - content: 评论/回复内容
 //   - createTime: 创建时间
 //   - replyToCommentId: 回复的评论ID（空表示是新评论，非空表示是回复）
@@ -355,14 +350,13 @@ func SendReplyNotificationBySys(ctx context.Context, reply ReplyData) error {
 //
 // 返回值：
 //   - error: 如果发送邮件过程中发生错误，则返回错误信息；否则返回nil。
-func SendCommentOrReplyNotification(ctx context.Context, commenterEmail, blogTitle, blogURL, content, createTime, replyToCommentId, originalContent, originalCommenterEmail string) error {
+func SendCommentOrReplyNotification(ctx context.Context, commenterEmail, blogTitle, content, createTime, replyToCommentId, originalContent, originalCommenterEmail string) error {
 	// 判断是评论还是回复
 	if replyToCommentId == "" {
 		// 这是一条新评论，发送评论通知给博主
 		comment := CommentData{
 			CommenterEmail: commenterEmail,
 			BlogTitle:      blogTitle,
-			BlogURL:        blogURL,
 			Content:        content,
 			CreateTime:     createTime,
 		}
@@ -372,7 +366,6 @@ func SendCommentOrReplyNotification(ctx context.Context, commenterEmail, blogTit
 		reply := ReplyData{
 			ReplierEmail:    commenterEmail,
 			BlogTitle:       blogTitle,
-			BlogURL:         blogURL,
 			OriginalContent: originalContent,
 			ReplyContent:    content,
 			CreateTime:      createTime,

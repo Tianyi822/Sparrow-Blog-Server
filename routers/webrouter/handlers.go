@@ -2,9 +2,12 @@ package webrouter
 
 import (
 	"net/url"
+	"time"
 
 	"sparrow_blog_server/internal/model/vo"
+	"sparrow_blog_server/internal/repositories/commentrepo"
 	"sparrow_blog_server/internal/services/adminservices"
+	"sparrow_blog_server/internal/services/commentservice"
 	"sparrow_blog_server/internal/services/webservice"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/email"
@@ -214,4 +217,181 @@ func applyFriendLink(ctx *gin.Context) {
 
 	// 返回成功响应
 	resp.Ok(ctx, "友链申请成功，请等待管理员审核", nil)
+}
+
+// getCommentsByBlogId 根据博客ID获取所有评论及子评论
+// RESTful API: GET /web/comment/:blog_id
+//
+// @param ctx *gin.Context - Gin上下文
+// @return 无返回值，通过resp包响应评论数据
+func getCommentsByBlogId(ctx *gin.Context) {
+	// 从URL参数中获取博客ID
+	blogId := ctx.Param("blog_id")
+	if blogId == "" {
+		resp.BadRequest(ctx, "博客ID不能为空", nil)
+		return
+	}
+
+	// 调用commentservice层获取评论数据
+	comments, err := commentservice.GetCommentsByBlogId(ctx, blogId)
+	if err != nil {
+		resp.Err(ctx, "获取评论失败", err.Error())
+		return
+	}
+
+	// 返回成功响应
+	resp.Ok(ctx, "获取评论成功", comments)
+}
+
+// addComment 添加评论
+// RESTful API: POST /web/comment
+//
+// @param ctx *gin.Context - Gin上下文
+// @return 无返回值，通过resp包响应结果
+func addComment(ctx *gin.Context) {
+	// 使用tools包中的GetCommentDto方法获取评论DTO
+	commentDto, err := tools.GetCommentDto(ctx)
+	if err != nil {
+		// GetCommentDto内部已经处理了错误响应，这里直接返回
+		return
+	}
+
+	// 基本参数验证
+	if commentDto.CommenterEmail == "" {
+		resp.BadRequest(ctx, "评论者邮箱不能为空", nil)
+		return
+	}
+
+	if commentDto.BlogId == "" {
+		resp.BadRequest(ctx, "博客ID不能为空", nil)
+		return
+	}
+
+	if commentDto.Content == "" {
+		resp.BadRequest(ctx, "评论内容不能为空", nil)
+		return
+	}
+
+	// 调用commentservice层处理评论添加
+	commentVo, err := commentservice.AddComment(ctx, commentDto)
+	if err != nil {
+		resp.Err(ctx, "添加评论失败: "+err.Error(), nil)
+		return
+	}
+
+	// 异步发送邮件通知
+	go func() {
+		// 获取博客信息用于邮件通知
+		blogData, _, err := webservice.GetBlogDataById(ctx.Copy(), commentDto.BlogId)
+		if err != nil {
+			// 获取博客信息失败，跳过邮件发送
+			return
+		}
+
+		// 获取回复的原评论信息（如果是回复）
+		var originalContent, originalCommenterEmail string
+		if commentDto.ReplyToCommentId != "" {
+			if originalComment, err := commentrepo.FindCommentById(ctx.Copy(), commentDto.ReplyToCommentId); err == nil {
+				originalContent = originalComment.Content
+				originalCommenterEmail = originalComment.CommenterEmail
+			}
+		}
+
+		// 发送评论或回复通知邮件
+		if err := email.SendCommentOrReplyNotification(
+			ctx.Copy(),
+			commentDto.CommenterEmail,
+			blogData.BlogTitle,
+			commentDto.Content,
+			time.Now().Format("2006-01-02 15:04:05"),
+			commentDto.ReplyToCommentId,
+			originalContent,
+			originalCommenterEmail,
+		); err != nil {
+			// 邮件发送失败只记录日志，不影响主流程
+			// 这里可以添加日志记录
+			_ = err
+		}
+	}()
+
+	// 返回成功响应
+	resp.Ok(ctx, "评论添加成功", commentVo)
+}
+
+// replyComment 回复评论
+// RESTful API: POST /web/comment/reply
+//
+// @param ctx *gin.Context - Gin上下文
+// @return 无返回值，通过resp包响应结果
+func replyComment(ctx *gin.Context) {
+	// 使用tools包中的GetCommentDto方法获取评论DTO
+	commentDto, err := tools.GetCommentDto(ctx)
+	if err != nil {
+		// GetCommentDto内部已经处理了错误响应，这里直接返回
+		return
+	}
+
+	// 基本参数验证
+	if commentDto.CommenterEmail == "" {
+		resp.BadRequest(ctx, "评论者邮箱不能为空", nil)
+		return
+	}
+
+	if commentDto.BlogId == "" {
+		resp.BadRequest(ctx, "博客ID不能为空", nil)
+		return
+	}
+
+	if commentDto.Content == "" {
+		resp.BadRequest(ctx, "回复内容不能为空", nil)
+		return
+	}
+
+	if commentDto.ReplyToCommentId == "" {
+		resp.BadRequest(ctx, "回复的评论ID不能为空", nil)
+		return
+	}
+
+	// 调用commentservice层处理回复添加
+	commentVo, err := commentservice.AddComment(ctx, commentDto)
+	if err != nil {
+		resp.Err(ctx, "添加回复失败: "+err.Error(), nil)
+		return
+	}
+
+	// 异步发送邮件通知
+	go func() {
+		// 获取博客信息用于邮件通知
+		blogData, _, err := webservice.GetBlogDataById(ctx.Copy(), commentDto.BlogId)
+		if err != nil {
+			// 获取博客信息失败，跳过邮件发送
+			return
+		}
+
+		// 获取回复的原评论信息
+		var originalContent, originalCommenterEmail string
+		if originalComment, err := commentrepo.FindCommentById(ctx.Copy(), commentDto.ReplyToCommentId); err == nil {
+			originalContent = originalComment.Content
+			originalCommenterEmail = originalComment.CommenterEmail
+		}
+
+		// 发送评论或回复通知邮件
+		if err := email.SendCommentOrReplyNotification(
+			ctx.Copy(),
+			commentDto.CommenterEmail,
+			blogData.BlogTitle,
+			commentDto.Content,
+			time.Now().Format("2006-01-02 15:04:05"),
+			commentDto.ReplyToCommentId,
+			originalContent,
+			originalCommenterEmail,
+		); err != nil {
+			// 邮件发送失败只记录日志，不影响主流程
+			// 这里可以添加日志记录
+			_ = err
+		}
+	}()
+
+	// 返回成功响应
+	resp.Ok(ctx, "回复添加成功", commentVo)
 }

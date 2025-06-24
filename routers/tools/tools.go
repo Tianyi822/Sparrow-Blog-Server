@@ -122,6 +122,29 @@ func GetFriendLinkDto(ctx *gin.Context) (*dto.FriendLinkDto, error) {
 	return friendLinkDto, nil
 }
 
+// GetCommentDto 从 gin.Context 中提取数据并将其转换为 CommentDto 对象。
+// 参数:
+//   - ctx: *gin.Context，表示当前的 HTTP 请求上下文，包含请求数据和响应方法。
+//
+// 返回值:
+//   - *dto.CommentDto: 转换后的 CommentDto 对象，如果转换失败则返回 nil。
+//   - error: 如果在数据转换过程中发生错误，则返回该错误；否则返回 nil。
+func GetCommentDto(ctx *gin.Context) (*dto.CommentDto, error) {
+	// 初始化一个 CommentDto 对象，用于存储从请求中提取的数据。
+	commentDto := &dto.CommentDto{}
+
+	// 调用 rowDataToDto 函数将请求数据映射到 commentDto 对象中。
+	// 如果映射过程中发生错误，返回错误信息并通过 resp.BadRequest 响应客户端。
+	err := rowDataToDto(ctx, commentDto)
+	if err != nil {
+		resp.BadRequest(ctx, err.Error(), -1)
+		return nil, err
+	}
+
+	// 如果数据转换成功，返回填充好的 CommentDto 对象和 nil 错误。
+	return commentDto, nil
+}
+
 // rowDataToDto 将 HTTP 请求中的原始数据解析为指定的 DTO（数据传输对象）。
 // 参数:
 //   - ctx: *gin.Context，表示当前的 HTTP 请求上下文，包含请求方法、路径和原始数据等信息。
