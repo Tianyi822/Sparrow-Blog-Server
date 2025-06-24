@@ -136,7 +136,7 @@ func FindCommentById(ctx context.Context, commentId string) (*dto.CommentDto, er
 // 返回值:
 // - *dto.CommentDto: 创建的评论数据传输对象
 // - error: 错误信息
-func CreateComment(ctx context.Context, tx *gorm.DB, commentDto *dto.CommentDto) (*dto.CommentDto, error) {
+func CreateComment(tx *gorm.DB, commentDto *dto.CommentDto) (*dto.CommentDto, error) {
 	// 生成评论ID
 	commentId, err := utils.GenId(fmt.Sprintf("%s_%d", commentDto.CommenterEmail, time.Now().UnixNano()))
 	if err != nil {
@@ -190,7 +190,7 @@ func CreateComment(ctx context.Context, tx *gorm.DB, commentDto *dto.CommentDto)
 // 返回值:
 // - int64: 受影响的行数
 // - error: 错误信息
-func DeleteCommentById(ctx context.Context, tx *gorm.DB, id string) (int64, error) {
+func DeleteCommentById(tx *gorm.DB, id string) (int64, error) {
 	logger.Info("删除评论数据")
 	result := tx.Delete(&po.Comment{CommentId: id})
 	if result.Error != nil {
@@ -212,7 +212,7 @@ func DeleteCommentById(ctx context.Context, tx *gorm.DB, id string) (int64, erro
 // 返回值:
 // - *dto.CommentDto: 更新后的评论数据传输对象
 // - error: 错误信息
-func UpdateComment(ctx context.Context, tx *gorm.DB, commentDto *dto.CommentDto) (*dto.CommentDto, error) {
+func UpdateComment(tx *gorm.DB, commentDto *dto.CommentDto) (*dto.CommentDto, error) {
 	// 将DTO转换为PO进行更新
 	comment := &po.Comment{
 		CommentId:        commentDto.CommentId,

@@ -40,7 +40,7 @@ func UpdateComment(ctx context.Context, commentId string, commentDto *dto.Commen
 	existingCommentDto.Content = commentDto.Content
 
 	// 保存更新
-	updatedDto, err := commentrepo.UpdateComment(ctx, tx, existingCommentDto)
+	updatedDto, err := commentrepo.UpdateComment(tx, existingCommentDto)
 	if err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("更新评论失败: %v", err)
@@ -97,7 +97,7 @@ func DeleteComment(ctx context.Context, commentId string) error {
 	}
 
 	// 删除评论
-	_, err = commentrepo.DeleteCommentById(ctx, tx, commentId)
+	_, err = commentrepo.DeleteCommentById(tx, commentId)
 	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("删除评论失败: %v", err)
@@ -146,7 +146,7 @@ func DeleteCommentWithSubComments(ctx context.Context, commentId string) error {
 
 		// 删除所有子评论
 		for _, subComment := range subComments {
-			_, err = commentrepo.DeleteCommentById(ctx, tx, subComment.CommentId)
+			_, err = commentrepo.DeleteCommentById(tx, subComment.CommentId)
 			if err != nil {
 				tx.Rollback()
 				return fmt.Errorf("删除子评论失败: %v", err)
@@ -155,7 +155,7 @@ func DeleteCommentWithSubComments(ctx context.Context, commentId string) error {
 	}
 
 	// 删除主评论本身
-	_, err = commentrepo.DeleteCommentById(ctx, tx, commentId)
+	_, err = commentrepo.DeleteCommentById(tx, commentId)
 	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("删除评论失败: %v", err)

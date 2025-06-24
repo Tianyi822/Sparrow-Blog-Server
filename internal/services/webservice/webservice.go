@@ -430,7 +430,7 @@ func AddComment(ctx context.Context, commentDto *dto.CommentDto) (*vo.CommentVo,
 	}
 
 	// 保存到数据库
-	resultDto, err := commentrepo.CreateComment(ctx, tx, commentDto)
+	resultDto, err := commentrepo.CreateComment(tx, commentDto)
 	if err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("添加评论失败: %v", err)
