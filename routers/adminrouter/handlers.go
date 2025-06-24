@@ -1655,3 +1655,86 @@ func updateFriendLinkDisplay(ctx *gin.Context) {
 		"display": newDisplay,
 	})
 }
+
+// getAllComments 获取所有评论（管理员用）
+// @param ctx *gin.Context - Gin上下文
+// @return 无返回值，通过resp包响应评论数据
+func getAllComments(ctx *gin.Context) {
+	// 调用adminservices层获取所有评论数据
+	comments, err := adminservices.GetAllComments(ctx)
+	if err != nil {
+		resp.Err(ctx, "获取评论失败", err.Error())
+		return
+	}
+
+	// 返回成功响应
+	resp.Ok(ctx, "获取评论成功", comments)
+}
+
+// updateCommentContent 修改评论内容（管理员用）
+// @param ctx *gin.Context - Gin上下文
+// @return 无返回值，通过resp包响应结果
+func updateCommentContent(ctx *gin.Context) {
+	// 从URL参数中获取评论ID
+	commentId := ctx.Param("comment_id")
+	if commentId == "" {
+		resp.BadRequest(ctx, "评论ID不能为空", nil)
+		return
+	}
+
+	// 使用tools包中的GetMapFromRawData方法获取请求数据
+	rawData, err := tools.GetMapFromRawData(ctx)
+	if err != nil {
+		resp.BadRequest(ctx, "请求数据解析失败", err.Error())
+		return
+	}
+
+	// 从请求数据中获取新的评论内容
+	content, err := tools.GetStringFromRawData(rawData, "content")
+	if err != nil {
+		resp.BadRequest(ctx, "评论内容解析失败", err.Error())
+		return
+	}
+
+	if content == "" {
+		resp.BadRequest(ctx, "评论内容不能为空", nil)
+		return
+	}
+
+	// 创建评论DTO对象
+	commentDto := &dto.CommentDto{
+		Content: content,
+	}
+
+	// 调用adminservices层处理评论更新
+	commentVo, err := adminservices.UpdateComment(ctx, commentId, commentDto)
+	if err != nil {
+		resp.Err(ctx, "更新评论失败: "+err.Error(), nil)
+		return
+	}
+
+	// 返回成功响应
+	resp.Ok(ctx, "评论更新成功", commentVo)
+}
+
+// deleteCommentWithSubComments 删除评论及其所有子评论（管理员用）
+// @param ctx *gin.Context - Gin上下文
+// @return 无返回值，通过resp包响应结果
+func deleteCommentWithSubComments(ctx *gin.Context) {
+	// 从URL参数中获取评论ID
+	commentId := ctx.Param("comment_id")
+	if commentId == "" {
+		resp.BadRequest(ctx, "评论ID不能为空", nil)
+		return
+	}
+
+	// 调用adminservices层处理评论删除
+	err := adminservices.DeleteCommentWithSubComments(ctx, commentId)
+	if err != nil {
+		resp.Err(ctx, "删除评论失败: "+err.Error(), nil)
+		return
+	}
+
+	// 返回成功响应
+	resp.Ok(ctx, "评论删除成功", nil)
+}

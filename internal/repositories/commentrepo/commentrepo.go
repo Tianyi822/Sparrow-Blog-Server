@@ -297,3 +297,42 @@ func UpdateComment(ctx context.Context, tx *gorm.DB, commentDto *dto.CommentDto)
 
 	return resultDto, nil
 }
+
+// FindAllComments 查询所有评论（管理员用）
+// 参数:
+//   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据
+//
+// 返回值:
+//   - []dto.CommentDto: 评论数据传输对象列表
+//   - error: 如果查询过程中出现错误，则返回具体的错误信息；否则返回 nil
+func FindAllComments(ctx context.Context) ([]dto.CommentDto, error) {
+	logger.Info("查询所有评论数据")
+
+	var comments []po.Comment
+
+	// 查询所有评论，按创建时间倒序排列
+	result := storage.Storage.Db.WithContext(ctx).Order("create_time DESC").Find(&comments)
+	if result.Error != nil {
+		logger.Error("查询所有评论数据失败: %v", result.Error)
+		return nil, result.Error
+	}
+
+	logger.Info("查询所有评论数据成功: %d", len(comments))
+
+	// 将PO对象转换为DTO对象
+	var commentDtos []dto.CommentDto
+	for _, comment := range comments {
+		commentDto := dto.CommentDto{
+			CommentId:        comment.CommentId,
+			CommenterEmail:   comment.CommenterEmail,
+			BlogId:           comment.BlogId,
+			OriginPostId:     comment.OriginPostId,
+			ReplyToCommentId: comment.ReplyToCommentId,
+			Content:          comment.Content,
+			CreateTime:       comment.CreateTime,
+		}
+		commentDtos = append(commentDtos, commentDto)
+	}
+
+	return commentDtos, nil
+}

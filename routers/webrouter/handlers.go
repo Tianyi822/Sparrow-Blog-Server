@@ -7,7 +7,6 @@ import (
 	"sparrow_blog_server/internal/model/vo"
 	"sparrow_blog_server/internal/repositories/commentrepo"
 	"sparrow_blog_server/internal/services/adminservices"
-	"sparrow_blog_server/internal/services/commentservice"
 	"sparrow_blog_server/internal/services/webservice"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/email"
@@ -232,8 +231,8 @@ func getCommentsByBlogId(ctx *gin.Context) {
 		return
 	}
 
-	// 调用commentservice层获取评论数据
-	comments, err := commentservice.GetCommentsByBlogId(ctx, blogId)
+	// 调用webservice层获取评论数据
+	comments, err := webservice.GetCommentsByBlogId(ctx, blogId)
 	if err != nil {
 		resp.Err(ctx, "获取评论失败", err.Error())
 		return
@@ -272,8 +271,8 @@ func addComment(ctx *gin.Context) {
 		return
 	}
 
-	// 调用commentservice层处理评论添加
-	commentVo, err := commentservice.AddComment(ctx, commentDto)
+	// 调用webservice层处理评论添加
+	commentVo, err := webservice.AddComment(ctx, commentDto)
 	if err != nil {
 		resp.Err(ctx, "添加评论失败: "+err.Error(), nil)
 		return
@@ -352,8 +351,8 @@ func replyComment(ctx *gin.Context) {
 		return
 	}
 
-	// 调用commentservice层处理回复添加
-	commentVo, err := commentservice.AddComment(ctx, commentDto)
+	// 调用webservice层处理回复添加
+	commentVo, err := webservice.AddComment(ctx, commentDto)
 	if err != nil {
 		resp.Err(ctx, "添加回复失败: "+err.Error(), nil)
 		return
