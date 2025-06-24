@@ -223,3 +223,92 @@ func DeleteComment(ctx context.Context, commentId string) error {
 
 	return nil
 }
+
+// DeleteCommentWithSubComments 删除评论及其所有子评论
+// - ctx: 上下文对象
+// - commentId: 评论ID
+//
+// 返回值:
+// - error: 错误信息
+func DeleteCommentWithSubComments(ctx context.Context, commentId string) error {
+	// 开启事务
+	tx := storage.Storage.Db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("删除评论及子评论事务失败: %v", r)
+			tx.Rollback()
+		}
+	}()
+
+	// 检查评论是否存在
+	comment, err := commentrepo.FindCommentById(ctx, commentId)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("评论不存在: %v", err)
+	}
+
+	// 如果是主评论（OriginPostId为空），需要删除所有子评论
+	if comment.OriginPostId == "" {
+		// 这是主评论，删除所有子评论
+		subComments, err := commentrepo.FindCommentsByOriginPostId(ctx, commentId)
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("查询子评论失败: %v", err)
+		}
+
+		// 删除所有子评论
+		for _, subComment := range subComments {
+			_, err = commentrepo.DeleteCommentById(ctx, tx, subComment.CommentId)
+			if err != nil {
+				tx.Rollback()
+				return fmt.Errorf("删除子评论失败: %v", err)
+			}
+		}
+	}
+
+	// 删除主评论本身
+	_, err = commentrepo.DeleteCommentById(ctx, tx, commentId)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("删除评论失败: %v", err)
+	}
+
+	// 提交事务
+	if err := tx.Commit().Error; err != nil {
+		logger.Error("提交删除评论事务失败: %v", err)
+		return fmt.Errorf("提交事务失败: %v", err)
+	}
+
+	return nil
+}
+
+// GetAllComments 获取所有评论（管理员用）
+// - ctx: 上下文对象
+//
+// 返回值:
+// - []vo.CommentVo: 评论列表
+// - error: 错误信息
+func GetAllComments(ctx context.Context) ([]vo.CommentVo, error) {
+	// 获取所有评论
+	commentDtos, err := commentrepo.FindAllComments(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// 转换为VO对象
+	var commentVos []vo.CommentVo
+	for _, commentDto := range commentDtos {
+		commentVo := vo.CommentVo{
+			CommentId:        commentDto.CommentId,
+			CommenterEmail:   commentDto.CommenterEmail,
+			BlogId:           commentDto.BlogId,
+			OriginPostId:     commentDto.OriginPostId,
+			ReplyToCommentId: commentDto.ReplyToCommentId,
+			Content:          commentDto.Content,
+			CreateTime:       commentDto.CreateTime,
+		}
+		commentVos = append(commentVos, commentVo)
+	}
+
+	return commentVos, nil
+}

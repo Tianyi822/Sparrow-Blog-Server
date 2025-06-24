@@ -143,4 +143,18 @@ func Routers(e *gin.Engine) {
 
 		friendLinkGroup.DELETE("/:friend_link_id", deleteFriendLink)
 	}
+
+	{
+		commentGroup := adminGroup.Group("/comments")
+
+		if env.CurrentEnv == env.ProdEnv {
+			commentGroup.Use(middleware.AnalyzeJWT())
+		}
+
+		commentGroup.GET("/all", getAllComments)
+
+		commentGroup.PUT("/:comment_id/content", updateCommentContent)
+
+		commentGroup.DELETE("/:comment_id", deleteCommentWithSubComments)
+	}
 }

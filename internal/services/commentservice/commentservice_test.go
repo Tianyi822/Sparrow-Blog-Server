@@ -362,3 +362,127 @@ func TestAddReplyComment(t *testing.T) {
 	t.Logf("回复评论测试通过: 楼主评论ID=%s, 回复评论ID=%s, 二级回复ID=%s",
 		mainCommentVo.CommentId, replyCommentVo.CommentId, replyToReplyVo.CommentId)
 }
+
+// TestDeleteCommentWithSubComments 测试删除评论及其子评论功能
+func TestDeleteCommentWithSubComments(t *testing.T) {
+	ctx := context.Background()
+
+	// 准备测试数据 - 先添加一条楼主评论
+	commentDto, blogId := setupTestData()
+	mainCommentVo, err := AddComment(ctx, commentDto)
+	if err != nil {
+		t.Fatalf("添加楼主评论失败: %v", err)
+	}
+
+	// 创建回复评论
+	replyCommentDto := &dto.CommentDto{
+		CommenterEmail:   "reply@example.com",
+		BlogId:           blogId,
+		OriginPostId:     "",                      // 这会在服务层自动设置
+		ReplyToCommentId: mainCommentVo.CommentId, // 回复楼主评论
+		Content:          "这是一条回复评论",
+	}
+
+	// 添加回复评论
+	replyCommentVo, err := AddComment(ctx, replyCommentDto)
+	if err != nil {
+		t.Fatalf("添加回复评论失败: %v", err)
+	}
+
+	// 创建二级回复评论
+	replyToReplyDto := &dto.CommentDto{
+		CommenterEmail:   "reply2@example.com",
+		BlogId:           blogId,
+		OriginPostId:     "",                       // 这会在服务层自动设置
+		ReplyToCommentId: replyCommentVo.CommentId, // 回复刚才的回复评论
+		Content:          "这是一条二级回复评论",
+	}
+
+	// 添加二级回复评论
+	replyToReplyVo, err := AddComment(ctx, replyToReplyDto)
+	if err != nil {
+		t.Fatalf("添加二级回复评论失败: %v", err)
+	}
+
+	// 调用删除评论及子评论方法
+	err = DeleteCommentWithSubComments(ctx, mainCommentVo.CommentId)
+	if err != nil {
+		t.Fatalf("删除评论及子评论失败: %v", err)
+	}
+
+	// 验证删除结果 - 尝试查找已删除的评论应该都失败
+	_, err = commentrepo.FindCommentById(ctx, mainCommentVo.CommentId)
+	if err == nil {
+		t.Error("主评论应该已被删除，但仍然可以找到")
+	}
+
+	_, err = commentrepo.FindCommentById(ctx, replyCommentVo.CommentId)
+	if err == nil {
+		t.Error("回复评论应该已被删除，但仍然可以找到")
+	}
+
+	_, err = commentrepo.FindCommentById(ctx, replyToReplyVo.CommentId)
+	if err == nil {
+		t.Error("二级回复评论应该已被删除，但仍然可以找到")
+	}
+
+	t.Logf("删除评论及子评论测试通过: 主评论ID=%s", mainCommentVo.CommentId)
+}
+
+// TestGetAllComments 测试获取所有评论功能
+func TestGetAllComments(t *testing.T) {
+	ctx := context.Background()
+
+	// 准备测试数据 - 添加几条评论
+	commentDto1, _ := setupTestData()
+	commentVo1, err := AddComment(ctx, commentDto1)
+	if err != nil {
+		t.Fatalf("添加第一条评论失败: %v", err)
+	}
+
+	commentDto2, _ := setupTestData()
+	commentDto2.CommenterEmail = "test2@example.com"
+	commentDto2.Content = "这是第二条测试评论"
+	commentVo2, err := AddComment(ctx, commentDto2)
+	if err != nil {
+		t.Fatalf("添加第二条评论失败: %v", err)
+	}
+
+	// 调用获取所有评论方法
+	comments, err := GetAllComments(ctx)
+	if err != nil {
+		t.Fatalf("获取所有评论失败: %v", err)
+	}
+
+	// 验证结果
+	if len(comments) < 2 {
+		t.Errorf("应该至少有2条评论，实际获取到%d条", len(comments))
+	}
+
+	// 检查是否包含我们添加的评论
+	found1 := false
+	found2 := false
+	for _, comment := range comments {
+		if comment.CommentId == commentVo1.CommentId {
+			found1 = true
+		}
+		if comment.CommentId == commentVo2.CommentId {
+			found2 = true
+		}
+	}
+
+	if !found1 {
+		t.Error("未找到第一条测试评论")
+	}
+	if !found2 {
+		t.Error("未找到第二条测试评论")
+	}
+
+	// 清理测试数据
+	cleanupTx := storage.Storage.Db.WithContext(ctx).Begin()
+	_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, commentVo1.CommentId)
+	_, _ = commentrepo.DeleteCommentById(ctx, cleanupTx, commentVo2.CommentId)
+	cleanupTx.Commit()
+
+	t.Logf("获取所有评论测试通过: 总评论数=%d", len(comments))
+}
