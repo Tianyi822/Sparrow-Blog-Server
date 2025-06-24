@@ -2,16 +2,13 @@ package commentrepo
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	"sparrow_blog_server/internal/model/dto"
 	"sparrow_blog_server/internal/model/po"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/storage"
-	"strings"
 	"testing"
-	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func init() {
@@ -149,95 +146,6 @@ func TestDeleteCommentById(t *testing.T) {
 					var count int64
 					tx.Model(&po.Comment{}).Where("comment_id = ?", tt.id).Count(&count)
 					assert.Equal(t, int64(0), count)
-				}
-			}
-		})
-	}
-}
-
-func TestFindCommentByContentLike(t *testing.T) {
-	ctx := context.Background()
-
-	// 清理可能存在的测试数据
-	cleanupTx := storage.Storage.Db.Begin()
-	cleanupTx.Exec("DELETE FROM COMMENT WHERE commenter_email = 'test@example.com'")
-	cleanupTx.Commit()
-
-	// Create test data
-	testComments := []po.Comment{
-		{
-			CommentId:  "test_comment_1",
-			Content:    "Test comment content",
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
-		},
-		{
-			CommentId:  "test_comment_2",
-			Content:    "Another test content",
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
-		},
-	}
-
-	for _, comment := range testComments {
-		// 创建测试用的CommentDto
-		commentDto := &dto.CommentDto{
-			CommenterEmail:   "test@example.com",
-			BlogId:           "test_blog_1",
-			OriginPostId:     "",
-			ReplyToCommentId: "",
-			Content:          comment.Content,
-		}
-		// 开启事务用于创建测试数据
-		setupTx := storage.Storage.Db.Begin()
-		_, err := CreateComment(ctx, setupTx, commentDto)
-		if err != nil {
-			setupTx.Rollback()
-			t.Fatal(err)
-		}
-		setupTx.Commit()
-	}
-
-	tests := []struct {
-		name      string
-		content   string
-		wantCount int
-		wantErr   bool
-	}{
-		{
-			name:      "Find existing comments",
-			content:   "test",
-			wantCount: 2,
-			wantErr:   false,
-		},
-		{
-			name:      "Find specific comment",
-			content:   "Another",
-			wantCount: 1,
-			wantErr:   false,
-		},
-		{
-			name:      "Find non-existent comment",
-			content:   "nonexistent",
-			wantCount: 0,
-			wantErr:   false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			comments, err := FindCommentsByContentLike(ctx, tt.content)
-
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.wantCount, len(comments))
-
-				if tt.wantCount > 0 {
-					for _, comment := range comments {
-						assert.Contains(t, strings.ToLower(comment.Content), strings.ToLower(tt.content))
-					}
 				}
 			}
 		})

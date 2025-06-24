@@ -9,51 +9,10 @@ import (
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/pkg/utils"
 	"sparrow_blog_server/storage"
-	"strings"
 	"time"
 
 	"gorm.io/gorm"
 )
-
-// FindCommentsByContentLike 根据评论内容模糊查询评论
-// - ctx: 上下文对象
-// - content: 评论内容
-//
-// 返回值:
-// - []dto.CommentDto: 符合模糊查询的评论列表
-// - error: 错误信息
-func FindCommentsByContentLike(ctx context.Context, content string) ([]dto.CommentDto, error) {
-	var comments []po.Comment
-
-	logger.Info("查询评论数据")
-	result := storage.Storage.Db.Model(&po.Comment{}).
-		WithContext(ctx).
-		Where("LOWER(comment_content) LIKE ?", "%"+strings.ToLower(content)+"%").
-		Find(&comments)
-	if result.Error != nil {
-		msg := fmt.Sprintf("查询评论数据失败: %v", result.Error)
-		logger.Error(msg)
-		return nil, errors.New(msg)
-	}
-
-	logger.Info("查询评论数据成功: %v", result.RowsAffected)
-
-	// 转换为DTO
-	var commentDtos []dto.CommentDto
-	for _, comment := range comments {
-		commentDtos = append(commentDtos, dto.CommentDto{
-			CommentId:        comment.CommentId,
-			CommenterEmail:   comment.CommenterEmail,
-			BlogId:           comment.BlogId,
-			OriginPostId:     comment.OriginPostId,
-			ReplyToCommentId: comment.ReplyToCommentId,
-			Content:          comment.Content,
-			CreateTime:       comment.CreateTime,
-		})
-	}
-
-	return commentDtos, nil
-}
 
 // FindCommentsByBlogId 根据博客ID查询评论
 // - ctx: 上下文对象
