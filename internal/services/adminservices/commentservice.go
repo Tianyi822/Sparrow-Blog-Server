@@ -65,7 +65,7 @@ func UpdateComment(ctx context.Context, commentId string, commentDto *dto.Commen
 		CommenterEmail:   updatedDto.CommenterEmail,
 		BlogTitle:        blogTitle,
 		OriginPostId:     updatedDto.OriginPostId,
-		ReplyToCommentId: updatedDto.ReplyToCommentId,
+		ReplyToCommenter: updatedDto.ReplyToCommenter,
 		Content:          updatedDto.Content,
 		CreateTime:       updatedDto.CreateTime,
 	}
@@ -199,7 +199,7 @@ func GetAllComments(ctx context.Context) ([]vo.CommentVo, error) {
 			CommenterEmail:   commentDto.CommenterEmail,
 			BlogTitle:        blogTitle,
 			OriginPostId:     commentDto.OriginPostId,
-			ReplyToCommentId: commentDto.ReplyToCommentId,
+			ReplyToCommenter: commentDto.ReplyToCommenter,
 			Content:          commentDto.Content,
 			CreateTime:       commentDto.CreateTime,
 		}

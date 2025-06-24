@@ -39,12 +39,26 @@ func FindCommentsByBlogId(ctx context.Context, blogId string) ([]dto.CommentDto,
 	// 转换为DTO
 	var commentDtos []dto.CommentDto
 	for _, comment := range comments {
+		// 查询被回复用户的邮箱（如果存在）
+		var replyToCommenter string
+		if comment.ReplyToCommentId != "" {
+			var repliedComment po.Comment
+			err := storage.Storage.Db.WithContext(ctx).
+				Select("commenter_email").
+				Where("comment_id = ?", comment.ReplyToCommentId).
+				First(&repliedComment).Error
+			if err == nil {
+				replyToCommenter = repliedComment.CommenterEmail
+			}
+		}
+
 		commentDtos = append(commentDtos, dto.CommentDto{
 			CommentId:        comment.CommentId,
 			CommenterEmail:   comment.CommenterEmail,
 			BlogId:           comment.BlogId,
 			OriginPostId:     comment.OriginPostId,
 			ReplyToCommentId: comment.ReplyToCommentId,
+			ReplyToCommenter: replyToCommenter,
 			Content:          comment.Content,
 			CreateTime:       comment.CreateTime,
 		})
@@ -78,12 +92,26 @@ func FindCommentsByOriginPostId(ctx context.Context, originPostId string) ([]dto
 	// 转换为DTO
 	var commentDtos []dto.CommentDto
 	for _, comment := range comments {
+		// 查询被回复用户的邮箱（如果存在）
+		var replyToCommenter string
+		if comment.ReplyToCommentId != "" {
+			var repliedComment po.Comment
+			err := storage.Storage.Db.WithContext(ctx).
+				Select("commenter_email").
+				Where("comment_id = ?", comment.ReplyToCommentId).
+				First(&repliedComment).Error
+			if err == nil {
+				replyToCommenter = repliedComment.CommenterEmail
+			}
+		}
+
 		commentDtos = append(commentDtos, dto.CommentDto{
 			CommentId:        comment.CommentId,
 			CommenterEmail:   comment.CommenterEmail,
 			BlogId:           comment.BlogId,
 			OriginPostId:     comment.OriginPostId,
 			ReplyToCommentId: comment.ReplyToCommentId,
+			ReplyToCommenter: replyToCommenter,
 			Content:          comment.Content,
 			CreateTime:       comment.CreateTime,
 		})
@@ -114,6 +142,19 @@ func FindCommentById(ctx context.Context, commentId string) (*dto.CommentDto, er
 	}
 	logger.Info("根据评论 ID 查询评论数据成功")
 
+	// 查询被回复用户的邮箱（如果存在）
+	var replyToCommenter string
+	if comment.ReplyToCommentId != "" {
+		var repliedComment po.Comment
+		err := storage.Storage.Db.WithContext(ctx).
+			Select("commenter_email").
+			Where("comment_id = ?", comment.ReplyToCommentId).
+			First(&repliedComment).Error
+		if err == nil {
+			replyToCommenter = repliedComment.CommenterEmail
+		}
+	}
+
 	// 转换为DTO
 	commentDto := &dto.CommentDto{
 		CommentId:        comment.CommentId,
@@ -121,6 +162,7 @@ func FindCommentById(ctx context.Context, commentId string) (*dto.CommentDto, er
 		BlogId:           comment.BlogId,
 		OriginPostId:     comment.OriginPostId,
 		ReplyToCommentId: comment.ReplyToCommentId,
+		ReplyToCommenter: replyToCommenter,
 		Content:          comment.Content,
 		CreateTime:       comment.CreateTime,
 	}
@@ -168,6 +210,18 @@ func CreateComment(tx *gorm.DB, commentDto *dto.CommentDto) (*dto.CommentDto, er
 
 	logger.Info("创建评论数据成功: %v", result.RowsAffected)
 
+	// 查询被回复用户的邮箱（如果存在）
+	var replyToCommenter string
+	if comment.ReplyToCommentId != "" {
+		var repliedComment po.Comment
+		err := tx.Select("commenter_email").
+			Where("comment_id = ?", comment.ReplyToCommentId).
+			First(&repliedComment).Error
+		if err == nil {
+			replyToCommenter = repliedComment.CommenterEmail
+		}
+	}
+
 	// 转换为DTO返回
 	resultDto := &dto.CommentDto{
 		CommentId:        comment.CommentId,
@@ -175,6 +229,7 @@ func CreateComment(tx *gorm.DB, commentDto *dto.CommentDto) (*dto.CommentDto, er
 		BlogId:           comment.BlogId,
 		OriginPostId:     comment.OriginPostId,
 		ReplyToCommentId: comment.ReplyToCommentId,
+		ReplyToCommenter: replyToCommenter,
 		Content:          comment.Content,
 		CreateTime:       comment.CreateTime,
 	}
@@ -243,6 +298,18 @@ func UpdateComment(tx *gorm.DB, commentDto *dto.CommentDto) (*dto.CommentDto, er
 		return nil, errors.New(msg)
 	}
 
+	// 查询被回复用户的邮箱（如果存在）
+	var replyToCommenter string
+	if updatedComment.ReplyToCommentId != "" {
+		var repliedComment po.Comment
+		err := tx.Select("commenter_email").
+			Where("comment_id = ?", updatedComment.ReplyToCommentId).
+			First(&repliedComment).Error
+		if err == nil {
+			replyToCommenter = repliedComment.CommenterEmail
+		}
+	}
+
 	// 转换为DTO返回
 	resultDto := &dto.CommentDto{
 		CommentId:        updatedComment.CommentId,
@@ -250,6 +317,7 @@ func UpdateComment(tx *gorm.DB, commentDto *dto.CommentDto) (*dto.CommentDto, er
 		BlogId:           updatedComment.BlogId,
 		OriginPostId:     updatedComment.OriginPostId,
 		ReplyToCommentId: updatedComment.ReplyToCommentId,
+		ReplyToCommenter: replyToCommenter,
 		Content:          updatedComment.Content,
 		CreateTime:       updatedComment.CreateTime,
 	}
@@ -281,12 +349,26 @@ func FindAllComments(ctx context.Context) ([]dto.CommentDto, error) {
 	// 将PO对象转换为DTO对象
 	var commentDtos []dto.CommentDto
 	for _, comment := range comments {
+		// 查询被回复用户的邮箱（如果存在）
+		var replyToCommenter string
+		if comment.ReplyToCommentId != "" {
+			var repliedComment po.Comment
+			err := storage.Storage.Db.WithContext(ctx).
+				Select("commenter_email").
+				Where("comment_id = ?", comment.ReplyToCommentId).
+				First(&repliedComment).Error
+			if err == nil {
+				replyToCommenter = repliedComment.CommenterEmail
+			}
+		}
+
 		commentDto := dto.CommentDto{
 			CommentId:        comment.CommentId,
 			CommenterEmail:   comment.CommenterEmail,
 			BlogId:           comment.BlogId,
 			OriginPostId:     comment.OriginPostId,
 			ReplyToCommentId: comment.ReplyToCommentId,
+			ReplyToCommenter: replyToCommenter,
 			Content:          comment.Content,
 			CreateTime:       comment.CreateTime,
 		}

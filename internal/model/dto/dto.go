@@ -111,6 +111,7 @@ type CommentDto struct {
 	BlogId           string    `json:"blog_id,omitempty"`
 	OriginPostId     string    `json:"origin_post_id,omitempty"`
 	ReplyToCommentId string    `json:"reply_to_comment_id,omitempty"`
+	ReplyToCommenter string    `json:"reply_to_commenter,omitempty"`
 	Content          string    `json:"content,omitempty"`
 	CreateTime       time.Time `json:"create_time,omitempty"`
 }

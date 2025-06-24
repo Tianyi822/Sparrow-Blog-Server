@@ -59,7 +59,7 @@ type CommentVo struct {
 	CommenterEmail   string      `json:"commenter_email,omitempty"`
 	BlogTitle        string      `json:"blog_title,omitempty"`
 	OriginPostId     string      `json:"origin_post_id,omitempty"`
-	ReplyToCommentId string      `json:"reply_to_comment_id,omitempty"`
+	ReplyToCommenter string      `json:"reply_to_commenter,omitempty"`
 	Content          string      `json:"content,omitempty"`
 	CreateTime       time.Time   `json:"create_time,omitempty"`
 	SubComments      []CommentVo `json:"sub_comments,omitempty"`

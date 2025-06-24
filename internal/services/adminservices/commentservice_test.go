@@ -316,8 +316,10 @@ func TestAddReplyComment(t *testing.T) {
 	}
 
 	// 验证回复评论的字段
-	if replyCommentVo.ReplyToCommentId != mainCommentVo.CommentId {
-		t.Errorf("回复评论ID不正确: 期望 %s, 实际 %s", mainCommentVo.CommentId, replyCommentVo.ReplyToCommentId)
+	// 注意：现在ReplyToCommenter存储的是被回复用户的邮箱，而不是评论ID
+	// 我们应该验证OriginPostId和被回复者邮箱
+	if replyCommentVo.ReplyToCommenter != commentDto.CommenterEmail {
+		t.Errorf("被回复用户邮箱不正确: 期望 %s, 实际 %s", commentDto.CommenterEmail, replyCommentVo.ReplyToCommenter)
 	}
 
 	if replyCommentVo.OriginPostId != mainCommentVo.CommentId {
@@ -340,8 +342,9 @@ func TestAddReplyComment(t *testing.T) {
 	}
 
 	// 验证二级回复评论的字段
-	if replyToReplyVo.ReplyToCommentId != replyCommentVo.CommentId {
-		t.Errorf("二级回复评论ID不正确: 期望 %s, 实际 %s", replyCommentVo.CommentId, replyToReplyVo.ReplyToCommentId)
+	// 验证被回复用户的邮箱
+	if replyToReplyVo.ReplyToCommenter != replyCommentDto.CommenterEmail {
+		t.Errorf("二级回复的被回复用户邮箱不正确: 期望 %s, 实际 %s", replyCommentDto.CommenterEmail, replyToReplyVo.ReplyToCommenter)
 	}
 
 	// 二级回复的OriginPostId应该和一级回复的OriginPostId相同（都指向楼主评论）
