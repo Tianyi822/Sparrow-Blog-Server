@@ -50,5 +50,8 @@ func Router(e *gin.Engine) {
 
 		// 回复评论
 		commentGroup.POST("/reply", replyComment)
+
+		// 获取最新的5条评论
+		commentGroup.GET("/latest", getLatestComments)
 	}
 }

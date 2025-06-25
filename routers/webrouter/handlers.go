@@ -394,3 +394,20 @@ func replyComment(ctx *gin.Context) {
 	// 返回成功响应
 	resp.Ok(ctx, "回复添加成功", commentVo)
 }
+
+// getLatestComments 获取最新的5条评论
+// RESTful API: GET /web/comment/latest
+//
+// @param ctx *gin.Context - Gin上下文
+// @return 无返回值，通过resp包响应最新评论数据
+func getLatestComments(ctx *gin.Context) {
+	// 调用webservice层获取最新评论数据
+	comments, err := webservice.GetLatestComments(ctx)
+	if err != nil {
+		resp.Err(ctx, "获取最新评论失败", err.Error())
+		return
+	}
+
+	// 返回成功响应
+	resp.Ok(ctx, "获取最新评论成功", comments)
+}
