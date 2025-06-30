@@ -45,7 +45,7 @@ func (d *Doc) IndexedDoc() map[string]interface{} {
 // 返回值:
 //   - error: 错误对象，如果获取内容时发生错误则返回
 func (d *Doc) GetContent(ctx context.Context) error {
-	logger.Info("从OSS中获取文档内容")
+	logger.Info("从OSS中获取文档内容: %s", d.Title)
 	content, err := storage.Storage.GetContentFromOss(ctx, ossstore.GenOssSavePath(d.Title, ossstore.MarkDown))
 	if err != nil {
 		return err

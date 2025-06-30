@@ -269,8 +269,56 @@ func ForceRemove(path string) error {
 	return nil
 }
 
+// CheckDirPermissions 检查目录权限，确保可以读写
+// 该函数验证目录是否存在以及是否具有读写权限
+//
+// 参数：
+//   - dirPath: 要检查的目录路径
+//
+// 返回值：
+//   - error: 如果权限不足或目录不可访问则返回错误，成功则返回 nil
+func CheckDirPermissions(dirPath string) error {
+	// 检查目录是否存在
+	if !IsExist(dirPath) {
+		return fmt.Errorf("目录不存在: %s", dirPath)
+	}
+
+	// 获取目录信息
+	fileInfo, err := os.Stat(dirPath)
+	if err != nil {
+		return fmt.Errorf("获取目录信息失败 %s: %w", dirPath, err)
+	}
+
+	// 检查是否为目录
+	if !fileInfo.IsDir() {
+		return fmt.Errorf("路径不是目录: %s", dirPath)
+	}
+
+	// 检查读权限 - 尝试读取目录内容
+	_, err = os.ReadDir(dirPath)
+	if err != nil {
+		return fmt.Errorf("目录读权限不足 %s: %w", dirPath, err)
+	}
+
+	// 检查写权限 - 尝试创建临时文件
+	tempFile := filepath.Join(dirPath, ".permission_test_temp")
+	file, err := os.Create(tempFile)
+	if err != nil {
+		return fmt.Errorf("目录写权限不足 %s: %w", dirPath, err)
+	}
+	file.Close()
+
+	// 清理临时文件
+	if err := os.Remove(tempFile); err != nil {
+		// 如果删除失败，记录警告但不返回错误
+		fmt.Printf("警告: 无法删除临时文件 %s: %v\n", tempFile, err)
+	}
+
+	return nil
+}
+
 // EnsureDir 确保指定的目录存在，如果不存在则创建它。
-// 该函数会递归创建所有必要的父目录。
+// 该函数会递归创建所有必要的父目录，并检查权限。
 //
 // 参数：
 //   - dirPath: 要确保存在的目录路径
@@ -288,12 +336,33 @@ func EnsureDir(dirPath string) error {
 		if !fileInfo.IsDir() {
 			return fmt.Errorf("路径存在但不是目录: %s", dirPath)
 		}
+
+		// 检查目录权限
+		if err := CheckDirPermissions(dirPath); err != nil {
+			return fmt.Errorf("目录权限检查失败: %w", err)
+		}
+
 		return nil
+	}
+
+	// 检查父目录是否存在并且有写权限
+	parentDir := filepath.Dir(dirPath)
+	if parentDir != dirPath { // 避免无限递归
+		if IsExist(parentDir) {
+			if err := CheckDirPermissions(parentDir); err != nil {
+				return fmt.Errorf("父目录权限不足: %w", err)
+			}
+		}
 	}
 
 	// 递归创建目录
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
 		return fmt.Errorf("创建目录失败 %s: %w", dirPath, err)
+	}
+
+	// 验证创建的目录权限
+	if err := CheckDirPermissions(dirPath); err != nil {
+		return fmt.Errorf("新创建目录权限验证失败: %w", err)
 	}
 
 	return nil
