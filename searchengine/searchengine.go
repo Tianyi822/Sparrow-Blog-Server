@@ -3,6 +3,7 @@ package searchengine
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"sparrow_blog_server/internal/model/dto"
 	"sparrow_blog_server/internal/repositories/blogrepo"
 	"sparrow_blog_server/pkg/config"
@@ -135,6 +136,12 @@ func LoadingIndex(ctx context.Context) error {
 			Index = index
 		} else {
 			logger.Info("创建索引文件")
+
+			// 确保索引文件的目录存在
+			if err := filetool.EnsureDir(filepath.Dir(config.SearchEngine.IndexPath)); err != nil {
+				logger.Panic("创建索引目录失败: " + err.Error())
+			}
+
 			chineseMapping, err := mapping.CreateChineseMapping()
 			if err != nil {
 				logger.Panic("创建中文索引映射失败: " + err.Error())
@@ -365,6 +372,13 @@ func RebuildIndex(ctx context.Context) error {
 
 	// 5. 创建新索引
 	logger.Info("创建新索引文件")
+
+	// 确保索引文件的目录存在
+	indexDir := filepath.Dir(config.SearchEngine.IndexPath)
+	if err := filetool.EnsureDir(indexDir); err != nil {
+		return fmt.Errorf("创建索引目录失败: %w", err)
+	}
+
 	newIndex, err := bleve.New(config.SearchEngine.IndexPath, chineseMapping)
 	if err != nil {
 		return err
