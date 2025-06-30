@@ -4,22 +4,22 @@ import (
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
 	"github.com/blevesearch/bleve/v2/analysis/token/length"
+	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/mapping"
 )
 
 // CreateChineseMapping 创建针对中文的索引映射
-// 该函数定制了一个适合处理中文文本的搜索索引映射
-// 返回值是定制好的索引映射和一个错误对象，如果创建过程中出现任何问题，就会返回相应的错误
+// 使用 bleve 内置的 unicode 分词器，支持中文、英文等多种语言
+// 无需 CGO 依赖，更加稳定和轻量
 func CreateChineseMapping() (mapping.IndexMapping, error) {
 	// 1. 创建索引映射
-	// 这是 bleve 库用于定义索引结构的映射，我们将在其基础上添加自定义的分析器和字段映射
 	indexMapping := bleve.NewIndexMapping()
 
 	// 2. 注册自定义长度过滤器
-	// "min_length"过滤器用于移除长度不符合要求的词汇，这里设定词汇长度必须在2到20个字符之间
+	// "min_length"过滤器用于移除长度不符合要求的词汇，这里设定词汇长度必须在1到20个字符之间
 	err := indexMapping.AddCustomTokenFilter("min_length", map[string]any{
 		"type": length.Name,
-		"min":  2.0,
+		"min":  1.0, // 中文单字也很有意义，所以最小长度设为1
 		"max":  20.0,
 	})
 	if err != nil {
@@ -27,11 +27,11 @@ func CreateChineseMapping() (mapping.IndexMapping, error) {
 	}
 
 	// 3. 创建自定义分析器
-	// 这里定义了一个名为"chinese_analyzer"的分析器，它使用了之前注册的中文分词器
-	// 并结合了一些预处理步骤，如转换为小写和一个自定义的最小长度过滤器
-	err = indexMapping.AddCustomAnalyzer("chinese_analyzer", map[string]interface{}{
+	// 使用 bleve 内置的 unicode 分词器，它能很好地处理中文、英文等多种语言
+	// unicode 分词器基于 Unicode 文本分割标准，在词边界处分割文本
+	err = indexMapping.AddCustomAnalyzer("unicode_analyzer", map[string]interface{}{
 		"type":      custom.Name,
-		"tokenizer": "chinese",
+		"tokenizer": unicode.Name, // 使用内置的 unicode 分词器
 		"token_filters": []string{
 			"to_lower",   // 小写转换
 			"min_length", // 最小长度过滤
@@ -41,19 +41,18 @@ func CreateChineseMapping() (mapping.IndexMapping, error) {
 		return nil, err
 	}
 
-	// 4. 创建默认文档映射（而不是特定类型的文档映射）
-	// 文档映射定义了索引中文档的结构，这里我们关注的是如何处理文档中的字段
+	// 4. 创建默认文档映射
 	defaultMapping := bleve.NewDocumentMapping()
 
-	// 5. 配置字段使用自定义分析器
-	// 对"Title"和"Content"字段应用之前定义的中文分析器，以优化中文文本的搜索
+	// 5. 配置字段使用 unicode 分析器
+	// 对"Title"和"Content"字段应用 unicode 分析器，优化多语言文本的搜索
 	titleField := bleve.NewTextFieldMapping()
-	titleField.Analyzer = "chinese_analyzer"
+	titleField.Analyzer = "unicode_analyzer"
 	titleField.Store = true // 设置为存储，以便在搜索结果中返回字段内容
 	titleField.Index = true // 确保字段被索引
 
 	contentField := bleve.NewTextFieldMapping()
-	contentField.Analyzer = "chinese_analyzer"
+	contentField.Analyzer = "unicode_analyzer"
 	contentField.Store = true // 设置为存储，以便在搜索结果中返回字段内容
 	contentField.Index = true // 确保字段被索引
 
@@ -70,7 +69,6 @@ func CreateChineseMapping() (mapping.IndexMapping, error) {
 	imgIdField.Analyzer = "keyword" // 使用keyword分析器，不分词
 
 	// 6. 将字段映射添加到默认文档映射
-	// 这一步将之前定义的字段映射到文档映射中，以便在索引时应用这些配置
 	defaultMapping.AddFieldMappingsAt("ID", idField)
 	defaultMapping.AddFieldMappingsAt("ImgId", imgIdField)
 	defaultMapping.AddFieldMappingsAt("Title", titleField)

@@ -11,14 +11,11 @@ import (
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/searchengine/doc"
 	"sparrow_blog_server/searchengine/mapping"
-	"sparrow_blog_server/searchengine/tokenizer"
 	"sync"
 	"time"
 
 	"github.com/blevesearch/bleve/v2"
-	"github.com/blevesearch/bleve/v2/analysis"
 	blevemapping "github.com/blevesearch/bleve/v2/mapping"
-	"github.com/blevesearch/bleve/v2/registry"
 	"github.com/blevesearch/bleve/v2/search"
 )
 
@@ -129,11 +126,6 @@ func LoadingIndex(ctx context.Context) error {
 		// 记录索引路径信息
 		logger.Info("索引路径: " + config.SearchEngine.IndexPath)
 
-		// 尝试注册中文分词器（带错误恢复）
-		if err := registerChineseTokenizer(); err != nil {
-			logger.Error("分词器注册失败，将使用安全模式: " + err.Error())
-		}
-
 		if filetool.IsExist(config.SearchEngine.IndexPath) {
 			logger.Info("加载本地索引文件")
 
@@ -161,14 +153,15 @@ func LoadingIndex(ctx context.Context) error {
 
 			logger.Info("索引目录创建成功，开始创建索引映射")
 
-			chineseMapping, err := mapping.CreateChineseMapping()
+			// 创建使用内置 unicode 分词器的映射
+			unicodeMapping, err := mapping.CreateChineseMapping()
 			if err != nil {
-				logger.Panic("创建中文索引映射失败: " + err.Error())
+				logger.Panic("创建 Unicode 索引映射失败: " + err.Error())
 			}
 
 			logger.Info("开始创建索引文件: " + config.SearchEngine.IndexPath)
 
-			index, err := createIndexSafely(config.SearchEngine.IndexPath, chineseMapping)
+			index, err := createIndexSafely(config.SearchEngine.IndexPath, unicodeMapping)
 			if err != nil {
 				logger.Panic("创建索引文件失败: " + err.Error())
 			}
@@ -205,33 +198,6 @@ func LoadingIndex(ctx context.Context) error {
 			Index = index
 		}
 	})
-
-	return nil
-}
-
-// registerChineseTokenizer 注册中文分词器（带错误恢复）
-func registerChineseTokenizer() error {
-	// 首先尝试注册 jieba 分词器
-	err := registry.RegisterTokenizer("chinese", func(config map[string]any, cache *registry.Cache) (analysis.Tokenizer, error) {
-		return tokenizer.NewChineseTokenizer(), nil
-	})
-
-	if err != nil {
-		logger.Warn("jieba 分词器注册失败，尝试安全模式: " + err.Error())
-
-		// 如果 jieba 失败，使用安全的纯 Go 分词器
-		err = registry.RegisterTokenizer("chinese", func(config map[string]any, cache *registry.Cache) (analysis.Tokenizer, error) {
-			return tokenizer.NewSafeChineseTokenizer(), nil
-		})
-
-		if err != nil {
-			return fmt.Errorf("安全分词器注册也失败: %w", err)
-		}
-
-		logger.Info("已切换到安全模式分词器")
-	} else {
-		logger.Info("jieba 分词器注册成功")
-	}
 
 	return nil
 }
@@ -449,22 +415,14 @@ func RebuildIndex(ctx context.Context) error {
 		}
 	}
 
-	// 3. 重新注册中文分词器（确保分词器可用）
-	if err := registry.RegisterTokenizer("chinese", func(config map[string]any, cache *registry.Cache) (analysis.Tokenizer, error) {
-		return tokenizer.NewChineseTokenizer(), nil
-	}); err != nil {
-		// 如果分词器已存在，忽略错误
-		logger.Warn("注册中文分词器警告: " + err.Error())
-	}
-
-	// 4. 创建新的索引映射
+	// 3. 创建新的索引映射
 	logger.Info("创建新的索引映射")
-	chineseMapping, err := mapping.CreateChineseMapping()
+	unicodeMapping, err := mapping.CreateChineseMapping()
 	if err != nil {
 		return err
 	}
 
-	// 5. 创建新索引
+	// 4. 创建新索引
 	logger.Info("创建新索引文件")
 
 	// 确保索引文件的目录存在并检查权限
@@ -477,12 +435,12 @@ func RebuildIndex(ctx context.Context) error {
 
 	logger.Info("索引目录权限验证通过，开始创建新索引")
 
-	newIndex, err := bleve.New(config.SearchEngine.IndexPath, chineseMapping)
+	newIndex, err := bleve.New(config.SearchEngine.IndexPath, unicodeMapping)
 	if err != nil {
 		return fmt.Errorf("创建新索引失败: %w", err)
 	}
 
-	// 6. 获取所有文档
+	// 5. 获取所有文档
 	logger.Info("获取所有文档数据")
 	docs, err := getAllDocs(ctx)
 	if err != nil {
@@ -490,7 +448,7 @@ func RebuildIndex(ctx context.Context) error {
 		return err
 	}
 
-	// 7. 重新索引所有文档
+	// 6. 重新索引所有文档
 	logger.Info("开始重新索引所有文档")
 	successCount := 0
 	errorCount := 0
@@ -522,7 +480,7 @@ func RebuildIndex(ctx context.Context) error {
 		}
 	}
 
-	// 8. 更新全局索引引用
+	// 7. 更新全局索引引用
 	Index = newIndex
 
 	logger.Info("重建索引完成")

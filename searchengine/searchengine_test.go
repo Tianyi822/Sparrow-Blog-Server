@@ -94,12 +94,12 @@ func TestChineseTokenizationDiagnostic(t *testing.T) {
 	t.Log("=== 中文分词诊断测试 ===")
 
 	// 1. 测试分析器是否正常工作
-	t.Log("\n--- 步骤1: 测试中文分析器 ---")
-	analyzer := Index.Mapping().AnalyzerNamed("chinese_analyzer")
+	t.Log("\n--- 步骤1: 测试 Unicode 分析器 ---")
+	analyzer := Index.Mapping().AnalyzerNamed("unicode_analyzer")
 	if analyzer == nil {
-		t.Fatal("中文分析器为nil")
+		t.Fatal("Unicode 分析器为nil")
 	}
-	t.Log("✓ 中文分析器存在")
+	t.Log("✓ Unicode 分析器存在")
 
 	// 2. 测试分词结果
 	t.Log("\n--- 步骤2: 测试分词结果 ---")
