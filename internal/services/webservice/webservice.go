@@ -359,6 +359,7 @@ func GetCommentsByBlogId(ctx context.Context, blogId string) ([]vo.CommentVo, er
 		commentVo := vo.CommentVo{
 			CommentId:        commentDto.CommentId,
 			CommenterEmail:   commentDto.CommenterEmail,
+			BlogId:           commentDto.BlogId,
 			BlogTitle:        blogTitle,
 			OriginPostId:     commentDto.OriginPostId,
 			ReplyToCommenter: commentDto.ReplyToCommenter,
@@ -377,6 +378,7 @@ func GetCommentsByBlogId(ctx context.Context, blogId string) ([]vo.CommentVo, er
 			commentVo.SubComments = append(commentVo.SubComments, vo.CommentVo{
 				CommentId:        subCommentDto.CommentId,
 				CommenterEmail:   subCommentDto.CommenterEmail,
+				BlogId:           subCommentDto.BlogId,
 				BlogTitle:        blogTitle,
 				OriginPostId:     subCommentDto.OriginPostId,
 				ReplyToCommenter: subCommentDto.ReplyToCommenter,
@@ -453,6 +455,7 @@ func AddComment(ctx context.Context, commentDto *dto.CommentDto) (*vo.CommentVo,
 	commentVo := &vo.CommentVo{
 		CommentId:        resultDto.CommentId,
 		CommenterEmail:   resultDto.CommenterEmail,
+		BlogId:           resultDto.BlogId,
 		BlogTitle:        blogTitle,
 		OriginPostId:     resultDto.OriginPostId,
 		ReplyToCommenter: resultDto.ReplyToCommenter,
@@ -461,4 +464,45 @@ func AddComment(ctx context.Context, commentDto *dto.CommentDto) (*vo.CommentVo,
 	}
 
 	return commentVo, nil
+}
+
+// GetLatestComments 获取最新的5条评论（业务端功能）
+// - ctx: 上下文对象
+//
+// 返回值:
+// - []vo.CommentVo: 最新的评论列表
+// - error: 错误信息
+func GetLatestComments(ctx context.Context) ([]vo.CommentVo, error) {
+	// 获取最新的5条评论
+	commentDtos, err := commentrepo.FindLatestComments(ctx, 5)
+	if err != nil {
+		return nil, err
+	}
+
+	var commentVos []vo.CommentVo
+
+	// 将DTO转换为VO
+	for _, commentDto := range commentDtos {
+		// 根据博客ID查询博客标题
+		blogTitle, err := blogrepo.FindBlogTitleById(ctx, commentDto.BlogId)
+		if err != nil {
+			logger.Warn("查询博客标题失败，BlogId: %s, 错误: %v", commentDto.BlogId, err)
+			blogTitle = "" // 设置为空字符串
+		}
+
+		commentVo := vo.CommentVo{
+			CommentId:        commentDto.CommentId,
+			CommenterEmail:   commentDto.CommenterEmail,
+			BlogId:           commentDto.BlogId,
+			BlogTitle:        blogTitle,
+			OriginPostId:     commentDto.OriginPostId,
+			ReplyToCommenter: commentDto.ReplyToCommenter,
+			Content:          commentDto.Content,
+			CreateTime:       commentDto.CreateTime,
+		}
+
+		commentVos = append(commentVos, commentVo)
+	}
+
+	return commentVos, nil
 }

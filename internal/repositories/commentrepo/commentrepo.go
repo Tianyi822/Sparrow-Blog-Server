@@ -398,3 +398,60 @@ func DeleteCommentsByBlogId(tx *gorm.DB, blogId string) (int64, error) {
 
 	return result.RowsAffected, nil
 }
+
+// FindLatestComments 获取最新的指定数量的评论
+// - ctx: 上下文对象
+// - limit: 限制返回的评论数量
+//
+// 返回值:
+// - []dto.CommentDto: 最新的评论列表
+// - error: 错误信息
+func FindLatestComments(ctx context.Context, limit int) ([]dto.CommentDto, error) {
+	logger.Info("查询最新评论数据，数量限制: %d", limit)
+
+	var comments []po.Comment
+
+	// 查询最新的评论，按创建时间倒序排列，限制数量
+	result := storage.Storage.Db.WithContext(ctx).
+		Order("create_time DESC").
+		Limit(limit).
+		Find(&comments)
+
+	if result.Error != nil {
+		logger.Error("查询最新评论数据失败: %v", result.Error)
+		return nil, result.Error
+	}
+
+	logger.Info("查询最新评论数据成功: %d", len(comments))
+
+	// 将PO对象转换为DTO对象
+	var commentDtos []dto.CommentDto
+	for _, comment := range comments {
+		// 查询被回复用户的邮箱（如果存在）
+		var replyToCommenter string
+		if comment.ReplyToCommentId != "" {
+			var repliedComment po.Comment
+			err := storage.Storage.Db.WithContext(ctx).
+				Select("commenter_email").
+				Where("comment_id = ?", comment.ReplyToCommentId).
+				First(&repliedComment).Error
+			if err == nil {
+				replyToCommenter = repliedComment.CommenterEmail
+			}
+		}
+
+		commentDto := dto.CommentDto{
+			CommentId:        comment.CommentId,
+			CommenterEmail:   comment.CommenterEmail,
+			BlogId:           comment.BlogId,
+			OriginPostId:     comment.OriginPostId,
+			ReplyToCommentId: comment.ReplyToCommentId,
+			ReplyToCommenter: replyToCommenter,
+			Content:          comment.Content,
+			CreateTime:       comment.CreateTime,
+		}
+		commentDtos = append(commentDtos, commentDto)
+	}
+
+	return commentDtos, nil
+}
