@@ -359,6 +359,7 @@ func GetCommentsByBlogId(ctx context.Context, blogId string) ([]vo.CommentVo, er
 		commentVo := vo.CommentVo{
 			CommentId:        commentDto.CommentId,
 			CommenterEmail:   commentDto.CommenterEmail,
+			BlogId:           commentDto.BlogId,
 			BlogTitle:        blogTitle,
 			OriginPostId:     commentDto.OriginPostId,
 			ReplyToCommenter: commentDto.ReplyToCommenter,
@@ -377,6 +378,7 @@ func GetCommentsByBlogId(ctx context.Context, blogId string) ([]vo.CommentVo, er
 			commentVo.SubComments = append(commentVo.SubComments, vo.CommentVo{
 				CommentId:        subCommentDto.CommentId,
 				CommenterEmail:   subCommentDto.CommenterEmail,
+				BlogId:           subCommentDto.BlogId,
 				BlogTitle:        blogTitle,
 				OriginPostId:     subCommentDto.OriginPostId,
 				ReplyToCommenter: subCommentDto.ReplyToCommenter,
@@ -453,6 +455,7 @@ func AddComment(ctx context.Context, commentDto *dto.CommentDto) (*vo.CommentVo,
 	commentVo := &vo.CommentVo{
 		CommentId:        resultDto.CommentId,
 		CommenterEmail:   resultDto.CommenterEmail,
+		BlogId:           resultDto.BlogId,
 		BlogTitle:        blogTitle,
 		OriginPostId:     resultDto.OriginPostId,
 		ReplyToCommenter: resultDto.ReplyToCommenter,
@@ -490,6 +493,7 @@ func GetLatestComments(ctx context.Context) ([]vo.CommentVo, error) {
 		commentVo := vo.CommentVo{
 			CommentId:        commentDto.CommentId,
 			CommenterEmail:   commentDto.CommenterEmail,
+			BlogId:           commentDto.BlogId,
 			BlogTitle:        blogTitle,
 			OriginPostId:     commentDto.OriginPostId,
 			ReplyToCommenter: commentDto.ReplyToCommenter,
