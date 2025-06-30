@@ -17,6 +17,7 @@ import (
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis"
+	blevemapping "github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/registry"
 	"github.com/blevesearch/bleve/v2/search"
 )
@@ -120,13 +121,6 @@ func LoadingIndex(ctx context.Context) error {
 	}
 
 	loadingOnce.Do(func() {
-		// 首先注册中文分词器，确保无论是创建新索引还是加载已存在索引都能正常工作
-		if err := registry.RegisterTokenizer("chinese", func(config map[string]any, cache *registry.Cache) (analysis.Tokenizer, error) {
-			return tokenizer.NewChineseTokenizer(), nil
-		}); err != nil {
-			logger.Panic("注册中文分词器失败: " + err.Error())
-		}
-
 		// 检查索引路径配置
 		if config.SearchEngine.IndexPath == "" {
 			logger.Panic("搜索引擎索引路径未配置")
@@ -134,6 +128,11 @@ func LoadingIndex(ctx context.Context) error {
 
 		// 记录索引路径信息
 		logger.Info("索引路径: " + config.SearchEngine.IndexPath)
+
+		// 尝试注册中文分词器（带错误恢复）
+		if err := registerChineseTokenizer(); err != nil {
+			logger.Error("分词器注册失败，将使用安全模式: " + err.Error())
+		}
 
 		if filetool.IsExist(config.SearchEngine.IndexPath) {
 			logger.Info("加载本地索引文件")
@@ -169,7 +168,7 @@ func LoadingIndex(ctx context.Context) error {
 
 			logger.Info("开始创建索引文件: " + config.SearchEngine.IndexPath)
 
-			index, err := bleve.New(config.SearchEngine.IndexPath, chineseMapping)
+			index, err := createIndexSafely(config.SearchEngine.IndexPath, chineseMapping)
 			if err != nil {
 				logger.Panic("创建索引文件失败: " + err.Error())
 			}
@@ -208,6 +207,68 @@ func LoadingIndex(ctx context.Context) error {
 	})
 
 	return nil
+}
+
+// registerChineseTokenizer 注册中文分词器（带错误恢复）
+func registerChineseTokenizer() error {
+	// 首先尝试注册 jieba 分词器
+	err := registry.RegisterTokenizer("chinese", func(config map[string]any, cache *registry.Cache) (analysis.Tokenizer, error) {
+		return tokenizer.NewChineseTokenizer(), nil
+	})
+
+	if err != nil {
+		logger.Warn("jieba 分词器注册失败，尝试安全模式: " + err.Error())
+
+		// 如果 jieba 失败，使用安全的纯 Go 分词器
+		err = registry.RegisterTokenizer("chinese", func(config map[string]any, cache *registry.Cache) (analysis.Tokenizer, error) {
+			return tokenizer.NewSafeChineseTokenizer(), nil
+		})
+
+		if err != nil {
+			return fmt.Errorf("安全分词器注册也失败: %w", err)
+		}
+
+		logger.Info("已切换到安全模式分词器")
+	} else {
+		logger.Info("jieba 分词器注册成功")
+	}
+
+	return nil
+}
+
+// createIndexSafely 安全地创建索引（带重试机制）
+func createIndexSafely(indexPath string, indexMapping blevemapping.IndexMapping) (bleve.Index, error) {
+	var lastErr error
+
+	// 尝试3次创建索引
+	for attempt := 1; attempt <= 3; attempt++ {
+		logger.Info("尝试创建索引，第 " + fmt.Sprintf("%d", attempt) + " 次")
+
+		index, err := bleve.New(indexPath, indexMapping)
+		if err == nil {
+			logger.Info("索引创建成功")
+			return index, nil
+		}
+
+		lastErr = err
+		logger.Error("索引创建失败，第 " + fmt.Sprintf("%d", attempt) + " 次: " + err.Error())
+
+		// 如果不是最后一次尝试，清理可能损坏的文件
+		if attempt < 3 {
+			logger.Info("清理可能损坏的索引文件")
+			if filetool.IsExist(indexPath) {
+				if removeErr := filetool.ForceRemove(indexPath); removeErr != nil {
+					logger.Error("清理索引文件失败: " + removeErr.Error())
+				}
+			}
+
+			// 短暂等待后重试
+			logger.Info("等待 1 秒后重试")
+			time.Sleep(time.Second)
+		}
+	}
+
+	return nil, fmt.Errorf("创建索引失败，已尝试3次: %w", lastErr)
 }
 
 // getAllDocs 获取所有文章
