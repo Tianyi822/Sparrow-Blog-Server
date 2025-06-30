@@ -444,7 +444,9 @@ func RebuildIndex(ctx context.Context) error {
 	logger.Info("获取所有文档数据")
 	docs, err := getAllDocs(ctx)
 	if err != nil {
-		newIndex.Close()
+		if closeErr := newIndex.Close(); closeErr != nil {
+			logger.Error("关闭新索引失败: " + closeErr.Error())
+		}
 		return err
 	}
 
@@ -456,7 +458,9 @@ func RebuildIndex(ctx context.Context) error {
 	for i, d := range docs {
 		select {
 		case <-ctx.Done():
-			newIndex.Close()
+			if closeErr := newIndex.Close(); closeErr != nil {
+				logger.Error("关闭新索引失败: " + closeErr.Error())
+			}
 			return ctx.Err()
 		default:
 		}
