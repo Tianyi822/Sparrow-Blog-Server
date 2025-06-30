@@ -269,6 +269,36 @@ func ForceRemove(path string) error {
 	return nil
 }
 
+// EnsureDir 确保指定的目录存在，如果不存在则创建它。
+// 该函数会递归创建所有必要的父目录。
+//
+// 参数：
+//   - dirPath: 要确保存在的目录路径
+//
+// 返回值：
+//   - error: 如果创建失败则返回错误，成功则返回 nil
+func EnsureDir(dirPath string) error {
+	// 检查目录是否已存在
+	if IsExist(dirPath) {
+		// 验证路径是否为目录
+		fileInfo, err := os.Stat(dirPath)
+		if err != nil {
+			return fmt.Errorf("获取路径信息失败 %s: %w", dirPath, err)
+		}
+		if !fileInfo.IsDir() {
+			return fmt.Errorf("路径存在但不是目录: %s", dirPath)
+		}
+		return nil
+	}
+
+	// 递归创建目录
+	if err := os.MkdirAll(dirPath, 0755); err != nil {
+		return fmt.Errorf("创建目录失败 %s: %w", dirPath, err)
+	}
+
+	return nil
+}
+
 // closeFile 安全关闭文件句柄，如果关闭时发生错误且原错误为空则设置错误。
 func closeFile(f *os.File, err *error) {
 	if cerr := f.Close(); cerr != nil && *err == nil {
