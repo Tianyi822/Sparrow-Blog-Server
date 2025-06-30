@@ -127,8 +127,23 @@ func LoadingIndex(ctx context.Context) error {
 			logger.Panic("注册中文分词器失败: " + err.Error())
 		}
 
+		// 检查索引路径配置
+		if config.SearchEngine.IndexPath == "" {
+			logger.Panic("搜索引擎索引路径未配置")
+		}
+
+		// 记录索引路径信息
+		logger.Info("索引路径: " + config.SearchEngine.IndexPath)
+
 		if filetool.IsExist(config.SearchEngine.IndexPath) {
 			logger.Info("加载本地索引文件")
+
+			// 检查索引目录权限
+			indexDir := filepath.Dir(config.SearchEngine.IndexPath)
+			if err := filetool.CheckDirPermissions(indexDir); err != nil {
+				logger.Panic("索引目录权限检查失败: " + err.Error())
+			}
+
 			index, err := bleve.Open(config.SearchEngine.IndexPath)
 			if err != nil {
 				logger.Panic("加载本地索引文件失败: " + err.Error())
@@ -137,26 +152,40 @@ func LoadingIndex(ctx context.Context) error {
 		} else {
 			logger.Info("创建索引文件")
 
-			// 确保索引文件的目录存在
-			if err := filetool.EnsureDir(filepath.Dir(config.SearchEngine.IndexPath)); err != nil {
+			// 确保索引文件的目录存在并检查权限
+			indexDir := filepath.Dir(config.SearchEngine.IndexPath)
+			logger.Info("准备创建索引目录: " + indexDir)
+
+			if err := filetool.EnsureDir(indexDir); err != nil {
 				logger.Panic("创建索引目录失败: " + err.Error())
 			}
+
+			logger.Info("索引目录创建成功，开始创建索引映射")
 
 			chineseMapping, err := mapping.CreateChineseMapping()
 			if err != nil {
 				logger.Panic("创建中文索引映射失败: " + err.Error())
 			}
+
+			logger.Info("开始创建索引文件: " + config.SearchEngine.IndexPath)
+
 			index, err := bleve.New(config.SearchEngine.IndexPath, chineseMapping)
 			if err != nil {
 				logger.Panic("创建索引文件失败: " + err.Error())
 			}
+
+			logger.Info("索引文件创建成功，开始建立文档索引")
 
 			// 生成所有文章的索引
 			docs, err := getAllDocs(ctx)
 			if err != nil {
 				logger.Panic("生成所有文章的索引失败: " + err.Error())
 			}
-			for _, d := range docs {
+
+			logger.Info("开始为 " + fmt.Sprintf("%d", len(docs)) + " 篇文章建立索引")
+
+			successCount := 0
+			for i, d := range docs {
 				err := d.GetContent(ctx)
 				if err != nil {
 					logger.Error("获取文章内容失败: " + err.Error())
@@ -166,10 +195,14 @@ func LoadingIndex(ctx context.Context) error {
 				if err := index.Index(d.ID, d.IndexedDoc()); err != nil {
 					logger.Error("索引文章失败: " + err.Error())
 				} else {
-					logger.Info("索引文章成功: " + d.Title)
+					successCount++
+					if (i+1)%10 == 0 || i == len(docs)-1 {
+						logger.Info("索引进度: " + fmt.Sprintf("%d/%d", i+1, len(docs)))
+					}
 				}
 			}
 
+			logger.Info("索引建立完成，成功索引文章数: " + fmt.Sprintf("%d", successCount))
 			Index = index
 		}
 	})
@@ -373,15 +406,19 @@ func RebuildIndex(ctx context.Context) error {
 	// 5. 创建新索引
 	logger.Info("创建新索引文件")
 
-	// 确保索引文件的目录存在
+	// 确保索引文件的目录存在并检查权限
 	indexDir := filepath.Dir(config.SearchEngine.IndexPath)
+	logger.Info("准备创建索引目录: " + indexDir)
+
 	if err := filetool.EnsureDir(indexDir); err != nil {
 		return fmt.Errorf("创建索引目录失败: %w", err)
 	}
 
+	logger.Info("索引目录权限验证通过，开始创建新索引")
+
 	newIndex, err := bleve.New(config.SearchEngine.IndexPath, chineseMapping)
 	if err != nil {
-		return err
+		return fmt.Errorf("创建新索引失败: %w", err)
 	}
 
 	// 6. 获取所有文档
