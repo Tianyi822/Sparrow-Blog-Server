@@ -284,7 +284,6 @@ func updateOrAddBlog(ctx *gin.Context) {
 	// 从请求中解析博客数据传输对象 (DTO)，如果解析失败则返回错误响应
 	blogDto, err := tools.GetBlogDto(ctx)
 	if err != nil {
-		resp.BadRequest(ctx, "请求数据有误，请检查错误", err.Error())
 		return
 	}
 

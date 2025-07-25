@@ -9,7 +9,7 @@ type Blog struct {
 	BlogBrief    string    `gorm:"column:blog_brief"`                                           // 博客简介
 	CategoryId   string    `gorm:"column:category_id"`                                          // 逻辑外键字段（无约束）
 	BlogState    bool      `gorm:"column:blog_state"`                                           // 博客状态
-	BlogWordsNum uint16    `gorm:"column:blog_words_num"`                                       // 博客字数
+	BlogWordsNum uint64    `gorm:"column:blog_words_num"`                                       // 博客字数
 	BlogIsTop    bool      `gorm:"column:blog_is_top"`                                          // 是否置顶
 	CreateTime   time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
 	UpdateTime   time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
