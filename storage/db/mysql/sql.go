@@ -13,7 +13,7 @@ const createBlogTableSQL = `
 	    blog_brief    	 	VARCHAR(255)     	NOT NULL              											COMMENT '博客简介',
 	    category_id     	VARCHAR(16)      	NOT NULL              											COMMENT '分类ID（逻辑外键）',
 	    blog_state        	TINYINT(1)       	NOT NULL              											COMMENT '博客状态（0-禁用 1-启用）',
-	    blog_words_num  	SMALLINT UNSIGNED 	NOT NULL             									 		COMMENT '博客字数',
+	    blog_words_num  	INT UNSIGNED 		NOT NULL             									 		COMMENT '博客字数',
 	    blog_is_top     	TINYINT(1)       	NOT NULL              											COMMENT '是否置顶（0-否 1-是）',
 	    create_time     	TIMESTAMP        	NOT NULL DEFAULT CURRENT_TIMESTAMP 								COMMENT '创建时间',
 	    update_time     	TIMESTAMP        	NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 	COMMENT '更新时间',
