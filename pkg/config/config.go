@@ -90,6 +90,13 @@ type ServerConfigData struct {
 	SmtpAddress         string         `yaml:"smtp_address"`          // 邮箱 SMTP 服务器地址
 	SmtpPort            uint16         `yaml:"smtp_port"`             // 邮箱 SMTP 端口
 	SmtpAuthCode        string         `yaml:"smtp_auth_code"`        // 邮箱 SMTP 密码
+	SSL                 SSLConfigData  `yaml:"ssl"`                   // SSL/TLS配置
+}
+
+// SSLConfigData 定义了SSL/TLS相关配置
+type SSLConfigData struct {
+	CertFile string `yaml:"cert_file"` // SSL证书文件路径
+	KeyFile  string `yaml:"key_file"`  // SSL私钥文件路径
 }
 
 // CorsConfigData 定义了跨域资源共享配置

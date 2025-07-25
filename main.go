@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,6 +17,8 @@ import (
 	"sparrow_blog_server/storage"
 	"syscall"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 var Args map[string]string
@@ -62,13 +63,41 @@ func runServer() *http.Server {
 		Addr:    port,
 		Handler: r,
 	}
+
 	// 开启一个goroutine启动服务
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Fatal("监听端口: %s\n", err)
+		var err error
+
+		// 根据环境选择HTTP或HTTPS
+		if env.CurrentEnv == env.ProdEnv {
+			// 生产环境使用HTTPS
+			certFile := config.Server.SSL.CertFile
+			keyFile := config.Server.SSL.KeyFile
+
+			if certFile == "" || keyFile == "" {
+				logger.Fatal("生产环境需要配置SSL证书文件路径")
+				return
+			}
+
+			logger.Info("启动 HTTPS 服务，监听端口: %s", port)
+			err = srv.ListenAndServeTLS(certFile, keyFile)
+		} else {
+			// 开发环境使用HTTP
+			logger.Info("启动 HTTP 服务，监听端口: %s", port)
+			err = srv.ListenAndServe()
+		}
+
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Fatal("监听端口失败: %s\n", err)
 		}
 	}()
-	logger.Info("启动服务完成, 监听端口: %s", port)
+
+	// 根据环境输出不同的启动信息
+	if env.CurrentEnv == env.ProdEnv {
+		logger.Info("HTTPS 服务启动完成, 监听端口: %s", port)
+	} else {
+		logger.Info("HTTP 服务启动完成, 监听端口: %s", port)
+	}
 
 	return srv
 }
