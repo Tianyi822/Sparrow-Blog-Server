@@ -47,7 +47,7 @@ type SearchResponse struct {
 }
 
 var (
-	Index bleve.Index
+	searchIndex bleve.Index
 
 	loadingOnce sync.Once
 )
@@ -94,7 +94,7 @@ func Search(req SearchRequest) (*SearchResponse, error) {
 	}
 
 	// 执行搜索
-	searchResult, err := Index.Search(searchRequest)
+	searchResult, err := searchIndex.Search(searchRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func LoadingIndex(ctx context.Context) error {
 			if err != nil {
 				logger.Panic("加载本地索引文件失败: " + err.Error())
 			}
-			Index = index
+			searchIndex = index
 		} else {
 			logger.Info("创建索引文件")
 
@@ -195,7 +195,7 @@ func LoadingIndex(ctx context.Context) error {
 			}
 
 			logger.Info("索引建立完成，成功索引文章数: " + fmt.Sprintf("%d", successCount))
-			Index = index
+			searchIndex = index
 		}
 	})
 
@@ -257,8 +257,8 @@ func getAllDocs(ctx context.Context) ([]doc.Doc, error) {
 }
 
 func CloseIndex() {
-	if Index != nil {
-		if err := Index.Close(); err != nil {
+	if searchIndex != nil {
+		if err := searchIndex.Close(); err != nil {
 			logger.Error("关闭索引文件失败: " + err.Error())
 		}
 	}
@@ -273,7 +273,7 @@ func CloseIndex() {
 //   - error: 如果添加失败则返回错误，成功则返回 nil
 func AddIndex(ctx context.Context, blogDto *dto.BlogDto) error {
 	// 检查索引是否已初始化
-	if Index == nil {
+	if searchIndex == nil {
 		return fmt.Errorf("搜索索引未初始化")
 	}
 
@@ -300,7 +300,7 @@ func AddIndex(ctx context.Context, blogDto *dto.BlogDto) error {
 	}
 
 	// 将文档添加到索引中
-	if err := Index.Index(d.ID, d.IndexedDoc()); err != nil {
+	if err := searchIndex.Index(d.ID, d.IndexedDoc()); err != nil {
 		logger.Error("索引博客失败 ID = " + d.ID + ": " + err.Error())
 		return fmt.Errorf("索引博客失败: %w", err)
 	}
@@ -318,7 +318,7 @@ func AddIndex(ctx context.Context, blogDto *dto.BlogDto) error {
 //   - error: 如果更新失败则返回错误，成功则返回 nil
 func UpdateIndex(ctx context.Context, blogDto *dto.BlogDto) error {
 	// 检查索引是否已初始化
-	if Index == nil {
+	if searchIndex == nil {
 		return fmt.Errorf("搜索索引未初始化")
 	}
 
@@ -345,7 +345,7 @@ func UpdateIndex(ctx context.Context, blogDto *dto.BlogDto) error {
 	}
 
 	// 更新索引中的文档（Bleve的Index方法会自动覆盖已存在的文档）
-	if err := Index.Index(d.ID, d.IndexedDoc()); err != nil {
+	if err := searchIndex.Index(d.ID, d.IndexedDoc()); err != nil {
 		logger.Error("更新博客索引失败 ID = " + d.ID + ": " + err.Error())
 		return fmt.Errorf("更新博客索引失败: %w", err)
 	}
@@ -362,7 +362,7 @@ func UpdateIndex(ctx context.Context, blogDto *dto.BlogDto) error {
 //   - error: 如果删除失败则返回错误，成功则返回 nil
 func DeleteIndex(blogId string) error {
 	// 检查索引是否已初始化
-	if Index == nil {
+	if searchIndex == nil {
 		return fmt.Errorf("搜索索引未初始化")
 	}
 
@@ -372,7 +372,7 @@ func DeleteIndex(blogId string) error {
 	}
 
 	// 从索引中删除文档
-	if err := Index.Delete(blogId); err != nil {
+	if err := searchIndex.Delete(blogId); err != nil {
 		logger.Error("删除博客索引失败 ID = " + blogId + ": " + err.Error())
 		return fmt.Errorf("删除博客索引失败: %w", err)
 	}
@@ -400,11 +400,11 @@ func RebuildIndex(ctx context.Context) error {
 	logger.Info("开始重建搜索索引")
 
 	// 1. 关闭现有索引
-	if Index != nil {
-		if err := Index.Close(); err != nil {
+	if searchIndex != nil {
+		if err := searchIndex.Close(); err != nil {
 			logger.Error("关闭现有索引失败: " + err.Error())
 		}
-		Index = nil
+		searchIndex = nil
 	}
 
 	// 2. 删除现有索引文件
@@ -485,7 +485,7 @@ func RebuildIndex(ctx context.Context) error {
 	}
 
 	// 7. 更新全局索引引用
-	Index = newIndex
+	searchIndex = newIndex
 
 	logger.Info("重建索引完成")
 	logger.Info("成功索引文档数: " + fmt.Sprintf("%d", successCount))

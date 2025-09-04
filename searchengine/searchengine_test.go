@@ -33,7 +33,7 @@ func TestIndex(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stats := Index.Stats()
+	stats := searchIndex.Stats()
 	json, _ := stats.MarshalJSON()
 	t.Logf("索引统计信息: %v", string(json))
 }
@@ -47,7 +47,7 @@ func TestIndexContent(t *testing.T) {
 	}
 
 	// 获取索引的文档数量
-	docCount, err := Index.DocCount()
+	docCount, err := searchIndex.DocCount()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestIndexContent(t *testing.T) {
 	searchRequest.Fields = []string{"*"} // 获取所有字段
 
 	// 执行搜索
-	searchResult, err := Index.Search(searchRequest)
+	searchResult, err := searchIndex.Search(searchRequest)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +95,7 @@ func TestChineseTokenizationDiagnostic(t *testing.T) {
 
 	// 1. 测试分析器是否正常工作
 	t.Log("\n--- 步骤1: 测试 Unicode 分析器 ---")
-	analyzer := Index.Mapping().AnalyzerNamed("unicode_analyzer")
+	analyzer := searchIndex.Mapping().AnalyzerNamed("unicode_analyzer")
 	if analyzer == nil {
 		t.Fatal("Unicode 分析器为nil")
 	}
@@ -137,7 +137,7 @@ func TestChineseTokenizationDiagnostic(t *testing.T) {
 	allRequest.Size = 100
 	allRequest.Fields = []string{"Title", "Content"}
 
-	allResult, err := Index.Search(allRequest)
+	allResult, err := searchIndex.Search(allRequest)
 	if err != nil {
 		t.Fatalf("搜索所有文档失败: %v", err)
 	}
@@ -175,7 +175,7 @@ func TestChineseTokenizationDiagnostic(t *testing.T) {
 	matchRequest := bleve.NewSearchRequest(matchQuery)
 	matchRequest.Fields = []string{"Title", "Content"}
 
-	matchResult, err := Index.Search(matchRequest)
+	matchResult, err := searchIndex.Search(matchRequest)
 	if err != nil {
 		t.Error("精确匹配查询失败:", err)
 	} else {
@@ -188,7 +188,7 @@ func TestChineseTokenizationDiagnostic(t *testing.T) {
 	fuzzyRequest := bleve.NewSearchRequest(fuzzyQuery)
 	fuzzyRequest.Fields = []string{"Title", "Content"}
 
-	fuzzyResult, err := Index.Search(fuzzyRequest)
+	fuzzyResult, err := searchIndex.Search(fuzzyRequest)
 	if err != nil {
 		t.Error("模糊查询失败:", err)
 	} else {
@@ -201,7 +201,7 @@ func TestChineseTokenizationDiagnostic(t *testing.T) {
 	wildcardRequest := bleve.NewSearchRequest(wildcardQuery)
 	wildcardRequest.Fields = []string{"Title", "Content"}
 
-	wildcardResult, err := Index.Search(wildcardRequest)
+	wildcardResult, err := searchIndex.Search(wildcardRequest)
 	if err != nil {
 		t.Error("通配符查询失败:", err)
 	} else {
@@ -214,7 +214,7 @@ func TestChineseTokenizationDiagnostic(t *testing.T) {
 	termRequest := bleve.NewSearchRequest(termQuery)
 	termRequest.Fields = []string{"Title", "Content"}
 
-	termResult, err := Index.Search(termRequest)
+	termResult, err := searchIndex.Search(termRequest)
 	if err != nil {
 		t.Error("词项查询失败:", err)
 	} else {
@@ -223,7 +223,7 @@ func TestChineseTokenizationDiagnostic(t *testing.T) {
 
 	// 5. 检查索引统计
 	t.Log("\n--- 步骤5: 检查索引统计 ---")
-	stats := Index.Stats()
+	stats := searchIndex.Stats()
 	if statsJSON, err := stats.MarshalJSON(); err == nil {
 		t.Logf("  索引统计: %s", string(statsJSON))
 	}
@@ -245,7 +245,7 @@ func TestSearchFunctionality(t *testing.T) {
 	}
 
 	// 获取索引统计信息
-	docCount, err := Index.DocCount()
+	docCount, err := searchIndex.DocCount()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -348,7 +348,7 @@ func TestSearchTest(t *testing.T) {
 	allRequest.Size = 100
 	allRequest.Fields = []string{"Title", "Content"}
 
-	allResult, err := Index.Search(allRequest)
+	allResult, err := searchIndex.Search(allRequest)
 	if err != nil {
 		t.Fatalf("获取所有文档失败: %v", err)
 	}
@@ -436,7 +436,7 @@ func TestSearchTest(t *testing.T) {
 		searchRequest.Highlight = highlight
 
 		// 执行搜索
-		searchResult, err := Index.Search(searchRequest)
+		searchResult, err := searchIndex.Search(searchRequest)
 		if err != nil {
 			t.Errorf("搜索'%s'失败: %v", searchTerm, err)
 			continue
@@ -510,7 +510,7 @@ func TestSearchTest(t *testing.T) {
 			wildcardRequest.Size = 10
 			wildcardRequest.Fields = []string{"Title", "Content"}
 
-			wildcardResult, err := Index.Search(wildcardRequest)
+			wildcardResult, err := searchIndex.Search(wildcardRequest)
 			if err != nil {
 				t.Logf("通配符搜索失败: %v", err)
 			} else {
@@ -708,7 +708,7 @@ func TestMatchQueryFieldSpecific(t *testing.T) {
 	generalRequest := bleve.NewSearchRequest(generalQuery)
 	generalRequest.Fields = []string{"Title", "Content"}
 
-	generalResult, err := Index.Search(generalRequest)
+	generalResult, err := searchIndex.Search(generalRequest)
 	if err != nil {
 		t.Error("通用MatchQuery失败:", err)
 	} else {
@@ -722,7 +722,7 @@ func TestMatchQueryFieldSpecific(t *testing.T) {
 	contentRequest := bleve.NewSearchRequest(contentQuery)
 	contentRequest.Fields = []string{"Title", "Content"}
 
-	contentResult, err := Index.Search(contentRequest)
+	contentResult, err := searchIndex.Search(contentRequest)
 	if err != nil {
 		t.Error("Content字段MatchQuery失败:", err)
 	} else {
@@ -742,7 +742,7 @@ func TestMatchQueryFieldSpecific(t *testing.T) {
 	titleRequest := bleve.NewSearchRequest(titleQuery)
 	titleRequest.Fields = []string{"Title", "Content"}
 
-	titleResult, err := Index.Search(titleRequest)
+	titleResult, err := searchIndex.Search(titleRequest)
 	if err != nil {
 		t.Error("Title字段MatchQuery失败:", err)
 	} else {
@@ -765,7 +765,7 @@ func TestMatchQueryFieldSpecific(t *testing.T) {
 	combinedRequest.Fields = []string{"Title", "Content"}
 	combinedRequest.Highlight = bleve.NewHighlight()
 
-	combinedResult, err := Index.Search(combinedRequest)
+	combinedResult, err := searchIndex.Search(combinedRequest)
 	if err != nil {
 		t.Error("组合查询失败:", err)
 	} else {
@@ -790,7 +790,7 @@ func TestMatchQueryFieldSpecific(t *testing.T) {
 
 	// 5. 分析查询词的分析结果
 	t.Log("\n--- 测试5: 分析查询词 ---")
-	analyzer := Index.Mapping().AnalyzerNamed("chinese_analyzer")
+	analyzer := searchIndex.Mapping().AnalyzerNamed("chinese_analyzer")
 	if analyzer != nil {
 		queryTokens := analyzer.Analyze([]byte(keyword))
 		t.Logf("查询词'%s'的分析结果:", keyword)
@@ -914,7 +914,7 @@ func TestRebuildIndex(t *testing.T) {
 	}
 
 	// 获取重建前的索引统计信息
-	originalDocCount, err := Index.DocCount()
+	originalDocCount, err := searchIndex.DocCount()
 	if err != nil {
 		t.Fatal("获取原始文档数量失败:", err)
 	}
@@ -953,12 +953,12 @@ func TestRebuildIndex(t *testing.T) {
 	t.Log("\n--- 步骤4: 验证重建后的索引 ---")
 
 	// 检查索引是否仍然可用
-	if Index == nil {
+	if searchIndex == nil {
 		t.Fatal("重建后索引为nil")
 	}
 
 	// 获取重建后的文档数量
-	rebuiltDocCount, err := Index.DocCount()
+	rebuiltDocCount, err := searchIndex.DocCount()
 	if err != nil {
 		t.Fatal("获取重建后文档数量失败:", err)
 	}
@@ -1028,7 +1028,7 @@ func TestRebuildIndex(t *testing.T) {
 
 	// 6. 测试索引统计信息
 	t.Log("\n--- 步骤6: 验证索引统计信息 ---")
-	stats := Index.Stats()
+	stats := searchIndex.Stats()
 	statsJSON, _ := stats.MarshalJSON()
 	t.Logf("重建后索引统计信息: %s", string(statsJSON))
 
