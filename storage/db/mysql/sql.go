@@ -27,6 +27,19 @@ const createBlogTableSQL = `
 	  COLLATE = utf8mb4_unicode_ci;
 `
 
+const createBlogReadCountTableSQL = `
+	CREATE TABLE IF NOT EXISTS BLOG_READ_COUNT
+	(
+		read_id				VARCHAR(16)      	PRIMARY KEY NOT NULL 	COMMENT '阅读记录 ID，由博客 ID 与日期生成',
+		blog_id				VARCHAR(16)			NOT NULL,
+		read_count 			INT					NOT NULL DEFAULT 0,
+		read_date			CHAR(8)				NOT NULL DEFAULT '' 	COMMENT '阅读日期'
+	) COMMENT = '博客阅读量表'
+	  ENGINE = InnoDB
+	  DEFAULT CHARSET = utf8mb4
+	  COLLATE = utf8mb4_unicode_ci;
+`
+
 const createCategoryTableSQL = `
 	CREATE TABLE IF NOT EXISTS CATEGORY
 	(

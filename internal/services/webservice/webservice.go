@@ -7,6 +7,7 @@ import (
 	"sparrow_blog_server/cache"
 	"sparrow_blog_server/internal/model/dto"
 	"sparrow_blog_server/internal/model/vo"
+	"sparrow_blog_server/internal/repositories/blogreadrepo"
 	"sparrow_blog_server/internal/repositories/blogrepo"
 	"sparrow_blog_server/internal/repositories/categoryrepo"
 	"sparrow_blog_server/internal/repositories/commentrepo"
@@ -16,6 +17,7 @@ import (
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/storage"
 	"sparrow_blog_server/storage/ossstore"
+	"strings"
 	"time"
 )
 
@@ -261,6 +263,107 @@ func GetBlogDataById(ctx context.Context, id string) (*vo.BlogVo, string, error)
 		msg := fmt.Sprintf("博客不存在，id: %s", id)
 		logger.Warn(msg)
 		return nil, "", errors.New(msg)
+	}
+
+	// 处理博客阅读数统计
+	// 1. 构建博客阅读数缓存key
+	blogReadCountCacheKey := storage.BuildBlogReadCountKey(blogDto.BlogId)
+
+	// 2. 获取缓存中的博客阅读数
+	blogReadCount, err := storage.Storage.Cache.GetUint(ctx, blogReadCountCacheKey)
+	if err != nil {
+		// 缓存不存在时的处理
+		if errors.Is(err, cache.ErrNotFound) {
+			// 计算到下一个自然日的时间间隔
+			nextDay := time.Now().Truncate(24 * time.Hour).Add(24 * time.Hour)
+			// 初始化阅读数为1，并设置过期时间
+			_ = storage.Storage.Cache.SetWithExpired(
+				ctx,
+				blogReadCountCacheKey,
+				1,
+				time.Until(nextDay),
+			)
+		} else {
+			logger.Error(fmt.Sprintf("获取博客阅读数缓存失败: %v", err))
+		}
+	} else {
+		// 缓存命中时的处理
+		if blogReadCount < 100 {
+			// 阅读数小于100时，直接增加缓存计数
+			_, err := storage.Storage.Cache.Incr(ctx, blogReadCountCacheKey)
+			if err != nil {
+				logger.Error(fmt.Sprintf("增加博客阅读数缓存失败: %v", err))
+			}
+		} else {
+			// 阅读数达到100时的处理
+			// 增加缓存计数，保持数据一致性
+			_, err := storage.Storage.Cache.Incr(ctx, blogReadCountCacheKey)
+			if err != nil {
+				logger.Error(fmt.Sprintf("增加博客阅读数缓存失败: %v", err))
+			}
+
+			// 将阅读数据持久化到数据库
+			date := strings.Split(blogReadCountCacheKey, "-")[1]
+			blogReadCountDto := &dto.BlogReadCountDto{
+				BlogId:    blogDto.BlogId,
+				ReadCount: blogReadCount + 1,
+				ReadDate:  date,
+			}
+
+			// 使用事务保存数据
+			tx := storage.Storage.Db.WithContext(ctx).Begin()
+			err = blogreadrepo.UpInsertBlogReadCount(tx, blogReadCountDto)
+			if err != nil {
+				tx.Rollback()
+				logger.Error(fmt.Sprintf("保存博客阅读数失败: %v", err))
+			} else {
+				tx.Commit()
+				// 数据持久化成功后重置缓存
+				if err = storage.Storage.Cache.Set(
+					ctx,
+					blogReadCountCacheKey,
+					0,
+				); err != nil {
+					logger.Error(fmt.Sprintf("清空博客阅读数缓存失败: %v", err))
+					// 重置失败则删除缓存key
+					_ = storage.Storage.Cache.Delete(ctx, blogReadCountCacheKey)
+				}
+			}
+		}
+	}
+
+	// 处理其他日期的阅读数据
+	// 获取该博客所有相关的缓存key
+	keys, err := storage.Storage.Cache.GetKeysLike(ctx, blogDto.BlogId)
+	if err != nil {
+		logger.Error(fmt.Sprintf("获取博客阅读数缓存失败: %v", err))
+	} else {
+		// 遍历处理每个缓存key
+		for _, key := range keys {
+			// 获取缓存中的阅读数
+			count, err := storage.Storage.Cache.GetUint(ctx, key)
+			if err != nil {
+				logger.Error(fmt.Sprintf("获取博客阅读数缓存失败: %v", err))
+			} else {
+				// 构建数据传输对象
+				date := strings.Split(key, "-")[1]
+				blogReadCountDto := &dto.BlogReadCountDto{
+					BlogId:    blogDto.BlogId,
+					ReadCount: count,
+					ReadDate:  date,
+				}
+				// 使用事务持久化数据
+				tx := storage.Storage.Db.WithContext(ctx).Begin()
+				if err := blogreadrepo.UpInsertBlogReadCount(tx, blogReadCountDto); err != nil {
+					tx.Rollback()
+					logger.Error(fmt.Sprintf("保存博客阅读数失败: %v", err))
+				} else {
+					tx.Commit()
+					// 持久化成功后删除缓存
+					_ = storage.Storage.Cache.Delete(ctx, key)
+				}
+			}
+		}
 	}
 
 	// 返回博客视图对象和预签名URL
