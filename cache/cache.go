@@ -499,6 +499,24 @@ func (c *Cache) GetString(ctx context.Context, key string) (string, error) {
 	return "", ErrTypeMismatch
 }
 
+// GetKeysLike 获取所有键名中包含指定字符串的键
+// 参数:
+// - ctx: 用于取消操作的上下文
+// - matchStr: 要匹配的字符串，支持通配符*
+//
+// 返回:
+// - []string: 所有匹配的键名
+// - error: 操作错误（如上下文取消）
+func (c *Cache) GetKeysLike(ctx context.Context, matchStr string) ([]string, error) {
+	keys := make([]string, 0)
+	for key := range c.items {
+		if strings.Contains(key, matchStr) {
+			keys = append(keys, key)
+		}
+	}
+	return keys, nil
+}
+
 // Delete 从缓存中删除一个条目，无论其过期状态如何
 // 如果键不存在，则不返回错误
 func (c *Cache) Delete(ctx context.Context, key string) error {

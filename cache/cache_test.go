@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/logger"
 	"testing"
@@ -12,6 +13,27 @@ import (
 func init() {
 	config.LoadConfig()
 	_ = logger.InitLogger(context.Background())
+}
+
+func TestCore_GetKeysLike(t *testing.T) {
+	ctx := context.Background()
+	c, err := NewCache(ctx)
+	if err != nil {
+		t.Fatalf("创建缓存失败: %v", err)
+	}
+
+	_ = c.SetWithExpired(ctx, "test:string_like_1", "hello", time.Minute*5)
+	_ = c.SetWithExpired(ctx, "test:string_like_2", "hello", time.Minute*5)
+
+	keys, err := c.GetKeysLike(ctx, "_like_")
+	if err != nil {
+		t.Fatalf("获取键名失败: %v", err)
+	}
+	if len(keys) != 2 {
+		t.Fatalf("期望获取 2 个键名，实际获取 %d 个", len(keys))
+	}
+
+	fmt.Println(keys)
 }
 
 func TestCore_Basic(t *testing.T) {
