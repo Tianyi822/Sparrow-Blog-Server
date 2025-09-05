@@ -148,6 +148,22 @@ func (c *Cache) loadAof(ctx context.Context) error {
 
 // Set 在缓存中存储一个值，不设置过期时间
 func (c *Cache) Set(ctx context.Context, key string, value any) error {
+	if len(strings.TrimSpace(key)) == 0 {
+		return ErrEmptyKey
+	}
+
+	item, ok := c.items[key]
+	if !ok {
+		// 如果键不存在，则设置TTL为零，表示不设置过期时间
+		return c.SetWithExpired(ctx, key, value, 0)
+	}
+
+	// 如果键已存在，将原有的 TTL 值保留，防止将原有的 TTL 覆盖
+	if !item.expireAt.IsZero() {
+		// 计算剩余过期时间
+		return c.SetWithExpired(ctx, key, value, time.Until(item.expireAt))
+	}
+
 	return c.SetWithExpired(ctx, key, value, 0)
 }
 
@@ -497,6 +513,29 @@ func (c *Cache) GetString(ctx context.Context, key string) (string, error) {
 		return s, nil
 	}
 	return "", ErrTypeMismatch
+}
+
+// GetKeysLike 获取所有键名中包含指定字符串的键
+// 参数:
+// - ctx: 用于取消操作的上下文
+// - matchStr: 要匹配的字符串，支持通配符*
+//
+// 返回:
+// - []string: 所有匹配的键名
+// - error: 操作错误（如上下文取消）
+func (c *Cache) GetKeysLike(ctx context.Context, matchStr string) ([]string, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+		keys := make([]string, 0)
+		for key := range c.items {
+			if strings.Contains(key, matchStr) {
+				keys = append(keys, key)
+			}
+		}
+		return keys, nil
+	}
 }
 
 // Delete 从缓存中删除一个条目，无论其过期状态如何
