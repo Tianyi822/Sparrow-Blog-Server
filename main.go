@@ -21,156 +21,222 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Args 存储从命令行解析得到的参数配置
+// 目前支持 --env 参数用于指定运行环境
 var Args map[string]string
 
-// loadComponent 加载基础组件
-func loadComponent(ctx context.Context) {
-	// 设置当前环境
+// initializeApplicationComponents 初始化应用程序核心基础组件
+// 按照依赖关系依次初始化环境、日志、数据存储和搜索引擎
+//
+// 参数:
+//   - ctx: 上下文对象，用于控制初始化超时和取消操作
+//
+// 注意: 任何组件初始化失败都会导致程序 panic，确保系统完整性
+func initializeApplicationComponents(ctx context.Context) {
+	// 设置全局运行环境变量，影响后续所有组件的初始化行为
 	env.CurrentEnv = Args["env"]
-	// 初始化日志组件
+
+	// 优先初始化日志系统，确保后续初始化过程可以被记录
 	err := logger.InitLogger(ctx)
 	if err != nil {
 		panic("日志模块初始化失败，请检查配置文件是否有误")
 	}
-	// 初始化数据层
+
+	// 初始化数据存储层，包括数据库连接池和缓存系统
 	err = storage.InitStorage(ctx)
 	if err != nil {
 		panic("数据层初始化失败，请检查配置文件是否有误")
 	}
-	// 加载搜索引擎
+
+	// 初始化 Bleve 搜索引擎，加载中文分词索引
 	err = searchengine.LoadingIndex(ctx)
 	if err != nil {
 		panic("搜索引擎初始化失败，请检查配置文件是否有误")
 	}
 }
 
-// runServer 启动服务
-func runServer() *http.Server {
+// startWebServer 启动 Web 服务器并配置路由系统
+// 根据运行环境自动选择 HTTP 或 HTTPS 协议
+//
+// 返回值:
+//   - *http.Server: HTTP 服务器实例，用于后续的优雅关闭
+//
+// 注意: 服务器在独立的 goroutine 中运行，不会阻塞主线程
+func startWebServer() *http.Server {
+	// 注册所有路由模块，包括前台和后台管理路由
 	logger.Info("加载路由信息")
 	routers.IncludeOpts(
-		webrouter.Router,
-		adminrouter.Routers,
+		webrouter.Router,    // 前台博客路由
+		adminrouter.Routers, // 后台管理路由
 	)
 	logger.Info("路由信息加载完成")
 
+	// 初始化 Gin 路由引擎，应用中间件和路由配置
 	logger.Info("配置路由")
-	r := routers.InitRouter()
+	routerEngine := routers.InitRouter()
 	logger.Info("路由配置完成")
 
+	// 构建服务器监听地址
+	serverPort := fmt.Sprintf(":%v", config.Server.Port)
+
+	// 创建 HTTP 服务器实例
 	logger.Info("启动服务中")
-	port := fmt.Sprintf(":%v", config.Server.Port)
-	srv := &http.Server{
-		Addr:    port,
-		Handler: r,
+	webServer := &http.Server{
+		Addr:    serverPort,
+		Handler: routerEngine,
 	}
 
-	// 开启一个goroutine启动服务
+	// 在独立 goroutine 中启动服务器，避免阻塞主线程
 	go func() {
 		var err error
 
-		// 根据环境选择HTTP或HTTPS
+		// 根据环境变量选择协议：生产环境使用 HTTPS，开发环境使用 HTTP
 		if env.CurrentEnv == env.ProdEnv {
-			// 生产环境使用HTTPS
-			certFile := config.Server.SSL.CertFile
-			keyFile := config.Server.SSL.KeyFile
+			// 生产环境：启动 HTTPS 服务
+			certificateFile := config.Server.SSL.CertFile
+			privateKeyFile := config.Server.SSL.KeyFile
 
-			if certFile == "" || keyFile == "" {
+			// 验证 SSL 证书文件配置
+			if certificateFile == "" || privateKeyFile == "" {
 				logger.Fatal("生产环境需要配置SSL证书文件路径")
 				return
 			}
 
-			logger.Info("启动 HTTPS 服务，监听端口: %s", port)
-			err = srv.ListenAndServeTLS(certFile, keyFile)
+			logger.Info("启动 HTTPS 服务，监听端口: %s", serverPort)
+			err = webServer.ListenAndServeTLS(certificateFile, privateKeyFile)
 		} else {
-			// 开发环境使用HTTP
-			logger.Info("启动 HTTP 服务，监听端口: %s", port)
-			err = srv.ListenAndServe()
+			// 开发环境：启动 HTTP 服务
+			logger.Info("启动 HTTP 服务，监听端口: %s", serverPort)
+			err = webServer.ListenAndServe()
 		}
 
+		// 处理服务器启动错误，忽略正常关闭信号
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal("监听端口失败: %s\n", err)
 		}
 	}()
 
-	// 根据环境输出不同的启动信息
+	// 记录服务启动完成状态
 	if env.CurrentEnv == env.ProdEnv {
-		logger.Info("HTTPS 服务启动完成, 监听端口: %s", port)
+		logger.Info("HTTPS 服务启动完成, 监听端口: %s", serverPort)
 	} else {
-		logger.Info("HTTP 服务启动完成, 监听端口: %s", port)
+		logger.Info("HTTP 服务启动完成, 监听端口: %s", serverPort)
 	}
 
-	return srv
+	return webServer
 }
 
-// closeWebServer 监听系统信号，优雅关闭服务
-func closeWebServer(srv *http.Server) {
-	// 创建一个接收信号的通道
-	quit := make(chan os.Signal, 1)
+// gracefulShutdown 实现服务的优雅关闭机制
+// 监听系统信号并按照依赖关系有序关闭各个组件，确保数据完整性和资源正确释放
+//
+// 参数:
+//   - webServer: HTTP 服务器实例，需要被优雅关闭
+//
+// 关闭顺序: 数据层 -> 搜索引擎 -> Web服务器
+// 超时机制: 10秒内完成所有关闭操作，超时则强制退出
+func gracefulShutdown(webServer *http.Server) {
+	// 创建缓冲为1的信号通道，避免信号丢失
+	signalChannel := make(chan os.Signal, 1)
 
-	// kill 默认会发送 syscall.SIGTERM 信号
-	// kill -2 发送 syscall.SIGINT 信号，我们常用的Ctrl+C就是触发系统SIGINT信号
-	// kill -9 发送 syscall.SIGKILL 信号，但是不能被捕获，所以不需要添加它
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	// 在此停顿
-	<-quit
+	// 注册需要监听的系统信号
+	// SIGTERM: kill 命令发送的终止信号（优雅关闭）
+	// SIGINT: Ctrl+C 产生的中断信号（用户主动停止）
+	// 注意: SIGKILL(-9) 信号无法被捕获，会强制终止进程
+	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
 
-	// 创建一个5秒超时的context
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// 阻塞等待系统信号，程序将在此处暂停直到接收到信号
+	<-signalChannel
+
+	// 创建带超时的上下文，10秒内必须完成所有关闭操作
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// 先关闭数据层
+	// 按照依赖关系的逆序关闭组件，确保数据一致性
+
+	// 第一步: 关闭数据存储层（数据库连接池、缓存系统等）
+	// 优先关闭数据层，确保所有数据写入完成
 	logger.Info("关闭数据层")
-	storage.Storage.Close(ctx)
+	storage.Storage.Close(shutdownCtx)
 	logger.Info("数据层已关闭")
 
-	// 关闭搜索引擎
+	// 第二步: 关闭搜索引擎，停止索引操作
 	logger.Info("关闭搜索引擎")
 	searchengine.CloseIndex()
 	logger.Info("搜索引擎已关闭")
 
+	// 第三步: 优雅关闭 Web 服务器，停止接受新请求并等待现有请求完成
 	logger.Info("正在关闭服务")
-	// 定时优雅关闭服务（将未处理完的请求处理完再关闭服务），超时就退出
-	if err := srv.Shutdown(ctx); err != nil {
-		logger.Fatal("服务关闭超时, 哥们已强制关闭: ", err)
+	if err := webServer.Shutdown(shutdownCtx); err != nil {
+		logger.Fatal("服务关闭超时, 已强制关闭: ", err)
 	}
 	logger.Info("服务已退出")
 }
 
-// getArgsFromTerminal 从终端获取参数
-func getArgsFromTerminal() {
+// parseCommandLineArgs 解析命令行参数并设置默认值
+// 目前支持 --env 参数用于指定运行环境
+//
+// 支持的参数:
+//   - --env: 指定运行环境 (debug/prod)，默认为 prod
+//
+// 使用示例:
+//
+//	go run main.go --env debug  // 开发环境
+//	go run main.go --env prod   // 生产环境
+//	go run main.go             // 默认生产环境
+func parseCommandLineArgs() {
+	// 初始化全局参数存储映射
 	Args = make(map[string]string)
 
+	// 遍历命令行参数，查找 --env 标志
 	for i := 0; i < len(os.Args); i++ {
-		if os.Args[i] == "--env" {
+		// 检查当前参数是否为 --env 且存在对应的值
+		if os.Args[i] == "--env" && i+1 < len(os.Args) {
 			Args["env"] = os.Args[i+1]
-			i++
+			i++ // 跳过已处理的环境值参数
 		}
 	}
 
-	if _, ok := Args["env"]; !ok {
+	// 如果未指定环境参数，设置默认值为生产环境
+	if _, exists := Args["env"]; !exists {
 		Args["env"] = env.ProdEnv
 	}
 }
 
+// main 是应用程序的主入口函数，负责完整的生命周期管理
+// 按照标准的启动流程：参数解析 -> 配置加载 -> 组件初始化 -> 服务启动 -> 优雅关闭
+//
+// 主要执行流程:
+//  1. 解析命令行参数，获取运行环境配置
+//  2. 加载应用程序配置文件
+//  3. 初始化核心组件（日志、数据库、搜索引擎等）
+//  4. 设置框架运行模式
+//  5. 启动 Web 服务器
+//  6. 监听系统信号并优雅关闭
+//
+// 注意: 任何关键组件初始化失败都会导致程序panic，确保系统完整性
 func main() {
-	getArgsFromTerminal()
+	// 阶段1: 解析命令行参数，获取运行环境等配置
+	parseCommandLineArgs()
 
-	// 加载配置文件
+	// 阶段2: 加载 YAML 配置文件，初始化全局配置
 	config.LoadConfig()
 
-	// 加载基础组件
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-	loadComponent(ctx)
-	cancel()
+	// 阶段3: 初始化应用程序核心组件，设置1分钟超时
+	// 包括日志系统、数据存储层、搜索引擎等关键组件
+	initializationCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	initializeApplicationComponents(initializationCtx)
+	cancel() // 及时释放上下文资源
 
-	// 选择启动模式
+	// 阶段4: 根据运行环境设置 Gin 框架模式
+	// 生产环境使用 Release 模式以获得最佳性能
 	if env.CurrentEnv == env.ProdEnv {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// 启动服务
-	srv := runServer()
+	// 阶段5: 启动 Web 服务器，开始处理 HTTP 请求
+	webServer := startWebServer()
 
-	// 监听系统信号
-	closeWebServer(srv)
+	// 阶段6: 进入信号监听状态，等待优雅关闭信号
+	// 程序将在此处阻塞，直到接收到 SIGINT 或 SIGTERM 信号
+	gracefulShutdown(webServer)
 }
