@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/storage/db/dblogger"
+
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 // createLoginRecordTableSQL 是用于创建库
@@ -95,6 +96,12 @@ func ConnectMysql(ctx context.Context) (*gorm.DB, error) {
 		err = db.Exec(createBlogTableSQL).Error
 		if err != nil {
 			handleError("创建 BLOG 表失败", err)
+		}
+	}
+	if !tableExists(db, "BLOG_READ_COUNT") {
+		err = db.Exec(createBlogReadCountTableSQL).Error
+		if err != nil {
+			handleError("创建 BLOG_READ_COUNT 表失败", err)
 		}
 	}
 	if !tableExists(db, "CATEGORY") {
