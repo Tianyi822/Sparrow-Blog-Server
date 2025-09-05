@@ -148,6 +148,22 @@ func (c *Cache) loadAof(ctx context.Context) error {
 
 // Set 在缓存中存储一个值，不设置过期时间
 func (c *Cache) Set(ctx context.Context, key string, value any) error {
+	if len(strings.TrimSpace(key)) == 0 {
+		return ErrEmptyKey
+	}
+
+	item, ok := c.items[key]
+	if !ok {
+		// 如果键不存在，则设置TTL为零，表示不设置过期时间
+		return c.SetWithExpired(ctx, key, value, 0)
+	}
+
+	// 如果键已存在，将原有的 TTL 值保留，防止将原有的 TTL 覆盖
+	if !item.expireAt.IsZero() {
+		// 计算剩余过期时间
+		return c.SetWithExpired(ctx, key, value, time.Until(item.expireAt))
+	}
+
 	return c.SetWithExpired(ctx, key, value, 0)
 }
 
