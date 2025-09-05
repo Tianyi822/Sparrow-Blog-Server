@@ -1,12 +1,18 @@
 package main
 
 import (
+	// 标准库
 	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/gin-gonic/gin"
+
 	"sparrow_blog_server/env"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/logger"
@@ -15,23 +21,13 @@ import (
 	"sparrow_blog_server/routers/webrouter"
 	"sparrow_blog_server/searchengine"
 	"sparrow_blog_server/storage"
-	"syscall"
-	"time"
-
-	"github.com/gin-gonic/gin"
 )
 
 // Args 存储从命令行解析得到的参数配置
-// 目前支持 --env 参数用于指定运行环境
 var Args map[string]string
 
 // initializeApplicationComponents 初始化应用程序核心基础组件
-// 按照依赖关系依次初始化环境、日志、数据存储和搜索引擎
-//
-// 参数:
-//   - ctx: 上下文对象，用于控制初始化超时和取消操作
-//
-// 注意: 任何组件初始化失败都会导致程序 panic，确保系统完整性
+// @param ctx 上下文对象，用于控制初始化超时和取消操作
 func initializeApplicationComponents(ctx context.Context) {
 	// 设置全局运行环境变量，影响后续所有组件的初始化行为
 	env.CurrentEnv = Args["env"]
@@ -55,13 +51,8 @@ func initializeApplicationComponents(ctx context.Context) {
 	}
 }
 
-// startWebServer 启动 Web 服务器并配置路由系统
-// 根据运行环境自动选择 HTTP 或 HTTPS 协议
-//
-// 返回值:
-//   - *http.Server: HTTP 服务器实例，用于后续的优雅关闭
-//
-// 注意: 服务器在独立的 goroutine 中运行，不会阻塞主线程
+// startWebServer 启动 Web 服务器并配置完整的路由系统
+// @return *http.Server HTTP 服务器实例，用于后续的优雅关闭操作
 func startWebServer() *http.Server {
 	// 注册所有路由模块，包括前台和后台管理路由
 	logger.Info("加载路由信息")
@@ -127,13 +118,7 @@ func startWebServer() *http.Server {
 }
 
 // gracefulShutdown 实现服务的优雅关闭机制
-// 监听系统信号并按照依赖关系有序关闭各个组件，确保数据完整性和资源正确释放
-//
-// 参数:
-//   - webServer: HTTP 服务器实例，需要被优雅关闭
-//
-// 关闭顺序: 数据层 -> 搜索引擎 -> Web服务器
-// 超时机制: 10秒内完成所有关闭操作，超时则强制退出
+// @param webServer HTTP 服务器实例，需要被优雅关闭
 func gracefulShutdown(webServer *http.Server) {
 	// 创建缓冲为1的信号通道，避免信号丢失
 	signalChannel := make(chan os.Signal, 1)
@@ -173,16 +158,6 @@ func gracefulShutdown(webServer *http.Server) {
 }
 
 // parseCommandLineArgs 解析命令行参数并设置默认值
-// 目前支持 --env 参数用于指定运行环境
-//
-// 支持的参数:
-//   - --env: 指定运行环境 (debug/prod)，默认为 prod
-//
-// 使用示例:
-//
-//	go run main.go --env debug  // 开发环境
-//	go run main.go --env prod   // 生产环境
-//	go run main.go             // 默认生产环境
 func parseCommandLineArgs() {
 	// 初始化全局参数存储映射
 	Args = make(map[string]string)
@@ -203,17 +178,6 @@ func parseCommandLineArgs() {
 }
 
 // main 是应用程序的主入口函数，负责完整的生命周期管理
-// 按照标准的启动流程：参数解析 -> 配置加载 -> 组件初始化 -> 服务启动 -> 优雅关闭
-//
-// 主要执行流程:
-//  1. 解析命令行参数，获取运行环境配置
-//  2. 加载应用程序配置文件
-//  3. 初始化核心组件（日志、数据库、搜索引擎等）
-//  4. 设置框架运行模式
-//  5. 启动 Web 服务器
-//  6. 监听系统信号并优雅关闭
-//
-// 注意: 任何关键组件初始化失败都会导致程序panic，确保系统完整性
 func main() {
 	// 阶段1: 解析命令行参数，获取运行环境等配置
 	parseCommandLineArgs()
