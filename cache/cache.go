@@ -508,13 +508,18 @@ func (c *Cache) GetString(ctx context.Context, key string) (string, error) {
 // - []string: 所有匹配的键名
 // - error: 操作错误（如上下文取消）
 func (c *Cache) GetKeysLike(ctx context.Context, matchStr string) ([]string, error) {
-	keys := make([]string, 0)
-	for key := range c.items {
-		if strings.Contains(key, matchStr) {
-			keys = append(keys, key)
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+		keys := make([]string, 0)
+		for key := range c.items {
+			if strings.Contains(key, matchStr) {
+				keys = append(keys, key)
+			}
 		}
+		return keys, nil
 	}
-	return keys, nil
 }
 
 // Delete 从缓存中删除一个条目，无论其过期状态如何
