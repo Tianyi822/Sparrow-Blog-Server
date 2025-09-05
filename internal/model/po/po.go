@@ -19,6 +19,17 @@ func (hb *Blog) TableName() string {
 	return "BLOG"
 }
 
+type BlogReadCount struct {
+	ReadId    string `gorm:"column:read_id;primaryKey"`
+	BlogId    string `gorm:"column:blog_id"`
+	ReadCount uint   `gorm:"column:read_count"`
+	ReadDate  string `gorm:"column:read_date"`
+}
+
+func (b *BlogReadCount) TableName() string {
+	return "BLOG_READ_COUNT"
+}
+
 type Category struct {
 	CategoryId   string    `gorm:"column:category_id;primaryKey"`                               // 分类 ID
 	CategoryName string    `gorm:"column:category_name;unique"`                                 // 分类名称

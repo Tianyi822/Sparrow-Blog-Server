@@ -34,6 +34,21 @@ func (hb *BlogDto) Name() string {
 	return hb.BlogTitle
 }
 
+type BlogReadCountDto struct {
+	ReadId    string `json:"read_id,omitempty"`
+	BlogId    string `json:"blog_id,omitempty"`
+	ReadCount uint   `json:"read_count,omitempty"`
+	ReadDate  string `json:"read_date,omitempty"`
+}
+
+func (brcd *BlogReadCountDto) DtoFlag() string {
+	return "BlogReadCountDto"
+}
+
+func (brcd *BlogReadCountDto) Name() string {
+	return brcd.BlogId
+}
+
 type TagDto struct {
 	TagId   string `json:"tag_id,omitempty"`
 	TagName string `json:"tag_name,omitempty"`
