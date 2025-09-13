@@ -54,12 +54,15 @@ func LoadConfig() {
 		}
 
 		if !filetool.IsExist(configFilePath) {
-			// 新建文件并保存空配置
+			// 创建带有默认值的配置文件
 			f, createErr := filetool.CreateFile(configFilePath)
 			if createErr != nil {
 				panic(createErr)
 			}
-			pc := &ProjectConfig{}
+			pc, defaultErr := createDefaultConfig()
+			if defaultErr != nil {
+				panic(fmt.Errorf("创建默认配置失败: %w", defaultErr))
+			}
 			yamlData, marshalErr := yaml.Marshal(pc)
 			if marshalErr != nil {
 				panic(fmt.Errorf("将配置数据转换为 YAML 失败: %w", marshalErr))
@@ -97,6 +100,51 @@ func LoadConfig() {
 		Oss = conf.Oss
 		Cache = conf.Cache
 	})
+}
+
+// createDefaultConfig 创建带有默认值的配置
+//
+// 返回值:
+//   - *ProjectConfig: 包含默认值的配置对象
+//   - error: 创建过程中遇到的任何错误
+func createDefaultConfig() (*ProjectConfig, error) {
+	projDir, err := getProjDir()
+	if err != nil {
+		return nil, fmt.Errorf("获取项目目录失败: %w", err)
+	}
+
+	return &ProjectConfig{
+		User: UserConfigData{},
+		Server: ServerConfigData{
+			Port: 8080,
+		},
+		Logger: LoggerConfigData{
+			Level:      "info",
+			Path:       filepath.Join(projDir, "log", "sparrow_blog.log"),
+			MaxAge:     7,
+			MaxSize:    10,
+			MaxBackups: 3,
+			Compress:   true,
+		},
+		SearchEngine: SearchEngineData{
+			IndexPath: filepath.Join(projDir, "index", "sparrow_blog.bleve"),
+		},
+		MySQL: MySQLConfigData{
+			Host:    "localhost",
+			Port:    3306,
+			MaxOpen: 10,
+			MaxIdle: 5,
+		},
+		Oss: OssConfig{},
+		Cache: CacheConfig{
+			Aof: AofConfig{
+				Enable:   true,
+				Path:     filepath.Join(projDir, "aof", "sparrow_blog.aof"),
+				MaxSize:  10,
+				Compress: true,
+			},
+		},
+	}, nil
 }
 
 // getConfigFilePath 获取配置文件的完整路径
