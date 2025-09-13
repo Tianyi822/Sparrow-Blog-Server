@@ -1,12 +1,18 @@
 package main
 
 import (
+	// 标准库
 	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/gin-gonic/gin"
+
 	"sparrow_blog_server/env"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/logger"
@@ -15,162 +21,227 @@ import (
 	"sparrow_blog_server/routers/webrouter"
 	"sparrow_blog_server/searchengine"
 	"sparrow_blog_server/storage"
-	"syscall"
-	"time"
-
-	"github.com/gin-gonic/gin"
 )
 
+// Args 存储从命令行解析得到的参数配置
 var Args map[string]string
 
-// loadComponent 加载基础组件
-func loadComponent(ctx context.Context) {
-	// 设置当前环境
+// initializeApplicationComponents 初始化应用程序核心基础组件
+// @param ctx 上下文对象，用于控制初始化超时和取消操作
+func initializeApplicationComponents(ctx context.Context) {
+	// 设置全局运行环境变量，影响后续所有组件的初始化行为
 	env.CurrentEnv = Args["env"]
-	// 初始化日志组件
+
+	// 优先初始化日志系统，确保后续初始化过程可以被记录
 	err := logger.InitLogger(ctx)
 	if err != nil {
 		panic("日志模块初始化失败，请检查配置文件是否有误")
 	}
-	// 初始化数据层
+
+	// 初始化数据存储层，包括数据库连接池和缓存系统
 	err = storage.InitStorage(ctx)
 	if err != nil {
 		panic("数据层初始化失败，请检查配置文件是否有误")
 	}
-	// 加载搜索引擎
+
+	// 初始化 Bleve 搜索引擎，加载中文分词索引
 	err = searchengine.LoadingIndex(ctx)
 	if err != nil {
 		panic("搜索引擎初始化失败，请检查配置文件是否有误")
 	}
 }
 
-// runServer 启动服务
-func runServer() *http.Server {
+// startWebServer 启动 Web 服务器并配置完整的路由系统
+// @return *http.Server HTTP 服务器实例，用于后续的优雅关闭操作
+func startWebServer() *http.Server {
+	// 注册所有路由模块，包括前台和后台管理路由
 	logger.Info("加载路由信息")
 	routers.IncludeOpts(
-		webrouter.Router,
-		adminrouter.Routers,
+		webrouter.Router,    // 前台博客路由
+		adminrouter.Routers, // 后台管理路由
 	)
 	logger.Info("路由信息加载完成")
 
+	// 初始化 Gin 路由引擎，应用中间件和路由配置
 	logger.Info("配置路由")
-	r := routers.InitRouter()
+	routerEngine := routers.InitRouter()
 	logger.Info("路由配置完成")
 
+	// 构建服务器监听地址
+	serverPort := fmt.Sprintf(":%v", config.Server.Port)
+
+	// 创建 HTTP 服务器实例
 	logger.Info("启动服务中")
-	port := fmt.Sprintf(":%v", config.Server.Port)
-	srv := &http.Server{
-		Addr:    port,
-		Handler: r,
+	webServer := &http.Server{
+		Addr:    serverPort,
+		Handler: routerEngine,
 	}
 
-	// 开启一个goroutine启动服务
+	// 在独立 goroutine 中启动服务器，避免阻塞主线程
 	go func() {
 		var err error
 
-		// 根据环境选择HTTP或HTTPS
+		// 根据环境变量选择协议：生产环境使用 HTTPS，开发环境使用 HTTP
 		if env.CurrentEnv == env.ProdEnv {
-			// 生产环境使用HTTPS
-			certFile := config.Server.SSL.CertFile
-			keyFile := config.Server.SSL.KeyFile
+			// 生产环境：启动 HTTPS 服务
+			certificateFile := config.Server.SSL.CertFile
+			privateKeyFile := config.Server.SSL.KeyFile
 
-			if certFile == "" || keyFile == "" {
+			// 验证 SSL 证书文件配置
+			if certificateFile == "" || privateKeyFile == "" {
 				logger.Fatal("生产环境需要配置SSL证书文件路径")
 				return
 			}
 
-			logger.Info("启动 HTTPS 服务，监听端口: %s", port)
-			err = srv.ListenAndServeTLS(certFile, keyFile)
+			logger.Info("启动 HTTPS 服务，监听端口: %s", serverPort)
+			err = webServer.ListenAndServeTLS(certificateFile, privateKeyFile)
 		} else {
-			// 开发环境使用HTTP
-			logger.Info("启动 HTTP 服务，监听端口: %s", port)
-			err = srv.ListenAndServe()
+			// 开发环境：启动 HTTP 服务
+			logger.Info("启动 HTTP 服务，监听端口: %s", serverPort)
+			err = webServer.ListenAndServe()
 		}
 
+		// 处理服务器启动错误，忽略正常关闭信号
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal("监听端口失败: %s\n", err)
 		}
 	}()
 
-	// 根据环境输出不同的启动信息
+	// 记录服务启动完成状态
 	if env.CurrentEnv == env.ProdEnv {
-		logger.Info("HTTPS 服务启动完成, 监听端口: %s", port)
+		logger.Info("HTTPS 服务启动完成, 监听端口: %s", serverPort)
 	} else {
-		logger.Info("HTTP 服务启动完成, 监听端口: %s", port)
+		logger.Info("HTTP 服务启动完成, 监听端口: %s", serverPort)
 	}
 
-	return srv
+	return webServer
 }
 
-// closeWebServer 监听系统信号，优雅关闭服务
-func closeWebServer(srv *http.Server) {
-	// 创建一个接收信号的通道
-	quit := make(chan os.Signal, 1)
+// gracefulShutdown 实现服务的优雅关闭机制
+// @param webServer HTTP 服务器实例，需要被优雅关闭
+func gracefulShutdown(webServer *http.Server) {
+	// 创建缓冲为1的信号通道，避免信号丢失
+	signalChannel := make(chan os.Signal, 1)
 
-	// kill 默认会发送 syscall.SIGTERM 信号
-	// kill -2 发送 syscall.SIGINT 信号，我们常用的Ctrl+C就是触发系统SIGINT信号
-	// kill -9 发送 syscall.SIGKILL 信号，但是不能被捕获，所以不需要添加它
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	// 在此停顿
-	<-quit
+	// 注册需要监听的系统信号
+	// SIGTERM: kill 命令发送的终止信号（优雅关闭）
+	// SIGINT: Ctrl+C 产生的中断信号（用户主动停止）
+	// 注意: SIGKILL(-9) 信号无法被捕获，会强制终止进程
+	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
 
-	// 创建一个5秒超时的context
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// 阻塞等待系统信号，程序将在此处暂停直到接收到信号
+	<-signalChannel
+
+	// 创建带超时的上下文，10秒内必须完成所有关闭操作
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// 先关闭数据层
+	// 按照依赖关系的逆序关闭组件，确保数据一致性
+
+	// 第一步: 关闭数据存储层（数据库连接池、缓存系统等）
+	// 优先关闭数据层，确保所有数据写入完成
 	logger.Info("关闭数据层")
-	storage.Storage.Close(ctx)
+	storage.Storage.Close(shutdownCtx)
 	logger.Info("数据层已关闭")
 
-	// 关闭搜索引擎
+	// 第二步: 关闭搜索引擎，停止索引操作
 	logger.Info("关闭搜索引擎")
 	searchengine.CloseIndex()
 	logger.Info("搜索引擎已关闭")
 
+	// 第三步: 优雅关闭 Web 服务器，停止接受新请求并等待现有请求完成
 	logger.Info("正在关闭服务")
-	// 定时优雅关闭服务（将未处理完的请求处理完再关闭服务），超时就退出
-	if err := srv.Shutdown(ctx); err != nil {
-		logger.Fatal("服务关闭超时, 哥们已强制关闭: ", err)
+	if err := webServer.Shutdown(shutdownCtx); err != nil {
+		logger.Fatal("服务关闭超时, 已强制关闭: ", err)
 	}
 	logger.Info("服务已退出")
 }
 
-// getArgsFromTerminal 从终端获取参数
-func getArgsFromTerminal() {
+// parseCommandLineArgs 解析命令行参数并设置默认值
+func parseCommandLineArgs() {
+	// 初始化全局参数存储映射
 	Args = make(map[string]string)
 
+	// 遍历命令行参数，查找 --env 标志
 	for i := 0; i < len(os.Args); i++ {
-		if os.Args[i] == "--env" {
+		// 检查当前参数是否为 --env 且存在对应的值
+		if os.Args[i] == "--env" && i+1 < len(os.Args) {
 			Args["env"] = os.Args[i+1]
-			i++
+			i++ // 跳过已处理的环境值参数
 		}
 	}
 
-	if _, ok := Args["env"]; !ok {
+	// 如果未指定环境参数，设置默认值为生产环境
+	if _, exists := Args["env"]; !exists {
 		Args["env"] = env.ProdEnv
 	}
 }
 
-func main() {
-	getArgsFromTerminal()
+// showFirstRunMessage 显示首次运行的提示信息
+// @param homePath 项目数据目录路径
+func showFirstRunMessage(homePath string) {
+	fmt.Println("✨ 欢迎使用 Sparrow Blog Server!")
+	fmt.Println()
+	fmt.Println("🎉 检测到这是您的首次运行，我们已经为您创建了默认配置文件。")
+	fmt.Println()
+	fmt.Println("📝 配置文件信息:")
+	fmt.Printf("   • 数据目录: %s\n", homePath)
+	fmt.Printf("   • 配置文件: %s/config/sparrow_blog_config.yaml\n", homePath)
+	fmt.Printf("   • 日志文件: %s/log/sparrow_blog.log\n", homePath)
+	fmt.Printf("   • 搜索索引: %s/index/\n", homePath)
+	fmt.Printf("   • 缓存文件: %s/aof/\n", homePath)
+	fmt.Println()
+	fmt.Println("⚙️ 接下来的步骤:")
+	fmt.Println("   1. 请根据您的需要编辑配置文件")
+	fmt.Println("   2. 配置数据库连接信息（MySQL）")
+	fmt.Println("   3. 配置邮件服务信息（可选）")
+	fmt.Println("   4. 配置对象存储信息（可选）")
+	fmt.Println("   5. 重新运行程序")
+	fmt.Println()
+	fmt.Println("📚 更多信息请参考 README.md 文件")
+	fmt.Println("🔗 项目代码: https://github.com/Tianyi822/H2Blog-Server")
+	fmt.Println()
+	fmt.Println("ℹ️ 程序将退出，请编辑配置文件后重新运行。")
+}
 
-	// 加载配置文件
+// main 是应用程序的主入口函数，负责完整的生命周期管理
+func main() {
+	// 阶段1: 解析命令行参数，获取运行环境等配置
+	parseCommandLineArgs()
+
+	// 阶段2: 初始化 SPARROW_BLOG_HOME 路径
+	homePath, err := env.InitSparrowBlogHome()
+	if err != nil {
+		fmt.Printf("❗ 初始化项目数据目录失败: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("ℹ️ 项目数据目录: %s\n", homePath)
+
+	// 阶段3: 加载 YAML 配置文件，初始化全局配置
 	config.LoadConfig()
 
-	// 加载基础组件
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-	loadComponent(ctx)
-	cancel()
+	// 阶段4: 检查是否为首次运行，如果是则显示提示信息并退出
+	if config.IsFirstRun {
+		showFirstRunMessage(homePath)
+		return
+	}
 
-	// 选择启动模式
+	// 阶段5: 初始化应用程序核心组件，设置1分钟超时
+	// 包括日志系统、数据存储层、搜索引擎等关键组件
+	initializationCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	initializeApplicationComponents(initializationCtx)
+	cancel() // 及时释放上下文资源
+
+	// 阶段6: 根据运行环境设置 Gin 框架模式
+	// 生产环境使用 Release 模式以获得最佳性能
 	if env.CurrentEnv == env.ProdEnv {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// 启动服务
-	srv := runServer()
+	// 阶段7: 启动 Web 服务器，开始处理 HTTP 请求
+	webServer := startWebServer()
 
-	// 监听系统信号
-	closeWebServer(srv)
+	// 阶段8: 进入信号监听状态，等待优雅关闭信号
+	// 程序将在此处阻塞，直到接收到 SIGINT 或 SIGTERM 信号
+	gracefulShutdown(webServer)
 }
