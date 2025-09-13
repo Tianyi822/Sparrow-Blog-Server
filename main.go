@@ -177,30 +177,71 @@ func parseCommandLineArgs() {
 	}
 }
 
+// showFirstRunMessage 显示首次运行的提示信息
+// @param homePath 项目数据目录路径
+func showFirstRunMessage(homePath string) {
+	fmt.Println("✨ 欢迎使用 Sparrow Blog Server!")
+	fmt.Println()
+	fmt.Println("🎉 检测到这是您的首次运行，我们已经为您创建了默认配置文件。")
+	fmt.Println()
+	fmt.Println("📝 配置文件信息:")
+	fmt.Printf("   • 数据目录: %s\n", homePath)
+	fmt.Printf("   • 配置文件: %s/config/sparrow_blog_config.yaml\n", homePath)
+	fmt.Printf("   • 日志文件: %s/log/sparrow_blog.log\n", homePath)
+	fmt.Printf("   • 搜索索引: %s/index/\n", homePath)
+	fmt.Printf("   • 缓存文件: %s/aof/\n", homePath)
+	fmt.Println()
+	fmt.Println("⚙️ 接下来的步骤:")
+	fmt.Println("   1. 请根据您的需要编辑配置文件")
+	fmt.Println("   2. 配置数据库连接信息（MySQL）")
+	fmt.Println("   3. 配置邮件服务信息（可选）")
+	fmt.Println("   4. 配置对象存储信息（可选）")
+	fmt.Println("   5. 重新运行程序")
+	fmt.Println()
+	fmt.Println("📚 更多信息请参考 README.md 文件")
+	fmt.Println("🔗 项目代码: https://github.com/Tianyi822/H2Blog-Server")
+	fmt.Println()
+	fmt.Println("ℹ️ 程序将退出，请编辑配置文件后重新运行。")
+}
+
 // main 是应用程序的主入口函数，负责完整的生命周期管理
 func main() {
 	// 阶段1: 解析命令行参数，获取运行环境等配置
 	parseCommandLineArgs()
 
-	// 阶段2: 加载 YAML 配置文件，初始化全局配置
+	// 阶段2: 初始化 SPARROW_BLOG_HOME 路径
+	homePath, err := env.InitSparrowBlogHome()
+	if err != nil {
+		fmt.Printf("❗ 初始化项目数据目录失败: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("ℹ️ 项目数据目录: %s\n", homePath)
+
+	// 阶段3: 加载 YAML 配置文件，初始化全局配置
 	config.LoadConfig()
 
-	// 阶段3: 初始化应用程序核心组件，设置1分钟超时
+	// 阶段4: 检查是否为首次运行，如果是则显示提示信息并退出
+	if config.IsFirstRun {
+		showFirstRunMessage(homePath)
+		return
+	}
+
+	// 阶段5: 初始化应用程序核心组件，设置1分钟超时
 	// 包括日志系统、数据存储层、搜索引擎等关键组件
 	initializationCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	initializeApplicationComponents(initializationCtx)
 	cancel() // 及时释放上下文资源
 
-	// 阶段4: 根据运行环境设置 Gin 框架模式
+	// 阶段6: 根据运行环境设置 Gin 框架模式
 	// 生产环境使用 Release 模式以获得最佳性能
 	if env.CurrentEnv == env.ProdEnv {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// 阶段5: 启动 Web 服务器，开始处理 HTTP 请求
+	// 阶段7: 启动 Web 服务器，开始处理 HTTP 请求
 	webServer := startWebServer()
 
-	// 阶段6: 进入信号监听状态，等待优雅关闭信号
+	// 阶段8: 进入信号监听状态，等待优雅关闭信号
 	// 程序将在此处阻塞，直到接收到 SIGINT 或 SIGTERM 信号
 	gracefulShutdown(webServer)
 }
