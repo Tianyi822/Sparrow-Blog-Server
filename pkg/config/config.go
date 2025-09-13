@@ -59,7 +59,7 @@ func LoadConfig() {
 		if !filetool.IsExist(configFilePath) {
 			// 设置首次运行标识
 			IsFirstRun = true
-			
+
 			// 创建带有默认值的配置文件
 			f, createErr := filetool.CreateFile(configFilePath)
 			if createErr != nil {
