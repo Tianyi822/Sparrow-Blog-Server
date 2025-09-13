@@ -6,6 +6,40 @@
 
 一个功能完整、高性能的 Go 语言博客后端系统，专为个人博客和小型网站设计。
 
+## 🔥 最新更新
+
+### v2.0.0 - 2024年更新
+
+#### 🎆 新增功能
+- **智能启动体验**: 首次运行自动检测和配置生成
+- **环境变量支持**: 支持通过 `SPARROW_BLOG_HOME` 自定义数据目录
+- **友好用户界面**: 首次运行显示清晰的配置指导
+- **默认配置优化**: 自动生成包含合理默认值的配置文件
+
+#### 🚀 性能优化
+- **配置系统重构**: 分层配置管理，提升可维护性
+- **目录结构优化**: 自动创建合理的文件目录结构
+- **错误处理增强**: 更好的错误提示和处理机制
+
+#### 🔧 技术改进
+- **并发安全**: 使用 `sync.Once` 确保配置只加载一次
+- **模块化设计**: 配置项定义与加载逻辑分离
+- **测试覆盖**: 新增完整的单元测试用例
+
+## 🎆 项目亮点
+
+### 💫 智能启动体验
+- **首次运行检测**: 自动检测是否为首次运行
+- **自动配置生成**: 创建包含合理默认值的配置文件
+- **友好用户界面**: 显示清晰的配置指导和文件路径
+- **环境变量支持**: 支持通过 `SPARROW_BLOG_HOME` 自定义数据目录
+
+### 🛠️ 高级配置管理
+- **分层配置结构**: 配置项定义与加载逻辑分离
+- **热重载支持**: 开发环境支持配置热重载
+- **环境适配**: 自动检测并适配不同运行环境
+- **错误处理**: 完善的配置错误检测和提示
+
 ## ✨ 项目特性
 
 - 🚀 **高性能架构**：基于 Gin 框架，支持高并发访问
@@ -76,7 +110,7 @@ H2Blog-Server/
 
 1. **克隆项目**
    ```bash
-   git clone https://github.com/your-username/H2Blog-Server.git
+   git clone https://github.com/Tianyi822/H2Blog-Server.git
    cd H2Blog-Server
    ```
 
@@ -85,11 +119,30 @@ H2Blog-Server/
    go mod download
    ```
 
-3. **配置数据库**
-   - 创建 MySQL 数据库
-   - 配置数据库连接信息（见配置说明）
+3. **首次运行**
+   ```bash
+   # 首次运行将自动创建配置文件和目录结构
+   go run main.go
+   ```
+   
+   首次运行时，系统会：
+   - 自动检查并设置 `SPARROW_BLOG_HOME` 环境变量
+   - 创建默认配置文件到 `~/.sparrow_blog/config/sparrow_blog_config.yaml`
+   - 显示友好的配置指导信息
+   - 程序退出，等待用户配置
 
-4. **启动服务**
+4. **配置数据库**
+   编辑配置文件 `~/.sparrow_blog/config/sparrow_blog_config.yaml`：
+   ```yaml
+   mysql:
+     host: "localhost"
+     port: 3306
+     user: "root"
+     password: "your-password"
+     database: "h2blog"
+   ```
+
+5. **启动服务**
    ```bash
    # 开发环境
    go run main.go --env debug
@@ -98,13 +151,37 @@ H2Blog-Server/
    go run main.go
    ```
 
-5. **验证安装**
+6. **验证安装**
    - 开发环境：访问 `http://localhost:8080`
    - 生产环境：访问 `https://your-domain.com`
 
 ## ⚙️ 配置说明
 
-系统使用 YAML 格式的配置文件，位于用户主目录的 `.h2blog/config/sparrow_blog_config.yaml`。
+系统使用 YAML 格式的配置文件，位于 `~/.sparrow_blog/config/sparrow_blog_config.yaml`。
+
+### 环境变量
+
+您可以通过设置环境变量来自定义数据目录：
+
+```bash
+# 自定义数据目录
+export SPARROW_BLOG_HOME=/opt/sparrow_blog
+
+# 运行程序
+go run main.go
+```
+
+如果未设置该环境变量，系统将使用默认路径 `~/.sparrow_blog`。
+
+### 首次运行默认配置
+
+系统首次运行时会自动生成包含以下默认值的配置文件：
+
+- **服务器端口**: 8080
+- **日志级别**: info
+- **日志文件**: `{SPARROW_BLOG_HOME}/log/sparrow_blog.log`
+- **搜索索引**: `{SPARROW_BLOG_HOME}/index/sparrow_blog.bleve`
+- **缓存文件**: `{SPARROW_BLOG_HOME}/aof/sparrow_blog.aof`
 
 ### 主要配置项
 
@@ -114,9 +191,41 @@ server:
   port: 8080                    # 服务端口
   token_key: "your-secret-key"  # JWT 密钥
   token_expire_duration: 7      # Token 过期时间（天）
+  cors:
+    origins:
+      - "http://localhost:3000"
+      - "https://your-domain.com"
+    headers:
+      - "Content-Type"
+      - "Authorization"
+    methods:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+  smtp_account: "your-email@example.com"     # 邮箱账号
+  smtp_address: "smtp.example.com"            # SMTP 服务器
+  smtp_port: 587                             # SMTP 端口
+  smtp_auth_code: "your-email-password"       # 邮箱密码
   ssl:
     cert_file: "/path/to/cert.pem"  # SSL 证书文件
     key_file: "/path/to/key.pem"    # SSL 私钥文件
+
+# 用户配置
+user:
+  user_name: "您的名字"
+  user_email: "your-email@example.com"
+  user_github_address: "https://github.com/your-username"
+  user_hobbies:
+    - "Golang"
+    - "博客写作"
+  type_writer_content:
+    - "欢迎来到我的博客"
+    - "分享技术，记录生活"
+  background_image: "background.jpg"
+  avatar_image: "avatar.jpg"
+  web_logo: "logo.png"
+  icp_filing_number: "您的备案号"
 
 # 数据库配置
 mysql:
@@ -128,25 +237,55 @@ mysql:
   max_open: 100
   max_idle: 10
 
+# 日志配置
+logger:
+  level: "info"                               # 日志级别
+  path: "/path/to/sparrow_blog.log"            # 日志文件路径
+  max_age: 7                                  # 日志保留天数
+  max_size: 10                                # 日志文件最大大小(MB)
+  max_backups: 3                              # 日志备份数量
+  compress: true                              # 是否压缩日志
+
 # 缓存配置
 cache:
   aof:
     enable: true
-    path: "./data/cache.aof"
-    max_size: 100
+    path: "/path/to/sparrow_blog.aof"
+    max_size: 10
     compress: true
 
 # 搜索引擎配置
 search_engine:
-  index_path: "./data/search_index"
+  index_path: "/path/to/search_index"
 
 # OSS 配置（可选）
 oss:
   endpoint: "oss-cn-hangzhou.aliyuncs.com"
+  region: "cn-hangzhou"
   access_key_id: "your-access-key"
   access_key_secret: "your-secret-key"
   bucket: "your-bucket"
+  image_oss_path: "images/"
+  blog_oss_path: "blogs/"
 ```
+
+### 文件目录结构
+
+系统会在数据目录中自动创建以下结构：
+
+```
+{SPARROW_BLOG_HOME}/
+├── config/
+│   └── sparrow_blog_config.yaml    # 主配置文件
+├── log/
+│   └── sparrow_blog.log            # 日志文件
+├── aof/
+│   └── sparrow_blog.aof            # AOF 缓存文件
+└── index/
+    └── sparrow_blog.bleve/         # 搜索索引文件
+```
+
+默认情况下，`{SPARROW_BLOG_HOME}` 为 `~/.sparrow_blog`。
 
 ## 📚 API 文档
 
@@ -182,6 +321,26 @@ oss:
 |------|------|------|
 | GET | `/api/web/search` | 搜索博客 |
 
+### 用户信息
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/web/user/info` | 获取用户信息 |
+
+### 图片管理
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| POST | `/api/admin/image/upload` | 上传图片 |
+| GET | `/api/web/image/:id` | 获取图片 |
+
+### 系统管理
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/admin/config` | 获取系统配置 |
+| PUT | `/api/admin/config` | 更新系统配置 |
+
 ## 🚀 部署指南
 
 ### Docker 部署
@@ -196,7 +355,7 @@ oss:
    docker run -d \
      --name h2blog \
      -p 8080:8080 \
-     -v /path/to/config:/app/config \
+     -e SPARROW_BLOG_HOME=/app/data \
      -v /path/to/data:/app/data \
      h2blog-server
    ```
@@ -212,6 +371,25 @@ oss:
    ```bash
    # 创建 systemd 服务文件
    sudo vim /etc/systemd/system/h2blog.service
+   ```
+   
+   服务文件内容：
+   ```ini
+   [Unit]
+   Description=Sparrow Blog Server
+   After=network.target
+   
+   [Service]
+   Type=simple
+   User=sparrow
+   WorkingDirectory=/opt/sparrow-blog
+   Environment=SPARROW_BLOG_HOME=/opt/sparrow-blog/data
+   ExecStart=/opt/sparrow-blog/h2blog-server
+   Restart=always
+   RestartSec=5
+   
+   [Install]
+   WantedBy=multi-user.target
    ```
 
 3. **启动服务**
@@ -323,6 +501,8 @@ type(scope): description
 - [GORM](https://github.com/go-gorm/gorm) - ORM 库
 - [Bleve](https://github.com/blevesearch/bleve) - 全文搜索引擎
 - [Zap](https://github.com/uber-go/zap) - 日志库
+- [Lumberjack](https://github.com/natefinch/lumberjack) - 日志轮转
+- [Gomail](https://github.com/go-gomail/gomail) - 邮件发送库
 
 ---
 
