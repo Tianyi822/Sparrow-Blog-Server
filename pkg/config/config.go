@@ -16,6 +16,9 @@ var (
 	// loadConfigOnce 确保配置只被加载一次
 	loadConfigOnce sync.Once
 
+	// IsFirstRun 标识是否为首次运行（配置文件不存在）
+	IsFirstRun bool
+
 	// User 保存全局用户配置
 	User UserConfigData
 
@@ -54,6 +57,9 @@ func LoadConfig() {
 		}
 
 		if !filetool.IsExist(configFilePath) {
+			// 设置首次运行标识
+			IsFirstRun = true
+			
 			// 创建带有默认值的配置文件
 			f, createErr := filetool.CreateFile(configFilePath)
 			if createErr != nil {
@@ -75,6 +81,9 @@ func LoadConfig() {
 			if closeErr != nil {
 				panic(fmt.Errorf("关闭文件失败: %w", closeErr))
 			}
+		} else {
+			// 配置文件存在，不是首次运行
+			IsFirstRun = false
 		}
 
 		// 从配置文件中加载配置
