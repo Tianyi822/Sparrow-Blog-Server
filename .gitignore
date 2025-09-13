@@ -19,6 +19,7 @@
 # IDE 特定文件
 .idea/
 .vscode/
+.qoder/
 *.swp
 *.swo
 
