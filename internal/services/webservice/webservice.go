@@ -265,6 +265,48 @@ func GetBlogDataById(ctx context.Context, id string) (*vo.BlogVo, string, error)
 		return nil, "", errors.New(msg)
 	}
 
+	// 处理该博客其他日期的阅读数据
+	// 获取该博客所有相关的缓存key
+	keys, err := storage.Storage.Cache.GetKeysLike(ctx, blogDto.BlogId)
+	if err != nil {
+		logger.Error(fmt.Sprintf("获取博客阅读数缓存失败: %v", err))
+	} else {
+		// 遍历处理每个缓存key
+		for _, key := range keys {
+			// 过滤掉不是博客阅读数缓存的 key
+			if !strings.HasPrefix(key, storage.BlogReadCountKeyPrefix) {
+				continue
+			}
+			// 过滤掉今天的 key
+			if strings.HasSuffix(key, time.Now().Format("20060102")) {
+				continue
+			}
+			// 获取缓存中的阅读数
+			count, err := storage.Storage.Cache.GetUint(ctx, key)
+			if err != nil {
+				logger.Error(fmt.Sprintf("获取博客阅读数缓存失败: %v", err))
+			} else {
+				// 构建数据传输对象
+				date := strings.Split(key, "-")[1]
+				blogReadCountDto := &dto.BlogReadCountDto{
+					BlogId:    blogDto.BlogId,
+					ReadCount: count,
+					ReadDate:  date,
+				}
+				// 使用事务持久化数据
+				tx := storage.Storage.Db.WithContext(ctx).Begin()
+				if err := blogreadrepo.UpInsertBlogReadCount(tx, blogReadCountDto); err != nil {
+					tx.Rollback()
+					logger.Error(fmt.Sprintf("保存博客阅读数失败: %v", err))
+				} else {
+					tx.Commit()
+					// 持久化成功后删除缓存
+					_ = storage.Storage.Cache.Delete(ctx, key)
+				}
+			}
+		}
+	}
+
 	// 处理博客阅读数统计
 	// 1. 构建博客阅读数缓存key
 	blogReadCountCacheKey := storage.BuildBlogReadCountKey(blogDto.BlogId)
@@ -290,14 +332,14 @@ func GetBlogDataById(ctx context.Context, id string) (*vo.BlogVo, string, error)
 		// 缓存命中时的处理
 		if blogReadCount < 100 {
 			// 阅读数小于100时，直接增加缓存计数
-			_, err := storage.Storage.Cache.Incr(ctx, blogReadCountCacheKey)
+			_, err := storage.Storage.Cache.IncrUint(ctx, blogReadCountCacheKey)
 			if err != nil {
 				logger.Error(fmt.Sprintf("增加博客阅读数缓存失败: %v", err))
 			}
 		} else {
 			// 阅读数达到100时的处理
 			// 增加缓存计数，保持数据一致性
-			_, err := storage.Storage.Cache.Incr(ctx, blogReadCountCacheKey)
+			_, err := storage.Storage.Cache.IncrUint(ctx, blogReadCountCacheKey)
 			if err != nil {
 				logger.Error(fmt.Sprintf("增加博客阅读数缓存失败: %v", err))
 			}
@@ -327,40 +369,6 @@ func GetBlogDataById(ctx context.Context, id string) (*vo.BlogVo, string, error)
 					logger.Error(fmt.Sprintf("清空博客阅读数缓存失败: %v", err))
 					// 重置失败则删除缓存key
 					_ = storage.Storage.Cache.Delete(ctx, blogReadCountCacheKey)
-				}
-			}
-		}
-	}
-
-	// 处理其他日期的阅读数据
-	// 获取该博客所有相关的缓存key
-	keys, err := storage.Storage.Cache.GetKeysLike(ctx, blogDto.BlogId)
-	if err != nil {
-		logger.Error(fmt.Sprintf("获取博客阅读数缓存失败: %v", err))
-	} else {
-		// 遍历处理每个缓存key
-		for _, key := range keys {
-			// 获取缓存中的阅读数
-			count, err := storage.Storage.Cache.GetUint(ctx, key)
-			if err != nil {
-				logger.Error(fmt.Sprintf("获取博客阅读数缓存失败: %v", err))
-			} else {
-				// 构建数据传输对象
-				date := strings.Split(key, "-")[1]
-				blogReadCountDto := &dto.BlogReadCountDto{
-					BlogId:    blogDto.BlogId,
-					ReadCount: count,
-					ReadDate:  date,
-				}
-				// 使用事务持久化数据
-				tx := storage.Storage.Db.WithContext(ctx).Begin()
-				if err := blogreadrepo.UpInsertBlogReadCount(tx, blogReadCountDto); err != nil {
-					tx.Rollback()
-					logger.Error(fmt.Sprintf("保存博客阅读数失败: %v", err))
-				} else {
-					tx.Commit()
-					// 持久化成功后删除缓存
-					_ = storage.Storage.Cache.Delete(ctx, key)
 				}
 			}
 		}
