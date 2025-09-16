@@ -108,9 +108,36 @@ func (c *Cache) loadAof(ctx context.Context) error {
 						return err
 					}
 
+					// 根据类型转换值
+					var value any = cmd[2] // 默认为字符串
+					switch common.ValueType(vt) {
+					case common.INT:
+						if intVal, err := strconv.Atoi(cmd[2]); err == nil {
+							value = intVal
+						} else {
+							continue // 转换失败，跳过该条目
+						}
+					case common.UINT:
+						if uintVal, err := strconv.ParseUint(cmd[2], 10, 64); err == nil {
+							value = uint(uintVal)
+						} else {
+							continue // 转换失败，跳过该条目
+						}
+					case common.FLOAT:
+						if floatVal, err := strconv.ParseFloat(cmd[2], 64); err == nil {
+							value = floatVal
+						} else {
+							continue // 转换失败，跳过该条目
+						}
+					case common.STRING:
+						value = cmd[2] // 保持字符串类型
+					case common.OBJ:
+						value = cmd[2] // 保持字符串类型（JSON格式）
+					}
+
 					// 创建缓存项
 					item := cacheItem{
-						value:    cmd[2],               // 值
+						value:    value,                // 转换后的值
 						vt:       common.ValueType(vt), // 转换为ValueType
 						expireAt: expireAt,
 					}
@@ -395,6 +422,12 @@ func (c *Cache) GetInt(ctx context.Context, key string) (int, error) {
 			return 0, NewOutOfRangeError("值超出int范围")
 		}
 		return int(u), nil
+	case string: // 从字符串转换
+		if result, err := strconv.Atoi(v); err != nil {
+			return 0, NewTypeMismatchError("无法将字符串转换为int: " + err.Error())
+		} else {
+			return result, nil
+		}
 	default:
 		return 0, NewTypeMismatchError("无法将类型转换为int")
 	}
@@ -435,6 +468,12 @@ func (c *Cache) GetUint(ctx context.Context, key string) (uint, error) {
 			return 0, ErrOutOfRange
 		}
 		return uint(i), nil
+	case string: // 从字符串转换
+		if result, err := strconv.ParseUint(v, 10, 0); err != nil {
+			return 0, NewTypeMismatchError("无法将字符串转换为uint: " + err.Error())
+		} else {
+			return uint(result), nil
+		}
 	default:
 		return 0, ErrTypeMismatch
 	}
@@ -466,6 +505,12 @@ func (c *Cache) GetFloat(ctx context.Context, key string) (float64, error) {
 		return float64(reflect.ValueOf(v).Int()), nil
 	case uint, uint8, uint16, uint32, uint64:
 		return float64(reflect.ValueOf(v).Uint()), nil
+	case string: // 从字符串转换
+		if result, err := strconv.ParseFloat(v, 64); err != nil {
+			return 0, NewTypeMismatchError("无法将字符串转换为float64: " + err.Error())
+		} else {
+			return result, nil
+		}
 	default:
 		return 0, ErrTypeMismatch
 	}
@@ -480,17 +525,25 @@ func (c *Cache) GetFloat(ctx context.Context, key string) (float64, error) {
 // - error  转换错误（ErrTypeMismatch）或操作错误
 //
 // 注意:
-// - 仅支持原生bool类型，不支持字符串/数字到布尔值的转换
+// - 支持原生bool类型和字符串到布尔值的转换
 func (c *Cache) GetBool(ctx context.Context, key string) (bool, error) {
 	val, err := c.Get(ctx, key)
 	if err != nil {
 		return false, err
 	}
 
-	if b, ok := val.(bool); ok {
-		return b, nil
+	switch v := val.(type) {
+	case bool:
+		return v, nil
+	case string: // 从字符串转换
+		if result, err := strconv.ParseBool(v); err != nil {
+			return false, NewTypeMismatchError("无法将字符串转换为bool: " + err.Error())
+		} else {
+			return result, nil
+		}
+	default:
+		return false, ErrTypeMismatch
 	}
-	return false, ErrTypeMismatch
 }
 
 // GetString 检索一个字符串值
