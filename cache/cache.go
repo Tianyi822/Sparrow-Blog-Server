@@ -334,25 +334,19 @@ func (c *Cache) IncrUint(ctx context.Context, key string) (uint, error) {
 	case <-ctx.Done():
 		return 0, ctx.Err()
 	default:
-		c.mu.Lock()
-		defer c.mu.Unlock()
-
-		// 获取现有值，如果不存在则默认为0
-		item, exists := c.items[key]
-		var val uint = 0
-		if exists {
-			// 类型检查
-			v, err := c.GetUint(ctx, key)
-			if err != nil {
-				return 0, err
-			}
-			val = v
+		val, err := c.GetUint(ctx, key)
+		if err != nil {
+			return 0, err
 		}
 
 		// 溢出检查
 		if val == math.MaxUint {
 			return 0, ErrOutOfRange
 		}
+
+		c.mu.Lock()
+		item := c.items[key]
+		c.mu.Unlock()
 
 		newVal := val + 1
 		c.items[key] = cacheItem{
