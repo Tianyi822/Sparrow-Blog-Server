@@ -303,13 +303,10 @@ func (c *Cache) Incr(ctx context.Context, key string) (int, error) {
 			return 0, ErrOutOfRange
 		}
 
-		c.mu.Lock()
-		c.items[key] = cacheItem{
-			value:    val + 1,
-			vt:       common.INT,
-			expireAt: c.items[key].expireAt, // 如果键存在，保持原始TTL，否则为0（永不过期）
+		setErr := c.Set(ctx, key, val+1)
+		if setErr != nil {
+			return 0, setErr
 		}
-		c.mu.Unlock()
 
 		return val + 1, nil
 	}
@@ -336,7 +333,14 @@ func (c *Cache) IncrUint(ctx context.Context, key string) (uint, error) {
 	default:
 		val, err := c.GetUint(ctx, key)
 		if err != nil {
-			return 0, err
+			if errors.Is(err, ErrNotFound) {
+				// 如果键不存在，创建一个新的
+				if err = c.Set(ctx, key, 1); err != nil {
+					return 0, err
+				}
+			} else {
+				return 0, err
+			}
 		}
 
 		// 溢出检查
@@ -344,18 +348,13 @@ func (c *Cache) IncrUint(ctx context.Context, key string) (uint, error) {
 			return 0, ErrOutOfRange
 		}
 
-		c.mu.Lock()
-		item := c.items[key]
-		c.mu.Unlock()
-
-		newVal := val + 1
-		c.items[key] = cacheItem{
-			value:    newVal,
-			vt:       common.UINT,
-			expireAt: item.expireAt, // 如果键存在，保持原始TTL，否则为0（永不过期）
+		// 计算剩余过期时间
+		setErr := c.Set(ctx, key, val+1)
+		if setErr != nil {
+			return 0, setErr
 		}
 
-		return newVal, nil
+		return val + 1, nil
 	}
 }
 
