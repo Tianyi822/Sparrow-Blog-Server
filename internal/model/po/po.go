@@ -108,18 +108,3 @@ type Comment struct {
 func (c *Comment) TableName() string {
 	return "COMMENT"
 }
-
-type FriendLink struct {
-	FriendLinkId        string    `gorm:"column:friend_link_id;primaryKey"`                            // 友链 ID
-	FriendLinkName      string    `gorm:"column:friend_link_name"`                                     // 友链名称
-	FriendLinkUrl       string    `gorm:"column:friend_link_url"`                                      // 友链地址
-	FriendLinkAvatarUrl string    `gorm:"column:friend_link_avatar_url"`                               // 友链头像
-	FriendDescribe      string    `gorm:"column:friend_describe"`                                      // 友链描述
-	Display             bool      `gorm:"column:display"`                                              // 是否展示
-	CreateTime          time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP"`                // 创建时间
-	UpdateTime          time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP;autoUpdateTime"` // 更新时间
-}
-
-func (fl *FriendLink) TableName() string {
-	return "FRIEND_LINK"
-}

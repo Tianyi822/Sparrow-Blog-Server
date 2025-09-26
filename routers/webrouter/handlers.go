@@ -4,7 +4,6 @@ import (
 	"net/url"
 	"time"
 
-	"sparrow_blog_server/internal/model/vo"
 	"sparrow_blog_server/internal/repositories/commentrepo"
 	"sparrow_blog_server/internal/services/adminservices"
 	"sparrow_blog_server/internal/services/webservice"
@@ -149,73 +148,6 @@ func searchContent(ctx *gin.Context) {
 
 	// 6. 返回搜索结果
 	resp.Ok(ctx, "搜索成功", response)
-}
-
-// getAllDisplayedFriendLinks 获取所有显示状态为 true 的友链
-// @param ctx *gin.Context - Gin上下文
-// @return 无返回值，通过resp包响应友链数据
-func getAllDisplayedFriendLinks(ctx *gin.Context) {
-	// 调用webservice层获取显示状态为 true 的友链数据
-	friendLinkDtos, err := webservice.GetDisplayedFriendLinks(ctx)
-	if err != nil {
-		resp.Err(ctx, "获取友链失败", err.Error())
-		return
-	}
-
-	// 将DTO列表转换为VO列表，以便前端使用
-	friendLinkVos := make([]vo.FriendLinkVo, 0, len(friendLinkDtos))
-	for _, friendLinkDto := range friendLinkDtos {
-		friendLinkVo := vo.FriendLinkVo{
-			FriendLinkId:    friendLinkDto.FriendLinkId,
-			FriendLinkName:  friendLinkDto.FriendLinkName,
-			FriendLinkUrl:   friendLinkDto.FriendLinkUrl,
-			FriendAvatarUrl: friendLinkDto.FriendAvatarUrl,
-			FriendDescribe:  friendLinkDto.FriendDescribe,
-			Display:         friendLinkDto.Display,
-		}
-		friendLinkVos = append(friendLinkVos, friendLinkVo)
-	}
-
-	// 返回成功响应
-	resp.Ok(ctx, "获取友链成功", friendLinkVos)
-}
-
-// applyFriendLink 申请友链
-// @param ctx *gin.Context - Gin上下文
-// @return 无返回值，通过resp包响应结果
-func applyFriendLink(ctx *gin.Context) {
-	// 使用tools包中的GetFriendLinkDto方法获取友链DTO
-	friendLinkDto, err := tools.GetFriendLinkDto(ctx)
-	if err != nil {
-		// GetFriendLinkDto内部已经处理了错误响应，这里直接返回
-		return
-	}
-
-	// 调用service层处理友链申请
-	if err := webservice.ApplyFriendLink(ctx, friendLinkDto); err != nil {
-		resp.Err(ctx, "友链申请失败: "+err.Error(), nil)
-		return
-	}
-
-	// 异步发送邮件通知管理员
-	go func() {
-		emailData := email.FriendLinkData{
-			Name:        friendLinkDto.FriendLinkName,
-			URL:         friendLinkDto.FriendLinkUrl,
-			AvatarURL:   friendLinkDto.FriendAvatarUrl,
-			Description: friendLinkDto.FriendDescribe,
-		}
-
-		// 发送邮件通知
-		if err := email.SendFriendLinkNotificationBySys(ctx.Copy(), emailData); err != nil {
-			// 邮件发送失败只记录日志，不影响主流程
-			// 这里可以添加日志记录
-			_ = err
-		}
-	}()
-
-	// 返回成功响应
-	resp.Ok(ctx, "友链申请成功，请等待管理员审核", nil)
 }
 
 // getCommentsByBlogId 根据博客ID获取所有评论及子评论

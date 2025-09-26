@@ -99,28 +99,7 @@ func GetImgDtos(ctx *gin.Context) (*dto.ImgsDto, error) {
 	return imgDtos, nil
 }
 
-// GetFriendLinkDto 从 gin.Context 中提取数据并将其转换为 FriendLinkDto 对象。
-// 参数:
-//   - ctx: *gin.Context，表示当前的 HTTP 请求上下文，包含请求数据和响应方法。
-//
-// 返回值:
-//   - *dto.FriendLinkDto: 转换后的 FriendLinkDto 对象，如果转换失败则返回 nil。
-//   - error: 如果在数据转换过程中发生错误，则返回该错误；否则返回 nil。
-func GetFriendLinkDto(ctx *gin.Context) (*dto.FriendLinkDto, error) {
-	// 初始化一个 FriendLinkDto 对象，用于存储从请求中提取的数据。
-	friendLinkDto := &dto.FriendLinkDto{}
 
-	// 调用 rowDataToDto 函数将请求数据映射到 friendLinkDto 对象中。
-	// 如果映射过程中发生错误，返回错误信息并通过 resp.BadRequest 响应客户端。
-	err := rowDataToDto(ctx, friendLinkDto)
-	if err != nil {
-		resp.BadRequest(ctx, err.Error(), -1)
-		return nil, err
-	}
-
-	// 如果数据转换成功，返回填充好的 FriendLinkDto 对象和 nil 错误。
-	return friendLinkDto, nil
-}
 
 // GetCommentDto 从 gin.Context 中提取数据并将其转换为 CommentDto 对象。
 // 参数:

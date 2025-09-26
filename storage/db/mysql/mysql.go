@@ -134,12 +134,7 @@ func ConnectMysql(ctx context.Context) (*gorm.DB, error) {
 			handleError("创建 COMMENT 表失败", err)
 		}
 	}
-	if !tableExists(db, "FRIEND_LINK") {
-		err = db.Exec(createFriendLinkTableSQL).Error
-		if err != nil {
-			handleError("创建 FRIEND_LINK 表失败", err)
-		}
-	}
+
 
 	// 记录日志，表示 MySQL 数据库连接成功
 	logger.Info("MySQL 数据库连接成功")
