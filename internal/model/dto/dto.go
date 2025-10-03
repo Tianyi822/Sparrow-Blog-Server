@@ -103,22 +103,7 @@ func (i *ImgsDto) Name() string {
 	return "ImgsDto"
 }
 
-type FriendLinkDto struct {
-	FriendLinkId    string `json:"friend_link_id,omitempty"`
-	FriendLinkName  string `json:"friend_link_name,omitempty"`
-	FriendLinkUrl   string `json:"friend_link_url,omitempty"`
-	FriendAvatarUrl string `json:"friend_avatar_url,omitempty"`
-	FriendDescribe  string `json:"friend_describe,omitempty"`
-	Display         bool   `json:"display"`
-}
 
-func (fl *FriendLinkDto) DtoFlag() string {
-	return "FriendLinkDto"
-}
-
-func (fl *FriendLinkDto) Name() string {
-	return fl.FriendLinkName
-}
 
 type CommentDto struct {
 	CommentId        string    `json:"comment_id,omitempty"`

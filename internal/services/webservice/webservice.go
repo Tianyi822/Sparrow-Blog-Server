@@ -11,7 +11,7 @@ import (
 	"sparrow_blog_server/internal/repositories/blogrepo"
 	"sparrow_blog_server/internal/repositories/categoryrepo"
 	"sparrow_blog_server/internal/repositories/commentrepo"
-	"sparrow_blog_server/internal/repositories/friendlinkrepo"
+
 	"sparrow_blog_server/internal/repositories/tagrepo"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/logger"
@@ -378,67 +378,9 @@ func GetBlogDataById(ctx context.Context, id string) (*vo.BlogVo, string, error)
 	return blogVo, preUrl, nil
 }
 
-// GetDisplayedFriendLinks 获取所有显示状态为 true 的友链信息
-// 参数:
-//   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据。
-//
-// 返回值:
-//   - []*dto.FriendLinkDto: 包含友链信息的 DTO 列表。
-//   - error: 如果在查询友链时发生错误，则返回该错误。
-func GetDisplayedFriendLinks(ctx context.Context) ([]*dto.FriendLinkDto, error) {
-	return friendlinkrepo.FindDisplayedFriendLinks(ctx)
-}
 
-// ApplyFriendLink 申请友链
-// 参数:
-//   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据。
-//   - friendLinkDto: 友链申请信息。
-//
-// 返回值:
-//   - error: 如果申请过程中发生错误，则返回该错误。
-func ApplyFriendLink(ctx context.Context, friendLinkDto *dto.FriendLinkDto) error {
-	// 1. 验证必需字段
-	if friendLinkDto.FriendLinkName == "" {
-		return errors.New("友链名称不能为空")
-	}
-	if friendLinkDto.FriendLinkUrl == "" {
-		return errors.New("友链URL不能为空")
-	}
 
-	// 2. 检查该URL是否已存在
-	existingLink, err := friendlinkrepo.FindFriendLinkByUrl(ctx, friendLinkDto.FriendLinkUrl)
-	if err != nil {
-		return fmt.Errorf("检查友链URL失败: %w", err)
-	}
-	if existingLink != nil {
-		return errors.New("该友链URL已存在")
-	}
 
-	// 3. 设置申请友链为不显示状态
-	friendLinkDto.Display = false
-
-	// 4. 开启数据库事务
-	tx := storage.Storage.Db.WithContext(ctx).Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	// 5. 创建友链记录
-	if err := friendlinkrepo.CreateFriendLink(tx, friendLinkDto); err != nil {
-		tx.Rollback()
-		return fmt.Errorf("创建友链失败: %w", err)
-	}
-
-	// 6. 提交事务
-	if err := tx.Commit().Error; err != nil {
-		return fmt.Errorf("提交事务失败: %w", err)
-	}
-
-	logger.Info(fmt.Sprintf("友链申请成功: %s - %s", friendLinkDto.FriendLinkName, friendLinkDto.FriendLinkUrl))
-	return nil
-}
 
 // GetCommentsByBlogId 根据博客ID获取评论（业务端功能）
 // - ctx: 上下文对象

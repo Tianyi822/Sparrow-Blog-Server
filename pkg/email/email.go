@@ -124,75 +124,7 @@ func SendVerificationCodeBySys(ctx context.Context) error {
 	return nil
 }
 
-// FriendLinkData 友链信息结构体
-type FriendLinkData struct {
-	Name        string // 友链名称
-	URL         string // 友链地址
-	AvatarURL   string // 头像URL
-	Description string // 友链简介
-}
 
-// SendFriendLinkNotificationByArgs 发送友链申请通知邮件。
-// 参数说明：
-//   - ctx: 上下文对象，用于控制请求的生命周期。
-//   - email: 收件人的电子邮件地址。
-//   - friendLink: 友链信息。
-//   - smtpAccount: SMTP服务器的账户名。
-//   - smtpAddress: SMTP服务器的地址。
-//   - smtpAuthCode: SMTP服务器的授权码。
-//   - smtpPort: SMTP服务器的端口号。
-//
-// 返回值：
-//   - error: 如果发送邮件过程中发生错误，则返回错误信息；否则返回nil。
-func SendFriendLinkNotificationByArgs(ctx context.Context, email string, friendLink FriendLinkData, smtpAccount, smtpAddress, smtpAuthCode string, smtpPort uint16) error {
-	// 解析HTML模板，准备渲染友链信息。
-	tmpl, err := template.New("friendlink").Parse(FriendLinkNotificationTemplate)
-	if err != nil {
-		return err
-	}
-
-	// 创建一个字符串构建器，用于存储渲染后的HTML内容。
-	var htmlContent strings.Builder
-
-	// 执行模板渲染，将友链信息插入到HTML模板中。
-	err = tmpl.Execute(&htmlContent, FriendLinkData{
-		Name:        template.HTMLEscapeString(friendLink.Name),
-		URL:         template.HTMLEscapeString(friendLink.URL),
-		AvatarURL:   template.HTMLEscapeString(friendLink.AvatarURL),
-		Description: template.HTMLEscapeString(friendLink.Description),
-	})
-	if err != nil {
-		return err
-	}
-
-	// 调用sendContent函数发送友链申请通知邮件。
-	return sendContent(email, htmlContent.String(), FriendLinkNotificationSubject, smtpAccount, smtpAddress, smtpAuthCode, smtpPort)
-}
-
-// SendFriendLinkNotificationBySys 发送友链申请通知邮件给系统配置的邮箱地址。
-// 参数:
-//   - ctx: 上下文对象，用于控制请求的生命周期和传递元数据；
-//   - friendLink: 友链信息；
-//
-// 返回值:
-//   - error: 如果发送过程中出现错误，则返回具体的错误信息；否则返回 nil。
-func SendFriendLinkNotificationBySys(ctx context.Context, friendLink FriendLinkData) error {
-	// 调用 SendFriendLinkNotificationByArgs 函数发送友链申请通知邮件，
-	// 使用系统配置中的 SMTP 账号、地址、授权码和端口信息。
-	if err := SendFriendLinkNotificationByArgs(
-		ctx,
-		config.User.UserEmail,
-		friendLink,
-		config.Server.SmtpAccount,
-		config.Server.SmtpAddress,
-		config.Server.SmtpAuthCode,
-		config.Server.SmtpPort,
-	); err != nil {
-		return err
-	}
-
-	return nil
-}
 
 // CommentData 评论信息结构体
 type CommentData struct {

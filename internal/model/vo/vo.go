@@ -69,16 +69,3 @@ type CommentVo struct {
 func (cv *CommentVo) VoFlag() string {
 	return "CommentVo"
 }
-
-type FriendLinkVo struct {
-	FriendLinkId    string `json:"friend_link_id,omitempty"`
-	FriendLinkName  string `json:"friend_link_name,omitempty"`
-	FriendLinkUrl   string `json:"friend_link_url,omitempty"`
-	FriendAvatarUrl string `json:"friend_avatar_url,omitempty"`
-	FriendDescribe  string `json:"friend_describe,omitempty"`
-	Display         bool   `json:"display"`
-}
-
-func (flv *FriendLinkVo) VoFlag() string {
-	return "FriendLinkVo"
-}
