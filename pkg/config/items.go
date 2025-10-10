@@ -6,8 +6,8 @@ type ProjectConfig struct {
 	Server       ServerConfigData `yaml:"server"`        // 服务器配置
 	Logger       LoggerConfigData `yaml:"logger"`        // 日志配置
 	SearchEngine SearchEngineData `yaml:"search_engine"` // 搜索引擎配置
-	MySQL        MySQLConfigData  `yaml:"mysql"`         // MySQL数据库配置
-	Oss          OssConfig        `yaml:"oss"`           // OSS对象存储配置
+	Sqlite       SqliteConfig     `yaml:"sqlite"`        // Sqlite 数据库配置
+	Oss          OssConfig        `yaml:"oss"`           // OSS 对象存储配置
 	Cache        CacheConfig      `yaml:"cache"`         // 缓存配置
 }
 
@@ -65,15 +65,9 @@ type SearchEngineData struct {
 	IndexPath string `yaml:"index_path"` // 搜索索引文件路径
 }
 
-// MySQLConfigData 定义了MySQL数据库配置
-type MySQLConfigData struct {
-	User     string `yaml:"user"`     // 数据库用户名
-	Password string `yaml:"password"` // 数据库密码
-	Host     string `yaml:"host"`     // 数据库主机地址
-	Port     uint16 `yaml:"port"`     // 数据库端口号
-	DB       string `yaml:"database"` // 数据库名称
-	MaxOpen  uint16 `yaml:"max_open"` // 最大打开连接数
-	MaxIdle  uint16 `yaml:"max_idle"` // 最大空闲连接数
+// SqliteConfig 数据库配置
+type SqliteConfig struct {
+	Path string `yaml:"path"`
 }
 
 // OssConfig 定义了对象存储服务配置

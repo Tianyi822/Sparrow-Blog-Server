@@ -9,7 +9,7 @@ import (
 	"sparrow_blog_server/cache"
 	"sparrow_blog_server/pkg/config"
 	"sparrow_blog_server/pkg/logger"
-	"sparrow_blog_server/storage/db/mysql"
+	"sparrow_blog_server/storage/db/sqlite"
 	"sparrow_blog_server/storage/ossstore"
 	"sparrow_blog_server/storage/ossstore/aliyun"
 	"sync"
@@ -39,7 +39,7 @@ func InitStorage(ctx context.Context) error {
 			Storage = &storage{}
 			// TODO: 可以不止配置 MySql 一种数据库，现在先写死，后面根据数据库配置进行选择
 			logger.Info("配置数据库")
-			db, err := mysql.ConnectMysql(ctx)
+			db, err := sqlite.ConnectSqlite(ctx)
 			if err != nil {
 				msg := fmt.Sprintf("连接数据库失败 %v", err)
 				logger.Panic(msg)

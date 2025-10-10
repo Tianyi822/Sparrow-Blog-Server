@@ -31,8 +31,8 @@ var (
 	// SearchEngine 搜索引擎配置
 	SearchEngine SearchEngineData
 
-	// MySQL 保存全局MySQL数据库配置
-	MySQL MySQLConfigData
+	// Sqlite 配置
+	Sqlite SqliteConfig
 
 	// Oss 保存全局OSS配置
 	Oss OssConfig
@@ -105,7 +105,7 @@ func LoadConfig() {
 		Server = conf.Server
 		Logger = conf.Logger
 		SearchEngine = conf.SearchEngine
-		MySQL = conf.MySQL
+		Sqlite = conf.Sqlite
 		Oss = conf.Oss
 		Cache = conf.Cache
 	})
@@ -138,11 +138,8 @@ func createDefaultConfig() (*ProjectConfig, error) {
 		SearchEngine: SearchEngineData{
 			IndexPath: filepath.Join(projDir, "index", "sparrow_blog.bleve"),
 		},
-		MySQL: MySQLConfigData{
-			Host:    "localhost",
-			Port:    3306,
-			MaxOpen: 10,
-			MaxIdle: 5,
+		Sqlite: SqliteConfig{
+			Path: filepath.Join(projDir, "data", "sparrow_blog.db"),
 		},
 		Oss: OssConfig{},
 		Cache: CacheConfig{

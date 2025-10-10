@@ -78,12 +78,12 @@ func testInstance(t *testing.T, testData struct {
 	LoadConfig()
 }
 
-func TestMySQLConfig(t *testing.T) {
+func TestSqliteConfig(t *testing.T) {
 	LoadConfig()
-	if MySQL.User != "root" {
-		t.Errorf("MySQL.User should be 'root', but got %s", MySQL.User)
+	if Sqlite.Path == "" {
+		t.Error("Sqlite.Path should not be empty")
 	}
-	fmt.Println(MySQL)
+	fmt.Println(Sqlite)
 }
 
 func TestServerConfig(t *testing.T) {
