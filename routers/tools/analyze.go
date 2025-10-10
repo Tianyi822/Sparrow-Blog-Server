@@ -2,7 +2,6 @@ package tools
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"math"
 	"net"
@@ -175,37 +174,6 @@ func AnalyzeHostAddress(host string) error {
 
 	if !(domainMatch || isIPv4 || isIPv6) {
 		return fmt.Errorf("host 地址 %v 格式不正确", host)
-	}
-
-	return nil
-}
-
-func AnalyzeMySqlConnect(mysqlConfig *config.MySQLConfigData) error {
-	// 连接 MySQL（不指定库名）
-	db, err := sql.Open(
-		"mysql",
-		fmt.Sprintf(
-			"%s:%s@tcp(%s:%d)/?charset=utf8mb4&parseTime=true&loc=Asia%%2FShanghai",
-			mysqlConfig.User,     // MySQL 用户名
-			mysqlConfig.Password, // MySQL 密码
-			mysqlConfig.Host,     // MySQL 服务器地址
-			mysqlConfig.Port,     // MySQL 服务器端口
-		),
-	)
-	if err != nil {
-		return err
-	}
-	defer func(db *sql.DB) {
-		err = db.Close()
-		if err != nil {
-			panic(err)
-		}
-	}(db)
-
-	// 创建数据库
-	_, err = db.Exec(fmt.Sprintf(`CREATE DATABASE IF NOT EXISTS %s DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`, mysqlConfig.DB))
-	if err != nil {
-		return err
 	}
 
 	return nil

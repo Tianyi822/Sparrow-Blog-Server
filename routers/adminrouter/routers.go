@@ -113,10 +113,6 @@ func Routers(e *gin.Engine) {
 
 		settingGroup.PUT("/logger/config", updateLoggerConfig)
 
-		settingGroup.GET("/mysql/config", getMysqlConfig)
-
-		settingGroup.PUT("/mysql/config", updateMysqlConfig)
-
 		settingGroup.GET("/oss/config", getOssConfig)
 
 		settingGroup.PUT("/oss/config", updateOssConfig)
@@ -127,8 +123,6 @@ func Routers(e *gin.Engine) {
 
 		settingGroup.PUT("/cache-index/rebuild-index", rebuildIndex)
 	}
-
-
 
 	{
 		commentGroup := adminGroup.Group("/comments")
