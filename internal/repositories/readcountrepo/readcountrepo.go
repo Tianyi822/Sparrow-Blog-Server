@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
-// GetRecentSevenDaysReadCount 查询最近七天博客阅读数
-func GetRecentSevenDaysReadCount(ctx context.Context) ([]*dto.BlogReadCountDto, error) {
+// FindRecentSevenDaysReadCount 查询最近七天博客阅读数
+func FindRecentSevenDaysReadCount(ctx context.Context) ([]*dto.BlogReadCountDto, error) {
 	logger.Info("查询最近七天博客阅读数")
 	var readCounts []*po.BlogReadCount
 	err := storage.Storage.Db.WithContext(ctx).Model(&po.BlogReadCount{}).

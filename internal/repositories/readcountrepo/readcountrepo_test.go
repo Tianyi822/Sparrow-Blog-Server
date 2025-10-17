@@ -21,9 +21,9 @@ func init() {
 }
 
 func TestGetRecentSevenDaysReadCount(t *testing.T) {
-	res, err := GetRecentSevenDaysReadCount(context.Background())
+	res, err := FindRecentSevenDaysReadCount(context.Background())
 	if err != nil {
-		t.Errorf("GetRecentSevenDaysReadCount error: %v", err)
+		t.Errorf("FindRecentSevenDaysReadCount error: %v", err)
 	}
 	for _, v := range res {
 		t.Logf("res: %v - %v", v.ReadCount, v.ReadDate)
