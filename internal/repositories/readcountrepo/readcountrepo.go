@@ -15,6 +15,36 @@ import (
 	"gorm.io/gorm"
 )
 
+// FindBlogReadCountsByIds 根据博客 ID 批量查询阅读数
+//
+// 参数:
+// - blogIds []string: 博客 ID 列表
+//
+// 返回:
+// - map[string]int: 键为博客 ID，值为该博客的阅读数
+func FindBlogReadCountsByIds(ctx context.Context, blogIds []string) (map[string]uint, error) {
+	logger.Info("批量查询阅读数")
+	var blogReadCounts []po.BlogReadCount
+	err := storage.Storage.Db.WithContext(ctx).Model(&po.BlogReadCount{}).
+		Select("blog_id, sum(read_count) as read_count").
+		Where("blog_id in ?", blogIds).
+		Group("blog_id").
+		Scan(&blogReadCounts).Error
+	if err != nil {
+		msg := fmt.Sprintf("批量查询阅读数出错: %v", err.Error())
+		logger.Warn(msg)
+		return nil, errors.New(msg)
+	}
+	logger.Info("批量查询阅读数完成")
+
+	blogReadCountMap := make(map[string]uint)
+	for _, blogReadCount := range blogReadCounts {
+		blogReadCountMap[blogReadCount.BlogId] = blogReadCount.ReadCount
+	}
+
+	return blogReadCountMap, nil
+}
+
 // UpsertBlogReadCount 添加或更新博客阅读数
 func UpsertBlogReadCount(tx *gorm.DB, brcdto *dto.BlogReadCountDto) error {
 	// 根据博客ID和日期生成唯一的阅读记录ID

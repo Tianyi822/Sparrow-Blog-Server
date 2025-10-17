@@ -23,6 +23,16 @@ func init() {
 	_ = storage.InitStorage(context.Background())
 }
 
+func TestFindBlogReadCountsByIds(t *testing.T) {
+	res, err := FindBlogReadCountsByIds(context.Background(), []string{"056621125212339d", "056621125212339e"})
+	if err != nil {
+		t.Errorf("FindBlogReadCountsByIds error: %v", err)
+	}
+	for k, v := range res {
+		t.Logf("res: %v - %v", k, v)
+	}
+}
+
 // TestAddBlogReadCount 测试添加博客阅读数功能
 func TestAddBlogReadCount(t *testing.T) {
 	ctx := context.Background()
