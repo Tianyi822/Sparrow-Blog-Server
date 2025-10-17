@@ -42,7 +42,7 @@ func TestAddBlogReadCount(t *testing.T) {
 	}
 
 	// 执行测试函数
-	err := UpInsertBlogReadCount(tx, brcd)
+	err := UpsertBlogReadCount(tx, brcd)
 
 	assert.Nil(t, err)
 

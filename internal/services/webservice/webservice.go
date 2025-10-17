@@ -295,7 +295,7 @@ func GetBlogDataById(ctx context.Context, id string) (*vo.BlogVo, string, error)
 				}
 				// 使用事务持久化数据
 				tx := storage.Storage.Db.WithContext(ctx).Begin()
-				if err := readcountrepo.UpInsertBlogReadCount(tx, blogReadCountDto); err != nil {
+				if err := readcountrepo.UpsertBlogReadCount(tx, blogReadCountDto); err != nil {
 					tx.Rollback()
 					logger.Error(fmt.Sprintf("保存博客阅读数失败: %v", err))
 				} else {
@@ -354,7 +354,7 @@ func GetBlogDataById(ctx context.Context, id string) (*vo.BlogVo, string, error)
 
 			// 使用事务保存数据
 			tx := storage.Storage.Db.WithContext(ctx).Begin()
-			err = readcountrepo.UpInsertBlogReadCount(tx, blogReadCountDto)
+			err = readcountrepo.UpsertBlogReadCount(tx, blogReadCountDto)
 			if err != nil {
 				tx.Rollback()
 				logger.Error(fmt.Sprintf("保存博客阅读数失败: %v", err))

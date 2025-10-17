@@ -15,8 +15,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// UpInsertBlogReadCount 添加或更新博客阅读数
-func UpInsertBlogReadCount(tx *gorm.DB, brcdto *dto.BlogReadCountDto) error {
+// UpsertBlogReadCount 添加或更新博客阅读数
+func UpsertBlogReadCount(tx *gorm.DB, brcdto *dto.BlogReadCountDto) error {
 	// 根据博客ID和日期生成唯一的阅读记录ID
 	readId, err := utils.GenId(brcdto.BlogId + brcdto.ReadDate)
 	if err != nil {
