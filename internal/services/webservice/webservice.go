@@ -7,10 +7,10 @@ import (
 	"sparrow_blog_server/cache"
 	"sparrow_blog_server/internal/model/dto"
 	"sparrow_blog_server/internal/model/vo"
-	"sparrow_blog_server/internal/repositories/blogreadrepo"
 	"sparrow_blog_server/internal/repositories/blogrepo"
 	"sparrow_blog_server/internal/repositories/categoryrepo"
 	"sparrow_blog_server/internal/repositories/commentrepo"
+	"sparrow_blog_server/internal/repositories/readcountrepo"
 
 	"sparrow_blog_server/internal/repositories/tagrepo"
 	"sparrow_blog_server/pkg/config"
@@ -295,7 +295,7 @@ func GetBlogDataById(ctx context.Context, id string) (*vo.BlogVo, string, error)
 				}
 				// 使用事务持久化数据
 				tx := storage.Storage.Db.WithContext(ctx).Begin()
-				if err := blogreadrepo.UpInsertBlogReadCount(tx, blogReadCountDto); err != nil {
+				if err := readcountrepo.UpInsertBlogReadCount(tx, blogReadCountDto); err != nil {
 					tx.Rollback()
 					logger.Error(fmt.Sprintf("保存博客阅读数失败: %v", err))
 				} else {
@@ -354,7 +354,7 @@ func GetBlogDataById(ctx context.Context, id string) (*vo.BlogVo, string, error)
 
 			// 使用事务保存数据
 			tx := storage.Storage.Db.WithContext(ctx).Begin()
-			err = blogreadrepo.UpInsertBlogReadCount(tx, blogReadCountDto)
+			err = readcountrepo.UpInsertBlogReadCount(tx, blogReadCountDto)
 			if err != nil {
 				tx.Rollback()
 				logger.Error(fmt.Sprintf("保存博客阅读数失败: %v", err))
@@ -377,10 +377,6 @@ func GetBlogDataById(ctx context.Context, id string) (*vo.BlogVo, string, error)
 	// 返回博客视图对象和预签名URL
 	return blogVo, preUrl, nil
 }
-
-
-
-
 
 // GetCommentsByBlogId 根据博客ID获取评论（业务端功能）
 // - ctx: 上下文对象
