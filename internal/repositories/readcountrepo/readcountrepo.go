@@ -45,6 +45,36 @@ func FindBlogReadCountsByIds(ctx context.Context, blogIds []string) (map[string]
 	return blogReadCountMap, nil
 }
 
+// FindTop10BlogReadCounts 查询阅读数前 10 的博客
+func FindTop10BlogReadCounts(ctx context.Context) ([]*dto.BlogReadCountDto, error) {
+	logger.Info("查询阅读数前10的博客")
+	var blogReadCounts []*po.BlogReadCount
+	err := storage.Storage.Db.WithContext(ctx).Model(&po.BlogReadCount{}).
+		Select("blog_id, sum(read_count) as read_count").
+		Group("blog_id").
+		Order("read_count desc").
+		Limit(10).
+		Scan(&blogReadCounts).Error
+
+	if err != nil {
+		msg := fmt.Sprintf("数据库查询出错: %v", err.Error())
+		logger.Warn(msg)
+		return nil, errors.New(msg)
+	}
+	logger.Info("查询阅读数前10的博客完成")
+
+	var blogReadCountDtos []*dto.BlogReadCountDto
+	for _, blogReadCount := range blogReadCounts {
+		blogReadCountDtos = append(blogReadCountDtos, &dto.BlogReadCountDto{
+			BlogId:    blogReadCount.BlogId,
+			ReadCount: blogReadCount.ReadCount,
+			ReadDate:  blogReadCount.ReadDate,
+		})
+	}
+
+	return blogReadCountDtos, nil
+}
+
 // UpsertBlogReadCount 添加或更新博客阅读数
 func UpsertBlogReadCount(tx *gorm.DB, brcdto *dto.BlogReadCountDto) error {
 	// 根据博客ID和日期生成唯一的阅读记录ID

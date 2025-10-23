@@ -68,3 +68,13 @@ func TestGetRecentSevenDaysReadCount(t *testing.T) {
 		t.Logf("res: %v - %v", v.ReadCount, v.ReadDate)
 	}
 }
+
+func TestFindTop10BlogReadCounts(t *testing.T) {
+	res, err := FindTop10BlogReadCounts(context.Background())
+	if err != nil {
+		t.Errorf("FindTop10BlogReadCounts error: %v", err)
+	}
+	for _, v := range res {
+		t.Logf("res: %v - %v", v.BlogId, v.ReadCount)
+	}
+}
