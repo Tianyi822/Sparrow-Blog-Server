@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"sparrow_blog_server/internal/model/dto"
 	"sparrow_blog_server/internal/model/po"
 	"sparrow_blog_server/pkg/logger"
 	"sparrow_blog_server/pkg/utils"
 	"sparrow_blog_server/storage"
+
+	"gorm.io/gorm"
 )
 
 // FindAllTags 查询数据库中的所有标签，并将其转换为 DTO（数据传输对象）格式返回。
@@ -261,13 +262,12 @@ func CleanTagsWithoutBlog(tx *gorm.DB) error {
 	logger.Info("删除没有博客关联的标签数据")
 
 	result := tx.Exec(`
-		DELETE
-		FROM TAG T
+		DELETE FROM TAG
 		WHERE NOT EXISTS (
 			SELECT 1
-        	FROM BLOG_TAG BT
-          	WHERE BT.tag_id = T.tag_id
-        );
+			FROM BLOG_TAG BT
+			WHERE BT.tag_id = TAG.tag_id
+		);
 	`)
 
 	if result.Error != nil {
